@@ -325,5 +325,41 @@ sub _http_receive
  return $dr;
 }
 
+sub ping
+{
+ my ($self,$autorecon)=@_;
+ $autorecon=0 unless defined $autorecon;
+ my $t=$self->transport_data();
+ my $pc=$t->{pc};
+ Net::DRI::Exception::err_method_not_implemented() unless ($pc->can('keepalive') && $pc->can('parse_keepalive'));
+
+ my $cltrid=$self->generate_trid($self->{logging_ctx}->{registry});
+ eval
+ {
+  local $SIG{ALRM}=sub { die 'timeout' };
+  alarm(10);
+  my $noop=$pc->keepalive($t->{message_factory},$cltrid);
+  $self->log_output('notice','transport',{otype=>'session',oaction=>'keepalive'},{trid=>$cltrid,phase=>'keepalive',direction=>'out',message=>$noop});
+  Net::DRI::Exception->die(0,'transport/http',4,'Unable to send ping message to '.$t->{remote_uri}) unless $self->_http_send(1,$noop,1);
+  $self->time_used(time());
+  $t->{exchanges_done}++;
+  my $dr=$self->_http_receive(1);
+  $self->log_output('notice','transport',{otype=>'session',oaction=>'keepalive'},{trid=>$cltrid,phase=>'keepalive',direction=>'in',message=>$dr});
+  my $rc=$pc->parse_keepalive($dr);
+  die($rc) unless $rc->is_success();
+ };
+ alarm(0);
+
+ if ($@)
+ {
+  $self->current_state(0);
+  $self->open_connection({}) if $autorecon;
+ } else
+ {
+  $self->current_state(1);
+ }
+ return $self->current_state();
+}
+
 #####################################################################################################
 1;

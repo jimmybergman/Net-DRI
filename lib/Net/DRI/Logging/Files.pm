@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 #########################################################################################
 
 package Net::DRI::Logging::Files;
@@ -25,8 +22,6 @@ use base qw/Net::DRI::Logging/;
 use Net::DRI::Exception;
 
 use IO::Handle; ## needed for the autoflush method on any lexical $fh
-
-our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf('%d'.'.%02d' x $#r, @r); };
 
 ####################################################################################################
 
@@ -60,6 +55,18 @@ sub output
  my ($self,$level,$type,$data)=@_;
  if (! $self->should_log($level)) { return; }
  my $name=$self->generate_filename($type,$data);
+ if (! exists $self->{fh}->{$name})
+ {
+  my $core=$self->generate_filename('core');
+  if (exists $self->{fh}->{$core})
+  {
+   $self->output('critical','core',sprintf('File "%s" (type "%s") has not been setup (no previous call to setup_channel or invalid type?), switching to "core" logging file',$name,$type));
+   $name=$core;
+  } else
+  {
+   Net::DRI::Exception->die(1,'logging',3,sprintf('File "%s" (type "%s") has not been setup (no previous call to setup_channel or invalid type?), and can not switch to "core" logging file',$name,$type));
+  }
+ }
  print { $self->{fh}->{$name} } $self->tostring($level,$type,$data),"\n";
  return;
 }
@@ -69,7 +76,7 @@ sub output
 sub generate_filename
 {
  my ($self,$type,$ctx)=@_;
- my $name=(defined $ctx && ref $ctx eq 'HASH')? sprintf('%s-%s',$ctx->{registry},$ctx->{profile}) : $type;
+ my $name=(defined $ctx && ref $ctx eq 'HASH')? sprintf('%s-%s-%s',$ctx->{registry},$ctx->{profile},$type) : $type;
  return sprintf '%s/%d-%s.log',$self->{output_directory},$$,$name;
 }
 
@@ -93,10 +100,6 @@ __END__
 =head1 NAME
 
 Net::DRI::Logging::Files - Logging to Files for Net::DRI
-
-=head1 VERSION
-
-This documentation refers to Net::DRI::Logging::Files version 1.01
 
 =head1 SYNOPSIS
 
