@@ -1,0 +1,169 @@
+Description: Upstream changes introduced in version 0.96-3atomia
+ This patch has been created by dpkg-source during the package build.
+ Here's the last changelog entry, hopefully it gives details on why
+ those changes were made:
+ .
+ libnet-dri-perl (0.96-3atomia) unstable; urgency=low
+ .
+   * Fix XCP UTF-8 encoding issue with MD5-sum.
+   * Add domain_update support to XCP/OpenSRS protocol driver.
+   * Update CCA2 country code list to match latest iso-standard.
+ .
+ The person named in the Author field signed this changelog entry.
+Author: Jimmy Bergman <jimmy@sigint.se>
+
+---
+The information above should follow the Patch Tagging Guidelines, please
+checkout http://dep.debian.net/deps/dep3/ to learn about the format. Here
+are templates for supplementary fields that you might want to add:
+
+Origin: <vendor|upstream|other>, <url of original patch>
+Bug: <url in upstream bugtracker>
+Bug-Debian: http://bugs.debian.org/<bugnumber>
+Forwarded: <no|not-needed|url proving that it has been forwarded>
+Reviewed-By: <name and email of someone who approved the patch>
+Last-Update: <YYYY-MM-DD>
+
+--- libnet-dri-perl-0.96.orig/t/102util.t
++++ libnet-dri-perl-0.96/t/102util.t
+@@ -6,7 +6,7 @@ use Net::DRI::Util;
+ 
+ is(defined(%Net::DRI::Util::CCA2),1,'%CCA2 defined');
+ isa_ok(\%Net::DRI::Util::CCA2,'HASH','%CCA2 hash');
+-is(keys(%Net::DRI::Util::CCA2),243,'%CCA2 number of elements');
++is(keys(%Net::DRI::Util::CCA2),245,'%CCA2 number of elements');
+ is_deeply([grep { ! /^[A-Z]{2}$/ } keys(%Net::DRI::Util::CCA2)],[],'%CCA2 keys');
+ is(exists($Net::DRI::Util::CCA2{'FR'}),1,'%CCA2 FR exists');
+ is(!exists($Net::DRI::Util::CCA2{'ZZ'}),1,'%CCA2 ZZ not exists');                  
+--- libnet-dri-perl-0.96.orig/lib/Net/DRI/Util.pm
++++ libnet-dri-perl-0.96/lib/Net/DRI/Util.pm
+@@ -69,7 +69,7 @@ See the LICENSE file that comes with thi
+ 
+ ####################################################################################################
+ 
+-our %CCA2=map { $_ => 1 } qw/AF AX AL DZ AS AD AO AI AQ AG AR AM AW AU AT AZ BS BH BD BB BY BE BZ BJ BM BT BO BA BW BV BR IO BN BG BF BI KH CM CA CV KY CF TD CL CN CX CC CO KM CG CD CK CR CI HR CU CY CZ DK DJ DM DO EC EG SV GQ ER EE ET FK FO FJ FI FR GF PF TF GA GM GE DE GH GI GR GL GD GP GU GT GG GN GW GY HT HM HN HK HU IS IN ID IR IQ IE IM IL IT JM JP JE JO KZ KE KI KP KR KW KG LA LV LB LS LR LY LI LT LU MO MK MG MW MY MV ML MT MH MQ MR MU YT MX FM MD MC MN MS MA MZ MM NA NR NP NL AN NC NZ NI NE NG NU NF MP NO OM PK PW PS PA PG PY PE PH PN PL PT PR QA RE RO RU RW SH KN LC PM VC WS SM ST SA SN CS SC SL SG SK SI SB SO ZA GS ES LK SD SR SJ SZ SE CH SY TW TJ TZ TH TL TG TK TO TT TN TR TM TC TV UG UA AE GB US UM UY UZ VU VA VE VN VG VI WF EH YE ZM ZW/;
++our %CCA2=map { $_ => 1 } qw/AD AE AF AG AI AL AM AN AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR ST SV SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM/;
+ 
+ sub all_valid
+ {
+--- libnet-dri-perl-0.96.orig/lib/Net/DRI/DRD/OpenSRS.pm
++++ libnet-dri-perl-0.96/lib/Net/DRI/DRD/OpenSRS.pm
+@@ -133,5 +133,24 @@ sub domain_info
+  return $rc;
+ }
+ 
++sub domain_update
++{
++ my ($self,$ndr,$domain,$changes,$rd)=@_;
++ $self->enforce_domain_name_constraints($ndr,$domain,'update');
++
++ ## First grab a cookie, if needed
++ unless (Net::DRI::Util::has_key($rd,'cookie'))
++ {
++  $rd={} unless defined($rd); ## will fail in set_cookie because other params needed, but at least this will be ok for next line ; otherwise do true checks of value needed
++  $rd->{domain}=$domain;
++  my $rc=$ndr->process('session','set_cookie',[$rd]);
++  return $rc unless $rc->is_success();
++  $rd->{cookie}=$ndr->get_info('value','session','cookie'); ## Store cookie somewhere (taking into account date of expiry or some TTLs) ?
++ }
++ ## Now do the real update
++ my $rc=$ndr->process('domain','update',[$domain,$changes,$rd]); ## the $domain is not really used here, as it was used during set_cookie above
++ return $rc;
++}
++
+ ####################################################################################################
+ 1;
+--- libnet-dri-perl-0.96.orig/lib/Net/DRI/Protocol/OpenSRS/XCP.pm
++++ libnet-dri-perl-0.96/lib/Net/DRI/Protocol/OpenSRS/XCP.pm
+@@ -78,6 +78,8 @@ sub new
+  $self->factories('message',sub { my $m=Net::DRI::Protocol::OpenSRS::XCP::Message->new(); return $m; });
+ ## $self->factories('message',sub { my $m=Net::DRI::Protocol::OpenSRS::XCP::Message->new(@_); $m->client_auth({id => $drd->{client_login}, pw => $drd->{client_password}}); return $m; });
+  $self->factories('contact',sub { return Net::DRI::Data::Contact::OpenSRS->new(); });
++ $self->capabilities('domain_update', 'ns', [ 'set' ]);
++ $self->capabilities('domain_update', 'contact', [ 'set' ]);
+  $self->_load($rp);
+  return $self;
+ }
+--- libnet-dri-perl-0.96.orig/lib/Net/DRI/Protocol/OpenSRS/XCP/Domain.pm
++++ libnet-dri-perl-0.96/lib/Net/DRI/Protocol/OpenSRS/XCP/Domain.pm
+@@ -79,6 +79,7 @@ sub register_commands
+           transfer_request => [ \&transfer_request, \&transfer_request_parse ],
+           transfer_query => [ \&transfer_query, \&transfer_query_parse ],
+           transfer_cancel => [ \&transfer_cancel, \&transfer_cancel_parse ],
++          update => [ \&update ],
+          );
+ 
+  return { 'domain' => \%tmp };
+@@ -274,6 +275,58 @@ sub sw_register
+  add_all_ns($domain,$msg,$rd->{ns});
+ }
+ 
++sub update
++{
++ my ($xcp,$domain,$todo,$rd)=@_;
++
++ my $msg=$xcp->message();
++ my $attr = { domain => $domain };
++ $msg->command_attributes($attr);
++
++ Net::DRI::Exception::usererr_invalid_parameters($todo.' must be a non empty Net::DRI::Data::Changes object') unless Net::DRI::Util::isa_changes($todo);
++ Net::DRI::Exception::usererr_insufficient_parameters('A cookie is needed for domain_info') unless Net::DRI::Util::has_key($rd,'cookie');
++
++ my $nsset=$todo->set('ns');
++ my $contactset=$todo->set('contact');
++
++ if (defined($nsset))
++ {
++  Net::DRI::Exception::usererr_invalid_parameters('ns changes for set must be a Net::DRI::Data::Hosts object') unless Net::DRI::Util::isa_hosts($nsset);
++  Net::DRI::Exception::usererr_invalid_parameters('change of nameservers and contacts is not supported in the same operation') if defined($contactset);
++  Net::DRI::Exception::usererr_insufficient_parameters('at least 2 nameservers are mandatory') unless ($nsset->count()>=2);
++
++  build_msg_cookie($msg,'advanced_update_nameservers',$rd->{cookie},$rd->{registrant_ip});
++  $attr->{op_type} = "assign";
++
++  my $nslist = [];
++  for (my $i = 1; $i <= $nsset->count(); $i++) { # Net:DRI name server list starts at 1.
++   push @$nslist, scalar($nsset->get_details($i));
++  }
++  $attr->{assign_ns} = $nslist;
++ }
++ else 
++ {
++  build_msg_cookie($msg,'update_contacts',$rd->{cookie},$rd->{registrant_ip});
++
++  Net::DRI::Exception::usererr_invalid_parameters('contact changes for set must be a Net::DRI::Data::ContactSet') unless defined($contactset) && Net::DRI::Util::isa_contactset($contactset);
++  my %contact_set = ();
++  my $types = [];
++  CONTACT_TYPE: foreach my $t (qw/registrant admin billing tech/)
++  {
++   my @t=$contactset->get($t);
++   next CONTACT_TYPE unless @t==1;
++   my $co=$contactset->get($t);
++   next CONTACT_TYPE unless Net::DRI::Util::isa_contact($co);
++   $co->validate();
++   my $registry_type = $t eq "registrant" ? "owner" : $t;
++   $contact_set{$registry_type} = add_contact_info($msg,$co);
++   push @$types, $registry_type;
++  }
++  $attr->{contact_set} = \%contact_set;
++  $attr->{types} = $types;
++ }
++}
++
+ sub add_contact_info
+ {
+  my ($msg,$co)=@_;
+--- libnet-dri-perl-0.96.orig/lib/Net/DRI/Protocol/OpenSRS/XCP/Connection.pm
++++ libnet-dri-perl-0.96/lib/Net/DRI/Protocol/OpenSRS/XCP/Connection.pm
+@@ -90,9 +90,9 @@ sub write_message
+  my $req=HTTP::Request->new('POST',$t->{remote_url});
+  $req->header('Content-Type','text/xml');
+  $req->header('X-Username',$t->{client_login});
+- my $body=$msg->get_body();
++ my $body=Net::DRI::Util::encode_utf8($msg->get_body());
+  $req->header('X-Signature',Digest::MD5::md5_hex(Digest::MD5::md5_hex($body,$t->{client_password}),$t->{client_password})); ## client_password is in fact the reseller key
+- $req->content(Net::DRI::Util::encode_utf8($body));
++ $req->content($body);
+  ## Content-Length will be automatically computed during Transport by LWP::UserAgent
+  return $req;
+ }

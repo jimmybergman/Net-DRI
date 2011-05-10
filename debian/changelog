@@ -1,0 +1,36 @@
+libnet-dri-perl (0.96-13atomia) unstable; urgency=low
+
+  * Add host support and transfer lock support to XCP/OpenSRS protocol driver.
+  * Add domain_name_suggest to XCP/OpenSRS protocol driver.
+  * Make .SE validation less strict.
+  * Remove version="2.0" from EURid domain:info and domain:check due to release 8.0
+  * Allow secdns-1.0 and domain:renew for EURid
+  * Add iis_extension_version support for overriding default.
+  * Add tld_data support for OpenSRS domains in the XCP/OpenSRS protocol driver.
+  * Fix XCP UTF-8 encoding issue with MD5-sum.
+  * Add domain_update support to XCP/OpenSRS protocol driver.
+  * Update CCA2 country code list to match latest iso-standard.
+  * Update supported TLD-list for OpenSRS
+  * Allow 1 year .NU domains
+  * Add support for send_authcode to XCP/OpenSRS protocol driver.
+  * Add support for the optional encoding_type for IDN domains in the XCP/OpenSRS protocol driver.
+
+ -- Jimmy Bergman <jimmy@sigint.se>  Fri, 8 Oct 2010 16:00:00 +0200
+
+libnet-dri-perl (0.96-1) unstable; urgency=low
+
+  * New upstream release.
+  * Set Standards-Version to 3.8.4 (no changes).
+  * Add /me to Uploaders.
+  * debian/control: make (build) dependency on libxml-libxml-perl versioned.
+  * debian/copyright: update formatting and years of upstream copyright.
+  * Convert to source format 3.0 (quilt).
+  * Add patch to fix some spelling mistakes.
+
+ -- gregor herrmann <gregoa@debian.org>  Mon, 29 Mar 2010 22:29:00 +0200
+
+libnet-dri-perl (0.95-1) unstable; urgency=low
+
+  * Initial Release (Closes: #541761).
+
+ -- Alejandro Garrido Mota <garridomota@gmail.com>  Fri, 11 Sep 2009 17:30:10 -0430

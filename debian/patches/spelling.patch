@@ -1,0 +1,57 @@
+Author: gregor herrmann <gregoa@debian.org>
+Description: spelling fixes
+Forwarded: no
+
+--- a/lib/Net/DRI/Data/Contact.pm
++++ b/lib/Net/DRI/Data/Contact.pm
+@@ -121,7 +121,7 @@ fax number of the contact (same form as
+ 
+ =head2 auth()
+ 
+-authentification for this contact (hash ref with a key 'pw' and a value being the password)
++authentication for this contact (hash ref with a key 'pw' and a value being the password)
+ 
+ =head2 disclose()
+ 
+--- a/lib/Net/DRI/Data/Contact/CIRA.pm
++++ b/lib/Net/DRI/Data/Contact/CIRA.pm
+@@ -108,7 +108,7 @@ legal form (see registry list of possibl
+ 
+ =head2 lang()
+ 
+-contact prefered language, either 'fr' or 'en'
++contact preferred language, either 'fr' or 'en'
+ 
+ =head2 ip_address()
+ 
+--- a/lib/Net/DRI/Protocol/IRIS/XCP.pm
++++ b/lib/Net/DRI/Protocol/IRIS/XCP.pm
+@@ -57,7 +57,7 @@ Only SASL PLAIN is handled
+ 
+ =item *
+ 
+-Blocks splitted over multiple chunks are not handled, except for application data
++Blocks split over multiple chunks are not handled, except for application data
+ 
+ =item *
+ 
+@@ -120,7 +120,7 @@ sub read_data # §4
+  my $keepopen=parse_block_header($hdr);
+  $to->send_logout() unless ($keepopen); ## will not truly send anything, as there is no logout, but will properly close the socket and prepare everything as needed for next connection
+ 
+- ## We do not handle blocks splitted over multiple chunks, except for application data
++ ## We do not handle blocks split over multiple chunks, except for application data
+  my $m='';
+  my ($lastchunk,$datacomplete,$chunktype);
+  while(($lastchunk,$datacomplete,$chunktype,$data)=parse_chunk($sock))
+--- a/lib/Net/DRI/Transport/Socket.pm
++++ b/lib/Net/DRI/Transport/Socket.pm
+@@ -61,7 +61,7 @@ see IO::Socket::SSL documentation about
+ =head2 ssl_verify_callback
+ 
+ see IO::Socket::SSL documentation about verify_callback, it gets here as first parameter the transport object
+-then all parameter given by IO::Socket::SSL; it is explicitely verified that the subroutine returns a true value,
++then all parameter given by IO::Socket::SSL; it is explicitly verified that the subroutine returns a true value,
+ and if not the connection is aborted.
+ 
+ =head2 remote_host remote_port
