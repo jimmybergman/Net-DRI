@@ -11,7 +11,7 @@ use Net::DRI;
 my $dri=Net::DRI->new(10);
 my $rc;
 
-eval {
+my $ok=eval {
 ############################################################################################################
 
 $dri->add_registry('VNDS',{});
@@ -99,15 +99,16 @@ display('lisboa.pt',$dri);
 $dri->end();
 };
 
-if ($@)
+if (! $ok)
 { 
+ my $err=$@;
  print "\n\nAn EXCEPTION happened !\n";
- if (ref($@))
+ if (ref $err)
  {
-  $@->print();
+  $err->print();
  } else
  {
-  print($@);
+  print $err;
  }
 } else
 {

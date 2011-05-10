@@ -1,6 +1,6 @@
 ## Domain Registry Interface, IRIS DCHK (RFC5144)
 ##
-## Copyright (c) 2008 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2008,2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,24 +10,19 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::IRIS::DCHK::Domain;
 
+use utf8;
 use strict;
+use warnings;
 
 use Carp;
 
 use Net::DRI::Util;
 use Net::DRI::Exception;
 use Net::DRI::Protocol::IRIS::Core;
-
-use DateTime::Format::ISO8601;
-
-our $VERSION=do { my @r=(q$Revision: 1.2 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -57,7 +52,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2008,2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -82,15 +77,15 @@ sub register_commands
 sub build_command
 {
  my ($ns,$domain)=@_;
- my @dom=(ref($domain))? @$domain : ($domain);
+ my @dom=ref $domain ? @$domain : ($domain);
  Net::DRI::Exception->die(1,'protocol/IRIS',2,'Domain name needed') unless @dom;
  foreach my $d (@dom)
  {
-  Net::DRI::Exception->die(1,'protocol/IRIS',2,'Domain name needed') unless defined($d) && $d;
+  Net::DRI::Exception->die(1,'protocol/IRIS',2,'Domain name needed') unless defined $d && $d;
   Net::DRI::Exception->die(1,'protocol/IRIS',10,'Invalid domain name: '.$d) unless Net::DRI::Util::is_hostname($d);
  }
 
- ## TODO: entityClass may also be IDN for Unicode domain names ## ง3.1.2
+ ## TODO: entityClass may also be IDN for Unicode domain names ## ยง3.1.2
  ##return [ map { { registryType => $ns, entityClass => 'domain-name', entityName => $_ } } @dom ] ;
  return [ map { { registryType => 'dchk1', entityClass => 'domain-name', entityName => $_ } } @dom ] ; ## Both registryType forms should work, but currently only this one works
 }
@@ -120,66 +115,61 @@ sub info_parse
   next unless $c->size();
   $c=$c->get_node(1)->getChildrenByTagNameNS($mes->ns('dchk1'),'domain');
   next unless $c->size();
-  ## We do not use attributes authority/entityClass/entityName/registryType, they should be the same as what we sent
+  ## We do not parse attributes authority/entityClass/entityName/registryType, they should be the same as what we sent
   $c=$c->get_node(1);
   my $temp=$c->hasAttribute('temporaryReference')? Net::DRI::Util::xml_parse_boolean($c->getAttribute('temporaryReference')) : 0;
-  $c=$c->getFirstChild();
-  my $pd=DateTime::Format::ISO8601->new();
+
   my ($domain,@s);
-  while($c)
+  foreach my $el (Net::DRI::Util::xml_list_children($c))
   {
-   next unless ($c->nodeType() == 1); ## only for element nodes
-   my $n=$c->localname() || $c->nodeName();
+   my ($n,$c)=@$el;
    if ($n eq 'domainName') ## we do not use <idn> for now
    {
     $domain=lc($c->textContent());
     $rinfo->{domain}->{$domain}->{action}='info';
-    $rinfo->{domain}->{$domain}->{exist}=1;
    } elsif ($n eq 'status')
    {
     ## We take everything below as a status node, which allows us to handle all non RFC5144 defined statuses
-    my $cc=$c->getFirstChild();
-    while($cc)
+    foreach my $el (Net::DRI::Util::xml_list_children($c))
     {
-     next unless ($cc->nodeType() == 1); ## only for element nodes
-     push @s,parse_status($cc,$pd);
-    } continue { $cc=$cc->getNextSibling(); }
+     my ($nn,$cc)=@$el;
+     push @s,parse_status($po,$cc);
+    }
    } elsif ($n eq 'registrationReference')
    {
     carp('For domain '.$domain.' got a node <registrationReference>, please report');
    } elsif ($n eq 'createdDateTime')
    {
-    $rinfo->{domain}->{$domain}->{crDate}=$pd->parse_datetime($c->textContent());
+    $rinfo->{domain}->{$domain}->{crDate}=$po->parse_iso8601($c->textContent());
    } elsif ($n eq 'initialDelegationDateTime')
    {
-    $rinfo->{domain}->{$domain}->{idDate}=$pd->parse_datetime($c->textContent());
+    $rinfo->{domain}->{$domain}->{idDate}=$po->parse_iso8601($c->textContent());
    } elsif ($n eq 'expirationDateTime')
    {
-    $rinfo->{domain}->{$domain}->{exDate}=$pd->parse_datetime($c->textContent());
+    $rinfo->{domain}->{$domain}->{exDate}=$po->parse_iso8601($c->textContent());
    } elsif ($n eq 'lastDatabaseUpdateDateTime')
    {
-    $rinfo->{domain}->{$domain}->{duDate}=$pd->parse_datetime($c->textContent());
+    $rinfo->{domain}->{$domain}->{duDate}=$po->parse_iso8601($c->textContent());
    } elsif ($n eq 'seeAlso' || $n eq 'iris:seeAlso')
    {
     carp('For domain '.$domain.' got a node <'.$n.'>, please report');
    }
-  } continue { $c=$c->getNextSibling(); }
+  }
 
   $rinfo->{domain}->{$domain}->{temporary}=$temp;
-  my $s=$po->create_local_object('status')->add(@s);
-  $rinfo->{domain}->{$domain}->{exist}=0 if $s->has_any(qw/nameNotFound invalidName/);
-  $rinfo->{domain}->{$domain}->{status}=$s;
+  $rinfo->{domain}->{$domain}->{status}=$po->create_local_object('status')->add(@s);
+  $rinfo->{domain}->{$domain}->{exist}=1 if $rinfo->{domain}->{$oname}->{result_status}->is_success();
  } ## end of foreach on each resultSet
 }
 
-sub parse_status ## ง3.1.1.1
+sub parse_status ## ยง3.1.1.1
 {
- my ($node,$pd)=@_;
+ my ($po,$node)=@_;
  my %tmp=(name => $node->localname() );
  my $ns=$node->namespaceURI();
 
  my $c=$node->getChildrenByTagNameNS($ns,'appliedDate'); ## 0..1
- $tmp{applied_date}=$pd->parse_datetime($c->get_node(1)->textContent()) if $c->size();
+ $tmp{applied_date}=$po->parse_iso8601($c->get_node(1)->textContent()) if $c->size();
 
  $c=$node->getChildrenByTagNameNS($ns,'ticket'); ## 0..unbounded
  $tmp{tickets}=[ map { $_->textContent() } $c->get_nodelist() ] if $c->size();
@@ -195,7 +185,7 @@ sub parse_status ## ง3.1.1.1
   $tmp{msg}=$t[0]->{msg};
  }
 
- $c=$node->getChildrenByTagNameNS($ns,'description'); ## 0..unbounded ; not defined by RFC5144
+ $c=$node->getChildrenByTagNameNS($ns,'subStatus'); ## 0..unbounded ; not defined by RFC5144
  $tmp{substatus}=[ map { { authority => $_->getAttribute('authority'), content => $_->toString(0) } } $c->get_nodelist() ] if $c->size();
 
  foreach my $a (qw/actor disposition scope/)

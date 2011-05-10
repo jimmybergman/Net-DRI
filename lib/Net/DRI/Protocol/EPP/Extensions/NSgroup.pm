@@ -1,7 +1,7 @@
 ## Domain Registry Interface, EPP NSgroup extension commands
 ## (based on .BE Registration_guidelines_v4_7_1)
 ##
-## Copyright (c) 2005,2006,2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -11,9 +11,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::NSgroup;
@@ -23,8 +20,6 @@ use warnings;
 
 use Net::DRI::Util;
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.8 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -54,7 +49,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005,2006,2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2005-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -89,7 +84,7 @@ sub ns
 {
  my ($mes)=@_;
  my $ns=$mes->ns('nsgroup');
- return defined($ns)? $ns : 'http://www.dns.be/xml/epp/nsgroup-1.0';
+ return defined $ns? $ns : 'http://www.dns.be/xml/epp/nsgroup-1.0';
 }
 
 sub build_command
@@ -105,23 +100,19 @@ sub build_command
  }
 
  Net::DRI::Exception->die(1,'protocol/EPP',2,'NSgroup name needed') unless @gn;
-
- my @ns=$msg->nsattrs('nsgroup');
- @ns=qw(http://www.dns.be/xml/epp/nsgroup-1.0 http://www.dns.be/xml/epp/nsgroup-1.0 nsgroup-1.0.xsd) unless @ns;
- $msg->command([$command,'nsgroup:'.$command,sprintf('xmlns:nsgroup="%s" xsi:schemaLocation="%s %s"',@ns)]);
-
+ $msg->command([$command,'nsgroup:'.$command,sprintf('xmlns:nsgroup="%s" xsi:schemaLocation="%s %s"',$msg->nsattrs('nsgroup'))]);
  return map { ['nsgroup:name',$_] } @gn;
 }
 
 sub add_nsname
 {
  my ($ns)=@_;
- return () unless (defined($ns));
+ return () unless defined $ns;
  my @a;
- if (! ref($ns))
+ if (! ref $ns)
  {
   @a=($ns);
- } elsif (ref($ns) eq 'ARRAY')
+ } elsif (ref $ns eq 'ARRAY')
  {
   @a=@$ns;
  } elsif (Net::DRI::Util::isa_nsgroup($ns))
@@ -129,7 +120,7 @@ sub add_nsname
   @a=$ns->get_names();
  }
 
- foreach my $n (@a) 
+ foreach my $n (@a)
  {
   next if Net::DRI::Util::is_hostname($n);
   Net::DRI::Exception->die(1,'protocol/EPP',10,'Invalid host name: '.$n);
@@ -143,8 +134,7 @@ sub add_nsname
 
 sub check
 {
- my $epp=shift;
- my @hosts=@_;
+ my ($epp,@hosts)=@_;
  my $mes=$epp->message();
  my @d=build_command($epp,$mes,'check',\@hosts);
  $mes->command_body(\@d);
@@ -156,7 +146,7 @@ sub check_parse
  my $mes=$po->message();
  return unless $mes->is_success();
 
- my $ns=ns($mes);
+ my $ns=$mes->ns('nsgroup');
  my $chkdata=$mes->get_response($ns,'chkData');
  return unless defined $chkdata;
 
@@ -190,7 +180,7 @@ sub info_parse
  my $mes=$po->message();
  return unless $mes->is_success();
 
- my $infdata=$mes->get_response(ns($mes),'infData');
+ my $infdata=$mes->get_response($mes->ns('nsgroup'),'infData');
  return unless defined $infdata;
 
  my $ns=$po->create_local_object('hosts');

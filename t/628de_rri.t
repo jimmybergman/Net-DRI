@@ -1,4 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
@@ -12,24 +15,14 @@ our $E1='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><registry-respon
 our $E2='</registry-response>';
 our $TRID='<tr:ctid>ABC-12345</tr:ctid><tr:stid>54322-XYZ</tr:stid>';
 
-our $R1;
-sub mysend
-{
- my ($transport,$count,$msg)=@_;
- $R1=$msg->as_string();
- return 1;
-}
-
-our $R2;
-sub myrecv
-{
- return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<registry-response>'.r().$TRID.'</registry-response>'.$E2);
-}
+our ($R1,$R2);
+sub mysend { my ($transport,$count,$msg)=@_; $R1=$msg->as_string(); return 1; }
+sub myrecv { return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<registry-response>'.r().$TRID.'</registry-response>'.$E2); }
 
 my $dri=Net::DRI::TrapExceptions->new(10);
 $dri->{trid_factory}=sub { return 'ABC-12345'; };
 $dri->add_registry('DENIC');
-$dri->target('DENIC')->add_current_profile('p1','test=RRI',{f_send=>\&mysend,f_recv=>\&myrecv});
+$dri->target('DENIC')->add_current_profile('p1','rri',{f_send=>\&mysend,f_recv=>\&myrecv});
 
 my $rc;
 my $s;
@@ -154,7 +147,7 @@ is($dri->get_info('exist', 'domain', 'rritestdomain.de'), 0, 'Domain does not ex
 $R2 = $E1 . '<tr:transaction><tr:stid>' . $TRID .
 	'</tr:stid><tr:result>success</tr:result></tr:transaction>' . $E2;
 
-$cs = $dri->local_object('contactset');
+my $cs = $dri->local_object('contactset');
 
 $cs->add($dri->local_object('contact')->srid('DENIC-99990-10240-BSP'), 'registrant');
 $cs->add($dri->local_object('contact')->srid('DENIC-99990-10240-BSP1'), 'admin');

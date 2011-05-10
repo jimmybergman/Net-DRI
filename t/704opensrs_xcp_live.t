@@ -15,7 +15,8 @@ my $dri=Net::DRI::TrapExceptions->new(10);
 $dri->add_registry('OpenSRS');
 $dri->target('OpenSRS')->add_current_profile('p1','xcp',{client_login=>$ENV{TEST_OPENSRS_XCP_LIVE_CLIENTID},client_password=>$ENV{TEST_OPENSRS_XCP_LIVE_CLIENTPASS},remote_url=>'https://rr-n1-tor.opensrs.net:55443/resellers/',verify_response => \&verify_response});
 
-eval {
+my $ok=eval 
+{
  my $rc=$dri->account_list_domains();
  is($rc->is_success(),1,'account_list_domains() is_success') or diag(sprintf('Code=%d Native_Code=%s Message=%s',$rc->code(),$rc->native_code(),$rc->message()));
  my $rd=$dri->get_info('list','account','domains');
@@ -33,9 +34,11 @@ eval {
 #  diag('Owner Contact: '.$dri->get_info('contact')->get('registrant')->as_string());
 #  diag('Admin Contact: '.$dri->get_info('contact')->get('admin')->as_string());
 #  diag('Tech Contact: '.$dri->get_info('contact')->get('tech')->as_string());
+
+ $dri->end();
 };
 
-diag('Caught unexpected exception: '.(ref($@)? $@->as_string() : $@)) if $@;
+diag('Caught unexpected exception: '.(ref($@)? $@->as_string() : $@)) if ! $ok;
 
 exit 0;
 

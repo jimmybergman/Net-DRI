@@ -12,22 +12,19 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::NO::Domain;
 
 use strict;
+use warnings;
+
 use Net::DRI::DRD::NO;
 use Net::DRI::Protocol::EPP::Core::Domain;
 use Net::DRI::Util;
 use Net::DRI::Exception;
 use Net::DRI::Protocol::EPP::Util;
 use Net::DRI::Protocol::EPP::Extensions::NO::Host;
-
-our $VERSION = do { my @r = ( q$Revision: 1.3 $ =~ /\d+/gmx ); sprintf( "%d" . ".%02d" x $#r, @r ); };
 
 =pod
 
@@ -129,11 +126,27 @@ sub delete {
     my ( $epp, $domain, $rd ) = @_;
     my $mes = $epp->message();
 
+    my $ddate = $rd->{deleteDate};
     my $dfd = $rd->{deletefromdns};
     my $dfr = $rd->{deletefromregistry};
     my $fs  = $rd->{facets};
 
-    return unless ( ( defined($dfd) || defined($dfr) || defined($fs) ) && ( $dfd || $dfr || $fs ) );
+    if (defined($dfd) && ref($dfd)) { 
+         Net::DRI::Util::check_isa($dfd,'DateTime');
+         $dfd = $dfd->set_time_zone('CET')->strftime('%Y-%m-%d'); 
+    }
+    if (defined($dfr) && ref($dfr)) { 
+       Net::DRI::Util::check_isa($dfr,'DateTime'); 
+       $dfr = $dfr->set_time_zone('CET')->strftime('%Y-%m-%d'); 
+    }
+    if (defined($ddate)) {
+       if (ref($ddate)) {
+         Net::DRI::Util::check_isa($ddate,'DateTime'); 
+         $ddate = $ddate->set_time_zone('CET')->strftime('%Y-%m-%d'); 
+       }
+       $dfd = $ddate if !$dfd;
+       $dfr = $ddate if !$dfr;
+    }
 
     my $r;
     if ( $dfd || $dfr ) {
@@ -253,15 +266,15 @@ sub transfer_execute {
     my (undef,$ExtNS,$ExtNSX)=$mes->nsattrs('no_epp');
 
     my ( $auth, $du, $token, $fs );
-    $auth  = $rd->{auth}     if $rd->{auth};
-    $du    = $rd->{duration} if $rd->{duration};
-    $token = $rd->{token}    if $rd->{token};
-    $fs    = $rd->{facets}   if $rd->{facets};
+    $auth  = $rd->{auth}     if Net::DRI::Util::has_key($rd,'auth');
+    $du    = $rd->{duration} if Net::DRI::Util::has_key($rd,'duration');
+    $token = $rd->{token}    if Net::DRI::Util::has_key($rd,'token');
+    $fs    = $rd->{facets}   if Net::DRI::Util::has_key($rd,'facets');
 
     # An execute must contain either an authInfo or a token, optionally also a duration
     Net::DRI::Exception::usererr_insufficient_parameters(
         'transfer_execute requires either an authInfo or a token')
-        unless ( defined($token) || defined($auth) && ( $token || $auth ) );
+        unless ( (defined $token && $token) || defined $auth );
 
     # Duration is optional
     my $dur;
@@ -273,7 +286,7 @@ sub transfer_execute {
         Net::DRI::Util::check_isa( $du, 'DateTime::Duration' );
 
         Net::DRI::Exception->die( 0, 'DRD::NO', 3, 'Invalid duration' )
-            if Net::DRI::DRD::NO->verify_duration_renew( $du, $domain );
+            if Net::DRI::DRD::NO->verify_duration_renew(undef, $du, $domain ); ## TODO: this test should be done in Net::DRI::DRD::NO directly !
         $dur = Net::DRI::Protocol::EPP::Util::build_period($du);
     }
 

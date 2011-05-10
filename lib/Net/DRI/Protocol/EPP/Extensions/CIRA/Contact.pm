@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::CIRA::Contact;
@@ -22,8 +19,6 @@ use warnings;
 
 use Net::DRI::Util;
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.1 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 ####################################################################################################
 
@@ -110,12 +105,11 @@ sub create
   push @n,['cira:agreementValue',$ra->{signed} ? 'Y' : 'N'];
  }
  push @n,['cira:createdByResellerId',$contact->reseller_id()] if defined $contact->reseller_id();
- ## Whois privacy ?
+ push @n,['cira:whoisDisplaySetting',$contact->whois_display()] if defined $contact->whois_display();
 
  my $eid=build_command_extension($mes,$epp,'cira:ciraCreate');
  $mes->command_extension($eid,[@n]);
 }
-
 
 sub update
 {
@@ -131,6 +125,7 @@ sub update
  my @n;
  push @n,['cira:cprCategory',$newc->legal_form()] if defined $newc->legal_form();
  push @n,['cira:language',$newc->lang()] if defined $newc->lang();
+ push @n,['cira:whoisDisplaySetting',$newc->whois_display()] if defined $newc->whois_display();
 
  return unless @n;
 

@@ -1,7 +1,7 @@
 ## Domain Registry Interface, NIC.AT Contact extension
 ## Contributed by Michael Braunoeder from NIC.AT <mib@nic.at>
 ##
-## Copyright (c) 2006,2007,2008 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2006-2008,2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -11,16 +11,12 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::AT::Contact;
 
 use strict;
-
-our $VERSION=do { my @r=(q$Revision: 1.4 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
+use warnings;
 
 our $NS='http://www.nic.at/xsd/at-ext-contact-1.0';
 
@@ -52,7 +48,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2006,2007,2008 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2006-2008,2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -84,7 +80,8 @@ sub parse_info
  my ($po,$otype,$oaction,$oname,$rinfo)=@_;
  my $mes=$po->message();
 
- return unless ($mes->result_code() == 1000);
+ return unless $mes->is_success();
+
  my $c=$rinfo->{contact}->{$oname}->{self};
  $c->email(undef) if ($c->email() eq 'n/a');
 

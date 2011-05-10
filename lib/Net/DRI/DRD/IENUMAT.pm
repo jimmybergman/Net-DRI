@@ -11,9 +11,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::DRD::IENUMAT;
@@ -25,8 +22,6 @@ use base qw/Net::DRI::DRD/;
 
 use Net::DRI::Util;
 use DateTime::Duration;
-
-our $VERSION=do { my @r=(q$Revision: 1.7 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 ## The domain renew command are not implemented at the ienum43 EPP server, domains are renewed automatically
 __PACKAGE__->make_exception_for_unavailable_operations(qw/domain_renew/);

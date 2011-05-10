@@ -5,16 +5,11 @@
 ## This program free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License v2.
 ##
-#
-# 
-#
 
 package Net::DRI::Protocol::EPP::Extensions::IT::Notifications;
 
 use strict;
 use warnings;
-
-our $VERSION = do { my @r = ( q$Revision: 1.1 $ =~ /\d+/gmx ); sprintf( "%d" . ".%02d" x $#r, @r ); };
 
 =pod
 
@@ -79,7 +74,7 @@ sub retrieve_ext
 sub parse_credit
 {
  my ($po, $type, $action, $name, $rinfo) = @_;
- my ($ext,$id)=retrieve_ext('it_epp','creditMsgData');
+ my ($ext,$id)=retrieve_ext($po,'it_epp','creditMsgData');
  return unless defined $ext;
 
  $rinfo->{'message'}->{$id}->{credit}=($ext->getElementsByTagName('extepp:credit'))[0]->textContent; ## TODO: use xml_child_content() instead
@@ -88,7 +83,7 @@ sub parse_credit
 sub parse_reminder
 {
  my ($po, $type, $action, $name, $rinfo) = @_;
- my ($ext,$id)=retrieve_ext('it_epp','passwdReminder');
+ my ($ext,$id)=retrieve_ext($po,'it_epp','passwdReminder');
  return unless defined $ext;
 
  $rinfo->{'message'}->{$id}->{'passwd_expires_on'}= ($ext->getElementsByTagName('extepp:exDate'))[0]->textContent; ## TODO: use xml_child_content() instead + convert date to DateTime object ?
@@ -97,7 +92,7 @@ sub parse_reminder
 sub parse_simple
 {
  my ($po, $type, $action, $name, $rinfo) = @_;
- my ($ext,$id)=retrieve_ext('it_domain','simpleMsgData');
+ my ($ext,$id)=retrieve_ext($po,'it_domain','simpleMsgData');
  return unless defined $ext;
 
  $rinfo->{'message'}->{$id}->{'domain'}=($ext->getElementsByTagName('extdom:name'))[0]->textContent; ## TODO: use xml_child_content() instead
@@ -106,7 +101,7 @@ sub parse_simple
 sub parse_chgstatus
 {      
  my ($po, $type, $action, $name, $rinfo) = @_;
- my ($ext,$id)=retrieve_ext('it_domain','chgStatusMsgData');
+ my ($ext,$id)=retrieve_ext($po,'it_domain','chgStatusMsgData');
  return unless defined $ext;
 
  $rinfo->{'message'}->{$id}->{'domain'}=($ext->getElementsByTagName('extdom:name'))[0]->textContent; ## TODO: use xml_child_content() instead
@@ -124,7 +119,7 @@ sub parse_chgstatus
 sub parse_dnserror
 {
  my ($po, $type, $action, $name, $rinfo) = @_;
- my ($ext,$id)=retrieve_ext('it_domain','dnsErrorMsgData');
+ my ($ext,$id)=retrieve_ext($po,'it_domain','dnsErrorMsgData');
  return unless defined $ext;
  
        $rinfo->{'message'}->{$id}->{'domain'}

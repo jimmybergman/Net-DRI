@@ -60,7 +60,9 @@ SKIP: {
 
 SKIP: {
 	eval { require IO::Uncompress::RawInflate; };
-	skip('Module IO::Uncompress::RawInflate is not installed, you need it if you want to use Net::DRI for: .DE (IRIS DCHK over LWZ)',1) if $@;
+	skip('Module IO::Uncompress::RawInflate is not installed, you need it if you want to use Net::DRI for: .DE (IRIS DCHK over LWZ) .FR (IRIS DCHK over LWZ)',1) if $@;
+	eval { require IO::Compress::RawDeflate; };
+	skip('Module IO::Compress::RawDeflate is not installed, you need it if you want to use Net::DRI for: .DE (IRIS DCHK over LWZ) .FR (IRIS DCHK over LWZ)',1) if $@;
 	eval { require Net::DNS; };
 	skip('Module Net::DNS is not installed, you need it if you want to use Net::DRI for: .DE (IRIS DCHK over LWZ)',1) if $@;
 	require_ok('Net::DRI::Protocol::IRIS::LWZ');

@@ -4,9 +4,6 @@
 ##
 ## This program free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License v2.
-#
-# 
-#
 
 package Net::DRI::Data::Contact::IT;
 
@@ -16,8 +13,6 @@ use warnings;
 use base qw / Net::DRI::Data::Contact /;
 
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.1 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 __PACKAGE__->register_attributes(qw/
        consent_for_publishing entity_type

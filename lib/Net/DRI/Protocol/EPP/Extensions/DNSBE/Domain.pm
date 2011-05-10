@@ -11,9 +11,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::DNSBE::Domain;
@@ -27,8 +24,6 @@ use Net::DRI::Util;
 use Net::DRI::Exception;
 use Net::DRI::Data::Hosts;
 use Net::DRI::Protocol::EPP::Util;
-
-our $VERSION=do { my @r=(q$Revision: 1.6 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 

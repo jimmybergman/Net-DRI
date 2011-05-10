@@ -1,4 +1,4 @@
-Net::DRI is Copyright (C) 2005-2010, Patrick Mevzek <netdri@dotandco.com>
+Net::DRI is Copyright (C) 2005-2011, Patrick Mevzek <netdri@dotandco.com>
 Official website for Net::DRI information and download:
 http://www.dotandco.com/services/software/Net-DRI/index.en
 
@@ -34,14 +34,15 @@ in production by various organizations with success.
 Currently Net::DRI ships with:
 
 - a full RRP implementation (RFC 2832 & 3632)
-- a full EPP implementation (STD 69 aka RFC 5730/5731/5732/5733/5734/3735 ), including registry notifications
+- a full EPP implementation (STD 69 aka RFC 5730/5731/5732/5733/5734/3735), including registry notifications
 - many EPP extensions:
   * GracePeriod (RFC 3915)
   * E164 for ENUM (RFC 4114)
   * Enum Validation (RFC 5076)
-  * SecDNS for DNSSEC (RFC 4310)
+  * SecDNS for DNSSEC both version 1.0 (RFC 4310) and version 1.1 (RFC 5910)
   * Infrastructure ENUM in Austria
-  * NSgroup (used by .BE and .EU)
+  * NSgroup and Keygroup (used by .BE and .EU)
+  * Sync, WhoisInfo, WhoWas, PremiumDomain, Suggestion (used by VeriSign)
   * CentralNic extensions: Release, TTL, WebForwarding
   * Domain/Contact/Host and other extensions needed for extra services in various TLD:
     .EU .COM .NET .MOBI .AERO .CAT .US .PL .SE .BE .AT .COOP .LU .ASIA .AU .NAME .ORG .UK
@@ -51,23 +52,37 @@ Currently Net::DRI ships with:
 - a full Whois implementation (RFC 3912) for thin and thick registries :
      support included for domain names in .COM .NET .ORG .BIZ .INFO .AERO
      .EU .MOBI .NAME .LU .WS .SE .CAT .AT .TRAVEL .US .PT
-- an IRIS (RFC3981) implementation with LWZ transport (RFC4993) for DCHK (5144):
-  currently only DENIC registry (.DE) provide this service
-  XCP transport (RFC4992) is also available
+- an IRIS (RFC3981) implementation with LWZ transport (RFC4993) for DCHK (RFC5144):
+  currently only .DE and .FR provide this service.
+  (XCP transport (RFC4992) is also available)
 - an UDP/TCP/TLS socket transport
 - an HTTP/HTTPS transport
 - various SOAP transports over HTTP/HTTPS
 - an SMTP transport
-- Net::DRI::DRD::* modules for : .EU .COM .NET .TV .CC .WS .SE .PL .US .CAT .FR
-		.BE .MOBI .INFO .ORG .AT .LU .BIZ .NAME .NU .UK .AU .AERO .ASIA .COOP
-		IENUMAT .DE .CH .LI .HN .SC .VC .AG .BZ .LC .MN .ME .CZ .TRAVEL .PT
-                .NO .BR .PRO CoCCA CentralNic .IM .SI .CO.CZ .IT AdamsNames .AU .GL .NL .CA
-- a Net::DRI::DRD::AFNIC covering AFNIC registry for .FR
-     (only domain_check through web services and all operations by email or EPP)
-- Net::DRI::DRD::* modules to use registrars API for Gandi, OVH, BookMyName, OpenSRS
 - a shell (Net::DRI::Shell) providing autocompletion, logging and batch operations to be able
   to leverage all Net::DRI power without writing any line of code
   (see Net::DRI::Shell module documentation for all details)
+- Net::DRI::DRD::* modules for:
+  COM NET CC BZ TV JOBS
+  AdamsNames AERO AG ARNES ASIA AT AU
+  BE BIZ BR BZ
+  CAT CentralNic CIRA COOP CZ CO.CZ
+  CX GS TL KI MU NF HT NA NG CC CM SB MG
+  DE EU GL HN FR
+  IENUMAT IM INFO IT
+  LC LU ME MN MOBI NAME NO NU NL
+  ORG PL PRO PT SC SE CH LI SI
+  TRAVEL UK US VC WS
+- Net::DRI::DRD::* modules to use registrars API for Gandi, OVH, BookMyName, OpenSRS
+- Net::DRI::DRD::ISPAPI : the ISPAPI Registry driver for Net::DRI enables you to connect HEXONET's
+  EPP server and gives you the possibility to manage a wide range of gTLDs
+  and ccTLDs.
+  In addition to the EPP 1.0 compliant commands there is a Key-Value mapping
+  for additional domain related parameters which are required by several
+  registries.
+  The driver also supports all other HEXONET commands like queries for
+  domain and contact lists. It is also possible to access additional HEXONET
+  products like virtual servers and ssl certificates."
 
 If you are a registry/registrar/reseller, we would welcome
 the opportunity to be able to test Net::DRI against your system. Please
@@ -154,7 +169,9 @@ ws_rrp.pl    : as registrar, to connect to .WS using RRP
 eurid_epp.pl : as registrar, connect to EURid test systems
 cat_epp.pl   : as registrar, connect to .CAT test systems
 coop_epp.pl  : as registrar, connect to .COOP test systems
+ispapi_epp.pl: as registrar, connect to Hexonet systems
 epp_client_no.pl (+ xmlfilter.pl) : as registrar, do operations with the .NO registry
+epp_client_se.pl : as registrar, do operations with the .SE registry
 das.pl       : for anyone, to check domain availability in various TLDs
 whois.pl     : for anyone, to do whois queries for some TLDs.
 iris_dchk.pl : for anyone, to do IRIS DCHK queries for some .DE domain names
@@ -189,7 +206,7 @@ described above and the test files):
 - $dri->add_registry(...) to add a new registry driver
   First argument is the registry class name (Net::DRI::DRD:: will be added if no :: is found),
   second argument is an hash ref setting information : you should have at least
-  a clid key whose value is the client identifier at this registry for the client connecting
+  a client_id key whose value is the client identifier at this registry for the client connecting
   (this is needed for the various _is_mine() methods - see below)
 
   You can attach as many registry drivers as you need to a single Net::DRI object
@@ -362,9 +379,8 @@ examples of use and full API coverage.
 
  $dri->get_info('exist') returns 0 or 1
 
-* domain_check_multi()
-
- Check if the given list of domain names exist or not at the current registry and current profile.
+ When given a list of domain names, will check for each one, using one or more registry
+ calls depending on the registry and protocol selected.
 
  $dri->get_info('exist','domain',$domain) returns 0 or 1 for the given domain name in $domain
  (the cache ttl must be positive and large enough (few seconds) for that to work) ;
@@ -407,14 +423,14 @@ examples of use and full API coverage.
 
  For the given domain name as first argument, add the statuses given as second argument.
 
- To create the second argument, call $dri->create_status()->no()
+ To create the second argument, call $dri->local_object('status')->no()
  with up to three parameters :
  - first one is a string among renew, update, transfer, publish, delete (choices depending on the registry),
    which sets what is forbidden,
  - second (optional) one is a message (ex: Payment overdue),
  - third (optional, default to 'en') is the language of the previous message.
 
- The call to ->create_status() creates a new object from a class which is a subclass of Net::DRI::Data::StatusList,
+ The call to local_object('status') creates a new object from a class which is a subclass of Net::DRI::Data::StatusList,
  that can be used in all functions related to statuses.
 
 * domain_update_status_del()
@@ -540,7 +556,6 @@ examples of use and full API coverage.
  - exDate, crDate, upDate, trDate, clID, crID, upID : see domain_info()
 
 * host_check()
-* host_check_multi()
 * host_exist()
 * host_update()
 * host_update_ip()
@@ -564,7 +579,6 @@ See corresponding domain_* methods.
 * contact_delete()
 * contact_info()
 * contact_check()
-* contact_check_multi()
 * contact_exist()
 * contact_update()
 * contact_update_status()

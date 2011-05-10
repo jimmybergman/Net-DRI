@@ -1,4 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use encoding "iso-8859-15";
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
@@ -20,7 +25,7 @@ sub r { my ($c,$m)=@_;  return '<result code="'.($c || 1000).'"><msg>'.($m || 'C
 my $dri=Net::DRI::TrapExceptions->new(10);
 $dri->{trid_factory}=sub { return 'ABC-12345'; };
 $dri->add_registry('AFNIC');
-$dri->target('AFNIC')->add_current_profile('p1','test=Net::DRI::Protocol::EPP::Extensions::AFNIC',{f_send=>\&mysend,f_recv=>\&myrecv});
+$dri->target('AFNIC')->add_current_profile('p1','epp',{f_send=>\&mysend,f_recv=>\&myrecv});
 
 my ($rc,$cs,$s,$toc);
 
@@ -120,26 +125,26 @@ is($dri->get_info('acHldID'),'MM4567','domain_recover_start get_info(acHldID)');
 ## §2.7
 
 $R2=$E1.'<response>'.r().'<resData><domain:chkData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"><domain:cd><domain:name avail="0">afnic.fr</domain:name><domain:reason>In use</domain:reason></domain:cd><domain:cd><domain:name avail="1">af-1234-nic.fr</domain:name></domain:cd><domain:cd><domain:name avail="1">bois-guillaume.fr</domain:name></domain:cd><domain:cd><domain:name avail="0">paris.fr</domain:name><domain:reason>In use</domain:reason></domain:cd><domain:cd><domain:name avail="0">trafiquants.fr</domain:name><domain:reason>Forbidden name</domain:reason></domain:cd><domain:cd><domain:name avail="0">toto.wf</domain:name><domain:reason>Zone not opened</domain:reason></domain:cd></domain:chkData></resData><extension><frnic:ext xmlns:frnic="http://www.afnic.fr/xml/epp/frnic-1.0"><frnic:resData><frnic:chkData><frnic:domain><frnic:cd><frnic:name reserved="0" forbidden="0">afnic.fr</frnic:name></frnic:cd><frnic:cd><frnic:name reserved="0" forbidden="0">af-1234-nic.fr</frnic:name></frnic:cd><frnic:cd><frnic:name reserved="1" forbidden="0">bois-guillaume.fr</frnic:name><frnic:rsvReason>City name</frnic:rsvReason></frnic:cd><frnic:cd><frnic:name reserved="1" forbidden="0">paris.fr</frnic:name><frnic:rsvReason>City name</frnic:rsvReason></frnic:cd><frnic:cd><frnic:name reserved="0" forbidden="1">trafiquants.fr</frnic:name><frnic:fbdReason>Legal issue</frnic:fbdReason></frnic:cd><frnic:cd><frnic:name reserved="0" forbidden="0">toto.wf</frnic:name></frnic:cd></frnic:domain></frnic:chkData></frnic:resData></frnic:ext></extension>'.$TRID.'</response>'.$E2;
-$rc=$dri->domain_check_multi(qw/afnic.fr af-1234-nic.fr bois-guillaume.fr paris.fr trafiquants.fr toto.wf/);
+$rc=$dri->domain_check(qw/afnic.fr af-1234-nic.fr bois-guillaume.fr paris.fr trafiquants.fr toto.wf/);
 is_string($R1,$E1.'<command><check><domain:check xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>afnic.fr</domain:name><domain:name>af-1234-nic.fr</domain:name><domain:name>bois-guillaume.fr</domain:name><domain:name>paris.fr</domain:name><domain:name>trafiquants.fr</domain:name><domain:name>toto.wf</domain:name></domain:check></check><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_check build');
-is($rc->is_success(),1,'domain_check_multi is_success');
-is($dri->get_info('exist','domain','afnic.fr'),1,'domain_check_multi get_info(exist,domain1)');
-is($dri->get_info('exist_reason','domain','afnic.fr'),'In use','domain_check_multi get_info(exist_reason,domain1)');
-is($dri->get_info('exist','domain','af-1234-nic.fr'),0,'domain_check_multi get_info(exist,domain2)');
-is($dri->get_info('exist','domain','bois-guillaume.fr'),0,'domain_check_multi get_info(exist,domain3)');
-is($dri->get_info('exist','domain','paris.fr'),1,'domain_check_multi get_info(exist,domain4)');
-is($dri->get_info('exist_reason','domain','paris.fr'),'In use','domain_check_multi get_info(exist_reason,domain4)');
-is($dri->get_info('exist','domain','trafiquants.fr'),1,'domain_check_multi get_info(exist,domain5)');
-is($dri->get_info('exist_reason','domain','trafiquants.fr'),'Forbidden name','domain_check_multi get_info(exist_reason,domain5)');
-is($dri->get_info('exist','domain','toto.wf'),1,'domain_check_multi get_info(exist,domain6)');
-is($dri->get_info('exist_reason','domain','toto.wf'),'Zone not opened','domain_check_multi get_info(exist_reason,domain6)');
-is($dri->get_info('reserved_reason','domain','bois-guillaume.fr'),'City name','domain_check_multi get_info(reserved_reason,domain3)');
-is($dri->get_info('reserved_reason','domain','paris.fr'),'City name','domain_check_multi get_info(reserved_reason,domain4)');
-is($dri->get_info('forbidden_reason','domain','trafiquants.fr'),'Legal issue','domain_check_multi get_info(forbidden_reason,domain5)');
-is($dri->get_info('forbidden','domain','afnic.fr'),0,'domain_check_multi get_info(forbidden,domain1)');
-is($dri->get_info('reserved','domain','afnic.fr'),0,'domain_check_multi get_info(reserved,domain1)');
-is($dri->get_info('reserved','domain','bois-guillaume.fr'),1,'domain_check_multi get_info(reserved,domain3)');
-is($dri->get_info('forbidden','domain','trafiquants.fr'),1,'domain_check_multi get_info(forbidden,domain5)');
+is($rc->is_success(),1,'domain_check multi is_success');
+is($dri->get_info('exist','domain','afnic.fr'),1,'domain_check multi get_info(exist,domain1)');
+is($dri->get_info('exist_reason','domain','afnic.fr'),'In use','domain_check multi get_info(exist_reason,domain1)');
+is($dri->get_info('exist','domain','af-1234-nic.fr'),0,'domain_check multi get_info(exist,domain2)');
+is($dri->get_info('exist','domain','bois-guillaume.fr'),0,'domain_check multi get_info(exist,domain3)');
+is($dri->get_info('exist','domain','paris.fr'),1,'domain_check multi get_info(exist,domain4)');
+is($dri->get_info('exist_reason','domain','paris.fr'),'In use','domain_check multi get_info(exist_reason,domain4)');
+is($dri->get_info('exist','domain','trafiquants.fr'),1,'domain_check multi get_info(exist,domain5)');
+is($dri->get_info('exist_reason','domain','trafiquants.fr'),'Forbidden name','domain_check multi get_info(exist_reason,domain5)');
+is($dri->get_info('exist','domain','toto.wf'),1,'domain_check multi get_info(exist,domain6)');
+is($dri->get_info('exist_reason','domain','toto.wf'),'Zone not opened','domain_check multi get_info(exist_reason,domain6)');
+is($dri->get_info('reserved_reason','domain','bois-guillaume.fr'),'City name','domain_check multi get_info(reserved_reason,domain3)');
+is($dri->get_info('reserved_reason','domain','paris.fr'),'City name','domain_check multi get_info(reserved_reason,domain4)');
+is($dri->get_info('forbidden_reason','domain','trafiquants.fr'),'Legal issue','domain_check multi get_info(forbidden_reason,domain5)');
+is($dri->get_info('forbidden','domain','afnic.fr'),0,'domain_check multi get_info(forbidden,domain1)');
+is($dri->get_info('reserved','domain','afnic.fr'),0,'domain_check multi get_info(reserved,domain1)');
+is($dri->get_info('reserved','domain','bois-guillaume.fr'),1,'domain_check multi get_info(reserved,domain3)');
+is($dri->get_info('forbidden','domain','trafiquants.fr'),1,'domain_check multi get_info(forbidden,domain5)');
 
 ####################################################################################################
 ## §2.8.2
@@ -155,7 +160,7 @@ is_deeply([$s->list_status()],[qw/serverRecoverProhibited serverTradeProhibited/
 ## corrected misplacement of contact:id
 
 $R2=$E1.'<response>'.r().'<resData><contact:creData xmlns:contact="urn:ietf:params:xml:ns:contact-1.0"><contact:id>VL99999</contact:id><contact:crDate>2008-11-20T00:00:00.0Z</contact:crDate></contact:creData></resData><extension><frnic:ext xmlns:frnic="http://www.afnic.fr/xml/epp/frnic-1.0"><frnic:resData><frnic:creData><frnic:nhStatus new="1"/><frnic:idStatus>no</frnic:idStatus></frnic:creData></frnic:resData></frnic:ext></extension>'.$TRID.'</response>'.$E2;
-$co=$dri->local_object('contact');
+my $co=$dri->local_object('contact');
 $co->name('Levigneron');
 $co->firstname('Vincent');
 $co->org('AFNIC');

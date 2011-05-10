@@ -1,6 +1,6 @@
 ## Domain Registry Interface, IRIS Message
 ##
-## Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2008-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,13 +10,11 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::IRIS::Message;
 
+use utf8;
 use strict;
 use warnings;
 
@@ -27,9 +25,7 @@ use Net::DRI::Exception;
 use Net::DRI::Util;
 
 use base qw(Class::Accessor::Chained::Fast Net::DRI::Protocol::Message);
-__PACKAGE__->mk_accessors(qw/version tid authority search results/);
-
-our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
+__PACKAGE__->mk_accessors(qw/version tid authority options search results/);
 
 =pod
 
@@ -59,7 +55,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2008-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -78,45 +74,45 @@ sub new
  my $class=shift;
  my $trid=shift;
 
- my $self={ ns => {} };
+ my $self={ ns => {}, options => {} };
  bless($self,$class);
 
- $self->tid($trid) if (defined($trid) && $trid);
+ $self->tid($trid) if defined $trid && length $trid;
  return $self;
 }
 
 sub ns
 {
  my ($self,$what)=@_;
- return $self->{ns} unless defined($what);
+ return $self->{ns} unless defined $what;
 
- if (ref($what) eq 'HASH')
+ if (ref $what eq 'HASH')
  {
   $self->{ns}=$what;
   return $what;
  }
- return unless exists($self->{ns}->{$what});
+ return unless exists $self->{ns}->{$what};
  return $self->{ns}->{$what}->[0];
 }
 
 sub nsattrs
 {
  my ($self,$what)=@_;
- return unless (defined($what) && exists($self->{ns}->{$what}));
+ return unless defined $what && exists $self->{ns}->{$what};
  my @n=@{$self->{ns}->{$what}};
  return ($n[0],$n[0],$n[1]);
 }
 
 sub is_success { return 1; } ## TODO
 
-sub result_status { return Net::DRI::Protocol::ResultStatus->new_generic_success(); }; ## There is no message-level result_status, only at resultSet level, hence 
+sub result_status { return Net::DRI::Protocol::ResultStatus->new_success(); }; ## There is no message-level result_status, only at resultSet level, hence global success
 
 sub as_string
 {
  my ($self)=@_;
 
  ## TODO : handle other top nodes, see RFC4991, + control node in <request>
- Net::DRI::Exception::err_assert('Net::DRI::Protocol::IRIS::Message can only handle <request> operations for now') unless defined($self->search());
+ Net::DRI::Exception::err_assert('Net::DRI::Protocol::IRIS::Message can only handle <request> operations for now') unless defined $self->search();
  my @d;
  push @d,'<?xml version="1.0" encoding="UTF-8" standalone="no"?>';
  push @d,sprintf('<request xmlns="%s" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="%s %s">',$self->nsattrs('iris1'));
@@ -134,7 +130,7 @@ sub as_string
  return join('',@d);
 }
 
-# RFC3981 ง4.2
+# RFC3981 ยง4.2
 sub parse
 {
  my ($self,$dc,$rinfo)=@_;
@@ -145,7 +141,7 @@ sub parse
  ## TODO: handle RFC4991 other types of responses
  Net::DRI::Exception->die(0,'protocol/IRIS',1,'Unsuccessfull parse, root element is not response') unless ($root->localname() eq 'response');
 
- ## We currently do not parse the <reaction> node (in reply to a <control> which we do never send for now, see ง4.3.8) and <bags> (see ง4.4)
+ ## We currently do not parse the <reaction> node (in reply to a <control> which we do never send for now, see ยง4.3.8) and <bags> (see ยง4.4)
  ## We take care only of the <resultSet> nodes
  $self->results(scalar($root->getChildrenByTagNameNS($self->ns('iris1'),'resultSet')));
 }

@@ -4,16 +4,11 @@
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License v2.
-#
-# 
-#
 
 package Net::DRI::Protocol::EPP::Extensions::IT::Contact;
 
 use strict;
 use warnings;
-
-our $VERSION=do { my @r=(q$Revision: 1.1 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 

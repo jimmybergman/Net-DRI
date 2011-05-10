@@ -1,6 +1,6 @@
 ## Domain Registry Interface, TCP/SSL Socket Transport
 ##
-## Copyright (c) 2005-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005-2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Transport::Socket;
@@ -22,6 +19,7 @@ use base qw(Net::DRI::Transport);
 use strict;
 use warnings;
 
+use Time::HiRes ();
 use IO::Socket::INET;
 ## At least this version is needed, to have getline()
 use IO::Socket::SSL 0.90;
@@ -29,8 +27,6 @@ use IO::Socket::SSL 0.90;
 use Net::DRI::Exception;
 use Net::DRI::Util;
 use Net::DRI::Data::Raw;
-
-our $VERSION=do { my @r=(q$Revision: 1.32 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -112,7 +108,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2010 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2005-2011 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -145,8 +141,8 @@ sub new
  $self->has_state(exists $opts{has_state}? $opts{has_state} : 1);
  $self->is_sync(1);
  $self->name('socket_inet');
- $self->version('0.3');
- delete($ctx->{protocol});
+ $self->version('0.5');
+ ##delete($ctx->{protocol}); ## TODO : double check it is ok
  delete($ctx->{registry});
  delete($ctx->{profile});
 
@@ -186,11 +182,11 @@ sub new
   {
    next unless exists($opts{'ssl_'.$s});
    $s{'SSL_'.$s}=$opts{'ssl_'.$s};
+   Net::DRI::Exception::usererr_invalid_parameters('File "'.$opts{'ssl_'.$s}.'" does not exist or is unreadable by current UID') if ($s=~m/_file$/ && ! -r $opts{'ssl_'.$s});
+   Net::DRI::Exception::usererr_invalid_parameters('Directory "'.$opts{'ssl_'.$s}.'" does not exist')                            if ($s=~m/_path$/ && ! -d $opts{'ssl_'.$s});
   }
-  $s{SSL_use_cert}=1 if exists($s{SSL_cert_file});
-
-  ## Library default: ALL:!ADH:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP
-  $s{SSL_cipher_list}=(exists($opts{ssl_cipher_list}))? $opts{ssl_cipher_list} : 'ALL:!ADH:!LOW:+HIGH:+MEDIUM:+SSLv3';
+  $s{SSL_use_cert}=1 if exists $s{SSL_cert_file};
+  $s{SSL_cipher_list}=exists $opts{ssl_cipher_list} ? $opts{ssl_cipher_list} : 'SSLv3:TLSv1:!aNULL:!eNULL';
 
   $t{ssl_context}=\%s;
  }
@@ -200,16 +196,17 @@ sub new
  $self->{transport}=\%t;
  bless($self,$class); ## rebless in my class
 
+ my $rc;
  if ($self->defer()) ## we will open, but later
  {
   $self->current_state(0);
  } else ## we will open NOW
  {
-  $self->open_connection($ctx);
+  $rc=$self->open_connection($ctx);
   $self->current_state(1);
  }
 
- return $self;
+ return ($self,$rc);
 }
 
 sub sock { my ($self,$v)=@_; $self->transport_data()->{sock}=$v if defined($v); return $self->transport_data()->{sock}; }
@@ -238,8 +235,7 @@ sub open_socket
   $sock=IO::Socket::SSL->new(%{$t->{ssl_context}},
                              %n,
                             );
- }
- if ($type eq 'tcp' || $type eq 'udp')
+ } elsif ($type eq 'tcp' || $type eq 'udp')
  {
   $sock=IO::Socket::INET->new(%n);
  }
@@ -259,64 +255,78 @@ sub send_login
  my $pc=$t->{pc};
  my $dr;
  my $cltrid=$self->generate_trid($self->{logging_ctx}->{registry});
+ my @rs;
 
- ## Get server greeting, if any
- if ($pc->can('parse_greeting'))
+ ## Get server greeting, if needed
+ if ($ctx->{protocol}->has_action('session','connect'))
  {
+  my $t1=Time::HiRes::time();
   $dr=$pc->read_data($self,$sock);
+  my $t2=Time::HiRes::time();
   $self->log_output('notice','transport',$ctx,{trid=>$cltrid,phase=>'opening',direction=>'in',message=>$dr});
-  my $rc1=$pc->parse_greeting($dr); ## gives back a Net::DRI::Protocol::ResultStatus
-  die($rc1) unless $rc1->is_success();
+  push @rs,$self->protocol_parse($ctx->{protocol},'session','connect',$dr,$cltrid,$t2-$t1);
+  return Net::DRI::Util::link_rs(@rs) unless $rs[-1]->is_success();
  }
 
- return unless ($pc->can('login') && $pc->can('parse_login'));
+ return unless $ctx->{protocol}->has_action('session','login');
+
  foreach my $p (qw/client_login client_password/)
  {
   Net::DRI::Exception::usererr_insufficient_parameters($p.' must be defined') unless (exists($t->{$p}) && $t->{$p});
  }
 
  $cltrid=$self->generate_trid($self->{logging_ctx}->{registry});
- my $login=$pc->login($t->{message_factory},$t->{client_login},$t->{client_password},$cltrid,$dr,$t->{client_newpassword},$t->{protocol_data});
+
+ my $login=$ctx->{protocol}->action('session','login',$cltrid,$t->{client_login},$t->{client_password},{ client_newpassword => $t->{client_newpassword}, %{$t->{protocol_data} || {}}}); ## TODO: fix last hash ref
  $self->log_output('notice','transport',$ctx,{otype=>'session',oaction=>'login',trid=>$cltrid,phase=>'opening',direction=>'out',message=>$login});
+ my $t1=Time::HiRes::time();
  Net::DRI::Exception->die(0,'transport/socket',4,'Unable to send login message to '.$t->{remote_uri}) unless ($sock->print($pc->write_message($self,$login)));
 
  ## Verify login successful
  $dr=$pc->read_data($self,$sock);
- $self->log_output('notice','transport',$ctx,{trid=>$cltrid,phase=>'opening',direction=>'in',message=>$dr});
- my $rc2=$pc->parse_login($dr); ## gives back a Net::DRI::Protocol::ResultStatus
- die($rc2) unless $rc2->is_success();
+ my $t2=Time::HiRes::time();
+ $self->log_output('notice','transport',$ctx,{otype=>'session',oaction=>'login',trid=>$cltrid,phase=>'opening',direction=>'in',message=>$dr});
+ push @rs,$self->protocol_parse($ctx->{protocol},'session','login',$dr,$cltrid,$t2-$t1,$login);
+
+ return Net::DRI::Util::link_rs(@rs);
 }
 
 sub send_logout
 {
- my ($self)=@_;
+ my ($self,$ctx)=@_;
  my $t=$self->transport_data();
  my $sock=$self->sock();
  my $pc=$t->{pc};
 
- return unless ($pc->can('logout') && $pc->can('parse_logout'));
+ return unless $ctx->{protocol}->has_action('session','logout');
 
  my $cltrid=$self->generate_trid($self->{logging_ctx}->{registry});
- my $logout=$pc->logout($t->{message_factory},$cltrid);
- $self->log_output('notice','transport',{otype=>'session',oaction=>'logout'},{trid=>$cltrid,phase=>'closing',direction=>'out',message=>$logout});
+
+ my $logout=$ctx->{protocol}->action('session','logout',$cltrid);
+ $self->log_output('notice','transport',$ctx,{otype=>'session',oaction=>'logout',trid=>$cltrid,phase=>'closing',direction=>'out',message=>$logout});
+ my $t1=Time::HiRes::time();
  Net::DRI::Exception->die(0,'transport/socket',4,'Unable to send logout message to '.$t->{remote_uri}) unless ($sock->print($pc->write_message($self,$logout)));
  my $dr=$pc->read_data($self,$sock); ## We expect this to throw an exception, since the server will probably cut the connection
- $self->log_output('notice','transport',{otype=>'session',oaction=>'logout'},{trid=>$cltrid,phase=>'closing',direction=>'in',message=>$dr});
- my $rc1=$pc->parse_logout($dr);
- die($rc1) unless $rc1->is_success();
+ my $t2=Time::HiRes::time();
+ $self->log_output('notice','transport',$ctx,{otype=>'session',oaction=>'logout',trid=>$cltrid,phase=>'closing',direction=>'in',message=>$dr});
+ my $rc1=$self->protocol_parse($ctx->{protocol},'session','logout',$dr,$cltrid,$t2-$t1,$logout);
+ die $rc1 unless $rc1->is_success();
+ return $rc1;
 }
 
 sub open_connection
 {
  my ($self,$ctx)=@_;
  $self->open_socket($ctx);
- $self->send_login($ctx);
+ my $rc=$self->send_login($ctx);
  $self->current_state(1);
  $self->time_open(time());
  $self->time_used(time());
  $self->transport_data()->{exchanges_done}=0;
+ return $rc;
 }
 
+## TODO : convert to new framework, remove keepalive & parse_keepalive methods in Connection classes
 sub ping
 {
  my ($self,$autorecon)=@_;
@@ -324,10 +334,11 @@ sub ping
  my $t=$self->transport_data();
  my $sock=$self->sock();
  my $pc=$t->{pc};
- Net::DRI::Exception::err_method_not_implemented() unless ($pc->can('keepalive') && $pc->can('parse_keepalive'));
+ Net::DRI::Exception::method_not_implemented('keepalive',$pc) unless $pc->can('keepalive');
+ Net::DRI::Exception::method_not_implemented('parse_keepalive',$pc) unless $pc->can('parse_keepalive');
 
  my $cltrid=$self->generate_trid($self->{logging_ctx}->{registry});
- eval
+ my $ok=eval
  {
   local $SIG{ALRM}=sub { die 'timeout' };
   alarm(10);
@@ -340,13 +351,14 @@ sub ping
   $self->log_output('notice','transport',{otype=>'session',oaction=>'keepalive'},{trid=>$cltrid,phase=>'keepalive',direction=>'in',message=>$dr});
   my $rc=$pc->parse_keepalive($dr);
   die($rc) unless $rc->is_success();
+  1;
  };
  alarm(0);
 
- if ($@)
+ if (! $ok)
  {
   $self->current_state(0);
-  $self->open_connection({}) if $autorecon;
+  $self->open_connection({}) if $autorecon; ## TODO
  } else
  {
   $self->current_state(1);
@@ -365,22 +377,22 @@ sub close_socket
 
 sub close_connection
 {
- my ($self)=@_;
- $self->send_logout();
+ my ($self,$ctx)=@_;
+ $self->send_logout($ctx);
  $self->close_socket();
  $self->current_state(0);
 }
 
 sub end
 {
- my ($self)=@_;
+ my ($self,$ctx)=@_;
  if ($self->current_state())
  {
   eval
   {
    local $SIG{ALRM}=sub { die 'timeout' };
    alarm(10);
-   $self->close_connection();
+   $self->close_connection($ctx);
   };
   alarm(0); ## since close_connection may die, this must be outside of eval to be executed in all cases
  }
@@ -425,7 +437,7 @@ sub _get
  if ($t->{exchanges_done}==$t->{close_after} && $self->has_state() && $self->current_state())
  {
   $self->log_output('notice','transport',$ctx,{phase=>'closing',message=>'Due to maximum number of exchanges reached, closing connection to '.$t->{remote_uri}});
-  $self->close_connection();
+  $self->close_connection($ctx);
  }
  return $dr;
 }

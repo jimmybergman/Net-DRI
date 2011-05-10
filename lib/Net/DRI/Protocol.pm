@@ -1,6 +1,6 @@
 ## Domain Registry Interface, Protocol superclass
 ##
-## Copyright (c) 2005,2006,2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005-2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol;
@@ -20,8 +17,8 @@ package Net::DRI::Protocol;
 use strict;
 use warnings;
 
-use base qw(Class::Accessor::Chained::Fast);
-__PACKAGE__->mk_accessors(qw(name version commands message default_parameters));
+use base qw(Class::Accessor::Chained::Fast Net::DRI::BaseClass);
+__PACKAGE__->mk_accessors(qw(name version commands message default_parameters logging));
 
 use DateTime;
 use DateTime::Duration;
@@ -35,8 +32,6 @@ use Net::DRI::Data::Contact;
 use Net::DRI::Data::ContactSet;
 use Net::DRI::Data::Hosts;
 use Net::DRI::Data::StatusList;
-
-our $VERSION=do { my @r=(q$Revision: 1.22 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -66,7 +61,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005,2006,2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2005-2011 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -82,7 +77,7 @@ See the LICENSE file that comes with this distribution for more details.
 
 sub new
 {
- my ($c)=@_;
+ my ($class,$ctx)=@_;
 
  my $self={	capabilities => {},
 		factories => { 	datetime	=> sub { return DateTime->new(@_); },
@@ -93,14 +88,26 @@ sub new
 				hosts		=> sub { return Net::DRI::Data::Hosts->new(@_); },
 				status		=> sub { return Net::DRI::Data::StatusList->new(@_); },
 				},
+		logging   => $ctx->{registry}->logging(),
+		logging_ctx => { registry => $ctx->{registry}->name(), profile => $ctx->{profile}, transport_class => $ctx->{transport_class} },
 	};
 
- bless($self,$c);
-
+ bless($self,$class);
  $self->message(undef);
  $self->default_parameters({});
+
+ $self->log_setup_channel($class,'protocol',$self->{logging_ctx});
+ $self->log_output('debug','core',sprintf('Added profile %s for registry %s',$class,$ctx->{registry}->name()));
  return $self;
 }
+
+sub log_output
+{
+ my ($self,$level,$type,$data1)=@_;
+ $self->{logging_ctx}->{protocol}=$self->name().'/'.$self->version() if (! exists $self->{logging_ctx}->{protocol} && defined $self->name());
+ return $self->logging()->output($level,$type,ref $data1 ? { %{$self->{logging_ctx}}, %$data1 } : $data1);
+}
+
 
 sub parse_iso8601
 {
@@ -139,8 +146,9 @@ sub _load
  {
   next if exists($done{$class});
   $class->require or Net::DRI::Exception::err_failed_load_module($etype,$class,$@);
-  Net::DRI::Exception::err_method_not_implemented('register_commands() in '.$class) unless $class->can('register_commands');
+  Net::DRI::Exception::method_not_implemented('register_commands',$class) unless $class->can('register_commands');
   my $rh=$class->register_commands($version);
+  $self->{commands_by_class}->{$class}=$rh;
   Net::DRI::Util::hash_merge(\%c,$rh); ## { object type => { action type => [ build action, parse action ]+ } }
   if ($class->can('capabilities_add'))
   {
@@ -153,6 +161,7 @@ sub _load
     $self->capabilities(@a);
    }
   }
+  $class->setup($self,$version) if $class->can('setup');
   $done{$class}=1;
   push @done,$class;
  }
@@ -162,11 +171,20 @@ sub _load
  return;
 }
 
+## has_module + find_action_in_class should instead better be based on some ID, like the XML namespace in EPP,
+## instead of the Perl module names
 sub has_module
 {
  my ($self,$mod)=@_;
- return 0 unless defined $mod && $mod;
+ return 0 unless defined $mod && length $mod;
  return (grep { $_ eq $mod } @{$self->{loaded_modules}})? 1 : 0;
+}
+
+sub find_action_in_class
+{
+ my ($self,$class,$otype,$oaction)=@_;
+ return unless defined $class && length $class && exists $self->{commands_by_class}->{$class} && exists $self->{commands_by_class}->{$class}->{$otype} && exists $self->{commands_by_class}->{$class}->{$otype}->{$oaction};
+ return wantarray ? @{$self->{commands_by_class}->{$class}->{$otype}->{$oaction}} : $self->{commands_by_class}->{$class}->{$otype}->{$oaction}->[0];
 }
 
 sub _load_commands
@@ -174,7 +192,7 @@ sub _load_commands
  my ($self,$otype,$oaction)=@_;
 
  my $etype='protocol/'.$self->name();
- Net::DRI::Exception->die(1,$etype,7,'Object type and/or action not defined') unless (defined($otype) && $otype && defined($oaction) && $oaction);
+ Net::DRI::Exception->die(1,$etype,7,'Object type and/or action not defined') unless (defined $otype && length $otype && defined $oaction && length $oaction);
  my $h=$self->commands();
  Net::DRI::Exception->die(1,$etype,8,'No actions defined for object of type <'.$otype.'>') unless exists($h->{$otype});
  Net::DRI::Exception->die(1,$etype,9,'No action name <'.$oaction.'> defined for object of type <'.$otype.'> in '.ref($self)) unless exists($h->{$otype}->{$oaction});
@@ -184,31 +202,24 @@ sub _load_commands
 sub has_action
 {
  my ($self,$otype,$oaction)=@_;
- eval {
-  my $h=$self->_load_commands($otype,$oaction);
- };
-
- return ($@)? 0 : 1;
+ return eval { my $h=$self->_load_commands($otype,$oaction); 1; } ? 1 : 0;
 }
 
 sub action
 {
- my $self=shift;
- my $otype=shift;
- my $oaction=shift;
- my $trid=shift;
+ my ($self,$otype,$oaction,$trid,@params)=@_;
  my $h=$self->_load_commands($otype,$oaction);
 
  ## Create a new message from scratch and loop through all functions registered for given action & type
  my $msg=$self->create_local_object('message',$trid,$otype,$oaction);
- Net::DRI::Exception->die(0,'protocol',1,'Unsuccessfull message creation') unless ($msg && ref($msg) && $msg->isa('Net::DRI::Protocol::Message'));
+ Net::DRI::Exception->die(0,'protocol',1,'Unsuccessfull message creation') unless ($msg && ref $msg && $msg->isa('Net::DRI::Protocol::Message'));
  $self->message($msg); ## store it for later use (in loop below)
 
  foreach my $t (@{$h->{$otype}->{$oaction}})
  {
   my $pf=$t->[0];
   next unless (defined($pf) && (ref($pf) eq 'CODE'));
-  $pf->($self,@_);
+  $pf->($self,@params);
  }
 
  $self->message(undef); ## needed ? useful ?
@@ -217,7 +228,7 @@ sub action
 
 sub reaction
 {
- my ($self,$otype,$oaction,$dr,$sent,$oname)=@_;
+ my ($self,$otype,$oaction,$dr,$sent,$oname,$trid)=@_;
  my $h=$self->_load_commands($otype,$oaction);
  my $msg=$self->create_local_object('message');
  Net::DRI::Exception->die(0,'protocol',1,'Unsuccessfull message creation') unless ($msg && ref($msg) && $msg->isa('Net::DRI::Protocol::Message'));
@@ -226,31 +237,45 @@ sub reaction
  ## TODO is $sent needed here really ? if not remove from API above also !
  $msg->parse($dr,\%info,$otype,$oaction,$sent); ## will trigger an Exception by itself if problem ## TODO : add  later the whole LocalStorage stuff done when sending ? (instead of otype/oaction/message sent)
  $self->message($msg); ## store it for later use (in loop below)
- $info{$otype}->{$oname}->{name}=$oname if ($otype eq 'domain' || $otype eq 'host');
+ $info{$otype}->{$oname}->{name}=$oname if ($otype eq 'domain' || $otype eq 'host' || $otype eq 'nsgroup' || $otype eq 'keygroup'); ## TODO : abstract this ?
+
+ if (exists $h->{message} && exists $h->{message}->{result})
+ {
+  foreach my $t (@{$h->{message}->{result}})
+  {
+   my $pf=$t->[1];
+   next unless (defined $pf && ref $pf eq 'CODE');
+   $pf->($self,$otype,$oaction,$oname,\%info);
+  }
+ }
 
  foreach my $t (@{$h->{$otype}->{$oaction}})
  {
   my $pf=$t->[1];
-  next unless (defined($pf) && (ref($pf) eq 'CODE'));
+  next unless (defined $pf && ref $pf eq 'CODE');
   $pf->($self,$otype,$oaction,$oname,\%info);
  }
 
  my $rc=$msg->result_status();
- if (defined($rc))
+ if (defined $rc)
  {
-  foreach my $v1 (values(%info))
+  $rc->_set_trid([ $trid ]) unless $rc->trid(); ## if not done inside Protocol::*::Message::result_status, make sure we save at least our transaction id
+  foreach my $v1 (values %info)
   {
-   next unless (ref($v1) eq 'HASH' && keys(%$v1));
-   foreach my $v2 (values(%{$v1}))
+   next unless ref $v1 eq 'HASH' && keys %$v1;
+   foreach my $v2 (values %{$v1})
    {
-    next unless (ref($v2) eq 'HASH' && keys(%$v2)); ## yes, this can happen, with must_reconnect for example
-    next if exists($v2->{result_status});
+    next unless ref $v2 eq 'HASH' && keys %$v2; ## yes, this can happen, with must_reconnect for example
+    next if exists $v2->{result_status};
     $v2->{result_status}=$rc;
    }
   }
  }
  $self->message(undef); ## needed ? useful ?
 
+ $info{session}->{exchange}->{result_from_cache}=0;
+ $info{session}->{exchange}->{protocol}=$self->nameversion();
+ $info{session}->{exchange}->{trid}=$trid;
  return ($rc,\%info);
 }
 

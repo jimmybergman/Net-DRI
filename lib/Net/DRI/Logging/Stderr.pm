@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Logging::Stderr;
@@ -23,8 +20,6 @@ use warnings;
 use base qw/Net::DRI::Logging/;
 
 use IO::Handle;
-
-our $VERSION=do { my @r=(q$Revision: 1.1 $=~/\d+/gxm); sprintf '%d'.('.%02d' x $#r), @r; };
 
 *STDERR->autoflush();
 
@@ -50,10 +45,6 @@ __END__
 =head1 NAME
 
 Net::DRI::Logging::Stderr - STDERR Logging Operations for Net::DRI
-
-=head1 VERSION
-
-This documentation refers to Net::DRI::Logging::Stderr version 1.01
 
 =head1 SYNOPSIS
 

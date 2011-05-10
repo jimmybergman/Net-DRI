@@ -9,6 +9,7 @@ eg/epp_client_se.pl
 eg/epp_server.pl
 eg/eurid_epp.pl
 eg/iris_dchk.pl
+eg/ispapi_epp.pl
 eg/whois.pl
 eg/ws_rrp.pl
 eg/xmlfilter.pl
@@ -77,6 +78,7 @@ lib/Net/DRI/DRD/IENUMAT.pm
 lib/Net/DRI/DRD/IM.pm
 lib/Net/DRI/DRD/INFO.pm
 lib/Net/DRI/DRD/IRegistry.pm
+lib/Net/DRI/DRD/ISPAPI.pm
 lib/Net/DRI/DRD/IT.pm
 lib/Net/DRI/DRD/LC.pm
 lib/Net/DRI/DRD/LU.pm
@@ -152,7 +154,11 @@ lib/Net/DRI/Protocol/EPP/Extensions/AERO/Contact.pm
 lib/Net/DRI/Protocol/EPP/Extensions/AERO/Domain.pm
 lib/Net/DRI/Protocol/EPP/Extensions/Afilias.pm
 lib/Net/DRI/Protocol/EPP/Extensions/Afilias/IDNLanguage.pm
+lib/Net/DRI/Protocol/EPP/Extensions/Afilias/IPR.pm
+lib/Net/DRI/Protocol/EPP/Extensions/Afilias/MaintainerUrl.pm
+lib/Net/DRI/Protocol/EPP/Extensions/Afilias/Message.pm
 lib/Net/DRI/Protocol/EPP/Extensions/Afilias/Restore.pm
+lib/Net/DRI/Protocol/EPP/Extensions/Afilias/Trademark.pm
 lib/Net/DRI/Protocol/EPP/Extensions/AFNIC.pm
 lib/Net/DRI/Protocol/EPP/Extensions/AFNIC/Contact.pm
 lib/Net/DRI/Protocol/EPP/Extensions/AFNIC/Domain.pm
@@ -163,7 +169,7 @@ lib/Net/DRI/Protocol/EPP/Extensions/ARNES/Contact.pm
 lib/Net/DRI/Protocol/EPP/Extensions/ARNES/Domain.pm
 lib/Net/DRI/Protocol/EPP/Extensions/ASIA.pm
 lib/Net/DRI/Protocol/EPP/Extensions/ASIA/CED.pm
-lib/Net/DRI/Protocol/EPP/Extensions/ASIA/IPR.pm
+lib/Net/DRI/Protocol/EPP/Extensions/ASIA/Domain.pm
 lib/Net/DRI/Protocol/EPP/Extensions/AT.pm
 lib/Net/DRI/Protocol/EPP/Extensions/AT/ATResult.pm
 lib/Net/DRI/Protocol/EPP/Extensions/AT/Contact.pm
@@ -205,6 +211,7 @@ lib/Net/DRI/Protocol/EPP/Extensions/E164Validation/RFC5076.pm
 lib/Net/DRI/Protocol/EPP/Extensions/EURid.pm
 lib/Net/DRI/Protocol/EPP/Extensions/EURid/Contact.pm
 lib/Net/DRI/Protocol/EPP/Extensions/EURid/Domain.pm
+lib/Net/DRI/Protocol/EPP/Extensions/EURid/IDN.pm
 lib/Net/DRI/Protocol/EPP/Extensions/EURid/Message.pm
 lib/Net/DRI/Protocol/EPP/Extensions/EURid/Notifications.pm
 lib/Net/DRI/Protocol/EPP/Extensions/EURid/Registrar.pm
@@ -216,15 +223,19 @@ lib/Net/DRI/Protocol/EPP/Extensions/GracePeriod.pm
 lib/Net/DRI/Protocol/EPP/Extensions/HTTP.pm
 lib/Net/DRI/Protocol/EPP/Extensions/IENUMAT.pm
 lib/Net/DRI/Protocol/EPP/Extensions/IRegistry.pm
+lib/Net/DRI/Protocol/EPP/Extensions/ISPAPI.pm
+lib/Net/DRI/Protocol/EPP/Extensions/ISPAPI/KeyValue.pm
 lib/Net/DRI/Protocol/EPP/Extensions/IT.pm
 lib/Net/DRI/Protocol/EPP/Extensions/IT/Contact.pm
 lib/Net/DRI/Protocol/EPP/Extensions/IT/Domain.pm
 lib/Net/DRI/Protocol/EPP/Extensions/IT/Notifications.pm
+lib/Net/DRI/Protocol/EPP/Extensions/Keygroup.pm
 lib/Net/DRI/Protocol/EPP/Extensions/LU.pm
 lib/Net/DRI/Protocol/EPP/Extensions/LU/Contact.pm
 lib/Net/DRI/Protocol/EPP/Extensions/LU/Domain.pm
 lib/Net/DRI/Protocol/EPP/Extensions/LU/Poll.pm
 lib/Net/DRI/Protocol/EPP/Extensions/LU/Status.pm
+lib/Net/DRI/Protocol/EPP/Extensions/ME.pm
 lib/Net/DRI/Protocol/EPP/Extensions/MOBI.pm
 lib/Net/DRI/Protocol/EPP/Extensions/MOBI/Domain.pm
 lib/Net/DRI/Protocol/EPP/Extensions/NAME.pm
@@ -253,7 +264,6 @@ lib/Net/DRI/Protocol/EPP/Extensions/PRO/AV.pm
 lib/Net/DRI/Protocol/EPP/Extensions/PRO/Domain.pm
 lib/Net/DRI/Protocol/EPP/Extensions/SE.pm
 lib/Net/DRI/Protocol/EPP/Extensions/SE/Extensions.pm
-lib/Net/DRI/Protocol/EPP/Extensions/SE/Message.pm
 lib/Net/DRI/Protocol/EPP/Extensions/SecDNS.pm
 lib/Net/DRI/Protocol/EPP/Extensions/SIDN.pm
 lib/Net/DRI/Protocol/EPP/Extensions/SIDN/Contact.pm
@@ -270,8 +280,11 @@ lib/Net/DRI/Protocol/EPP/Extensions/VeriSign/JobsContact.pm
 lib/Net/DRI/Protocol/EPP/Extensions/VeriSign/NameStore.pm
 lib/Net/DRI/Protocol/EPP/Extensions/VeriSign/PollLowBalance.pm
 lib/Net/DRI/Protocol/EPP/Extensions/VeriSign/PollRGP.pm
+lib/Net/DRI/Protocol/EPP/Extensions/VeriSign/PremiumDomain.pm
+lib/Net/DRI/Protocol/EPP/Extensions/VeriSign/Suggestion.pm
 lib/Net/DRI/Protocol/EPP/Extensions/VeriSign/Sync.pm
 lib/Net/DRI/Protocol/EPP/Extensions/VeriSign/WhoisInfo.pm
+lib/Net/DRI/Protocol/EPP/Extensions/VeriSign/WhoWas.pm
 lib/Net/DRI/Protocol/EPP/Message.pm
 lib/Net/DRI/Protocol/EPP/Util.pm
 lib/Net/DRI/Protocol/Gandi/WS.pm
@@ -355,9 +368,11 @@ t/001load_mandatory.t
 t/001load_optional.t
 t/002pod.t
 t/003critic.t
+t/004kwalitee.t
 t/101exception.t
 t/102util.t
 t/103cache.t
+t/104registry.t
 t/150data_hosts.t
 t/151data_changes.t
 t/152data_contact.t
@@ -379,7 +394,7 @@ t/601vnds_epp.t
 t/602vnds_epp_graceperiod.t
 t/603vnds_epp_e164.t
 t/604vnds_epp_secdns.t
-t/605vnds_epp_nsgroup.t
+t/605be_epp_nsgroup.t
 t/606eurid_epp.t
 t/607pl_epp.t
 t/608afnic_email.t
@@ -414,6 +429,10 @@ t/639opensrs_xcp.t
 t/640pt_epp.t
 t/641sidn_epp.t
 t/642cira_epp.t
+t/643vnds_epp_whowas.t
+t/644vnds_epp_premiumdomain.t
+t/645vnds_epp_suggestion.t
+t/646afilias_oxrs.t
 t/701ovh_ws_live.t
 t/702bookmyname_ws_live.t
 t/703gandi_ws_live.t

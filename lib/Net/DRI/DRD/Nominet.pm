@@ -1,6 +1,6 @@
 ## Domain Registry Interface, .UK (Nominet) policies for Net::DRI
 ##
-## Copyright (c) 2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2007-2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::DRD::Nominet;
@@ -27,14 +24,12 @@ use Net::DRI::Exception;
 
 use DateTime::Duration;
 
-our $VERSION=do { my @r=(q$Revision: 1.8 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
-
 ## No status at all with Nominet
 ## Only domain:check is available
 ## Only domain transfer op=req and refuse/accept
 ## The delete command applies only to domain names.  Accounts, contacts and nameservers cannot be explicitly deleted, but are automatically deleted when no longer referenced.
 ## No direct contact/host create
-__PACKAGE__->make_exception_for_unavailable_operations(qw/domain_update_status_add domain_update_status_del domain_update_status_set domain_update_status domain_status_allows_delete domain_status_allows_update domain_status_allows_transfer domain_status_allows_renew domain_status_allows domain_current_status host_update_status_add host_update_status_del host_update_status_set host_update_status host_current_status contact_update_status_add contact_update_status_del contact_update_status_set contact_update_status contact_current_status host_check host_check_multi host_exist contact_check contact_check_multi contact_exist contact_transfer contact_transfer_start contact_transfer_stop contact_transfer_query contact_transfer_accept contact_transfer_refuse domain_transfer_stop domain_transfer_query host_delete contact_delete host_create contact_create/);
+__PACKAGE__->make_exception_for_unavailable_operations(qw/domain_update_status_add domain_update_status_del domain_update_status_set domain_update_status domain_status_allows_delete domain_status_allows_update domain_status_allows_transfer domain_status_allows_renew domain_status_allows domain_current_status host_update_status_add host_update_status_del host_update_status_set host_update_status host_current_status contact_update_status_add contact_update_status_del contact_update_status_set contact_update_status contact_current_status host_check host_exist contact_check contact_exist contact_transfer contact_transfer_start contact_transfer_stop contact_transfer_query contact_transfer_accept contact_transfer_refuse domain_transfer_stop domain_transfer_query host_delete contact_delete host_create contact_create/);
 
 =pod
 
@@ -64,7 +59,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2007-2011 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -90,16 +85,16 @@ sub new
 
 sub periods  { return map { DateTime::Duration->new(years => $_) } (2); }
 sub name     { return 'Nominet'; }
-sub tlds     { return qw/co.uk ltd.uk me.uk net.uk org.uk plc.uk sch.uk/; } ## See http://www.nominet.org.uk/registrants/aboutdomainnames/rules/
+sub tlds     { return qw/co.uk ltd.uk me.uk net.uk org.uk plc.uk sch.uk/; } ## See http://www.nominet.org.uk/registrants/aboutdomainnames/rules/
 sub object_types { return ('domain','contact','ns','account'); }
-sub profile_types { return qw/epp/; }
+sub profile_types { return qw/epp epp_nominet epp_standard/; }
 
 sub transport_protocol_default
 {
  my ($self,$type)=@_;
 
  return ('Net::DRI::Transport::Socket',{remote_host => 'epp.nominet.org.uk'},'Net::DRI::Protocol::EPP::Extensions::Nominet',{}) if ($type eq 'epp' || $type eq 'epp_nominet');
- return ('Net::DRI::Transport::Socket',{remote_host => 'epp.nominet.org.uk'},'Net::DRI::Protocol::EPP',{}) if ($type eq 'epp_standard');
+ return ('Net::DRI::Transport::Socket',{remote_host => 'epp.nominet.org.uk'},'Net::DRI::Protocol::EPP',{})                      if ($type eq 'epp_standard');
  return;
 }
 
@@ -118,16 +113,13 @@ sub transport_protocol_init
 sub verify_duration_renew
 {
  my ($self,$ndr,$duration,$domain,$curexp)=@_;
- ($duration,$domain,$curexp)=($ndr,$duration,$domain) unless (defined($ndr) && $ndr && (ref($ndr) eq 'Net::DRI::Registry'));
 
 ## +Renew commands will only be processed if the expiry date of the domain name is within 6 months.
 
- if (defined($duration))
- {
-  my ($y,$m)=$duration->in_units('years','months');
-  return 1 unless ($y==2 && $m==0); ## Only 24m or 2y allowed
- }
+ return 0 unless defined $duration;
 
+ my ($y,$m)=$duration->in_units('years','months');
+ return 1 unless ($y==2 && $m==0); ## Only 24m or 2y allowed
  return 0; ## everything ok
 }
 

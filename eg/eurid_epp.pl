@@ -1,21 +1,21 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 #
 # A Net::DRI example
 # See also t/606eurid_epp.t
 
+use utf8;
 use strict;
+use warnings;
 
 use Net::DRI;
 
-use DateTime::Duration;
- 
 my $CLID='YOUR TEST CLIENT ID'; ### Change this information
 my $PASS='YOUR PASSWORD'; ### Change this information
 
 my $dri=Net::DRI->new({cache_ttl=>10,logging=>'files'});
 
-eval {
+my $ok=eval {
 ############################################################################################################
 $dri->add_registry('EURid',{clid=>$CLID});
 
@@ -52,7 +52,7 @@ $cs->set($c1,'registrant');
 $cs->set($c2,'billing');
 $cs->set($c3,'tech');
 print "Attempting to create domain $dom\n";
-$rc=$dri->domain_create($dom,{pure_create=>1,duration=>DateTime::Duration->new(years =>1),ns=>$dri->local_object('hosts')->set('ns.example.com'),contact=>$cs});
+$rc=$dri->domain_create($dom,{pure_create=>1,duration=>$dri->local_object('duration',years => 1),ns=>$dri->local_object('hosts')->set('ns.example.com'),contact=>$cs});
 print "$dom created\n" if $rc->is_success();
 
 ## After the domain:create, the connection is dropped by the server
@@ -87,7 +87,7 @@ print "ns_del OK\n" if $rc->is_success();
 $rc=$dri->domain_info($dom);
 
 # No domain status handling in EURid
-#my $s=$dri->create_status()->no('update');
+#my $s=$dri->local_object('status')->no('update');
 #$rc=$dri->domain_update_status_add($dom,$s);
 #print "status_add OK\n" if $rc->is_success();
 #$rc=$dri->domain_info($dom);
@@ -109,15 +109,16 @@ print "Contact3 deleted successfully" if $rc->is_success();
 $dri->end();
 };
 
-if ($@)
+if (! $ok)
 { 
+ my $err=$@;
  print "\n\nAn EXCEPTION happened !\n";
- if (ref($@))
+ if (ref $err)
  {
-  $@->print();
+  $err->print();
  } else
  {
-  print($@);
+  print $err;
  }
 } else
 {

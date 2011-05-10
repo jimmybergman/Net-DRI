@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Transport::HTTP;
@@ -26,8 +23,6 @@ use Net::DRI::Exception;
 use Net::DRI::Util;
 
 use LWP::UserAgent;
-
-our $VERSION=do { my @r=(q$Revision: 1.4 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -141,7 +136,7 @@ sub new
  $self->has_state(1); ## some registries need login (like .PL) some not (like .ES) ; see end of method & call to open_connection()
  $self->is_sync(1);
  $self->name('http');
- $self->version($VERSION);
+ $self->version('0.1');
 
  foreach my $k (qw/client_login client_password client_newpassword protocol_data/)
  {
@@ -157,7 +152,7 @@ sub new
  $t{remote_uri}=$t{remote_url}; ## only used for error messages
 
  my $ua=LWP::UserAgent->new();
- $ua->agent(sprintf('Net::DRI/%s Net::DRI::Transport::HTTP/%s ',$Net::DRI::VERSION,$VERSION)); ## the final space triggers LWP::UserAgent to add its own string
+ $ua->agent(sprintf('Net::DRI/%s ',$Net::DRI::VERSION)); ## the final space triggers LWP::UserAgent to add its own string
  $ua->cookie_jar({}); ## Cookies needed by some registries, like .PL (how strange !)
  ## Now some security settings
  $ua->max_redirect(0);

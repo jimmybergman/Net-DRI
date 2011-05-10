@@ -1,7 +1,8 @@
-## Domain Registry Interface, EPP Message class for .SE
-## Contributed by Ulrich Wisser from NIC SE
+## Domain Registry Interface, ISPAPI (aka HEXONET) EPP extensions
 ##
-## Copyright (c) 2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2010 HEXONET GmbH, http://www.hexonet.net,
+##                    Jens Wagner <info@hexonet.net>
+## All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -11,23 +12,20 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
-package Net::DRI::Protocol::EPP::Extensions::SE::Message;
+package Net::DRI::Protocol::EPP::Extensions::ISPAPI;
 
 use strict;
 use warnings;
-use base 'Net::DRI::Protocol::EPP::Message';
-our $VERSION=do { my @r=(q$Revision: 1.1 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
+
+use base qw/Net::DRI::Protocol::EPP/;
 
 =pod
 
 =head1 NAME
 
-Net::DRI::Protocol::EPP::Extensions::SE::Message - .SE EPP Message for Net::DRI
+Net::DRI::Protocol::EPP::Extensions::ISPAPI - ISPAPI EPP extensions for Net::DRI
 
 =head1 DESCRIPTION
 
@@ -37,7 +35,7 @@ Please see the README file for details.
 
 For now, support questions should be sent to:
 
-E<lt>netdri@dotandco.comE<gt>
+E<lt>support@hexonet.netE<gt>
 
 Please also see the SUPPORT file in the distribution.
 
@@ -47,11 +45,14 @@ E<lt>http://www.dotandco.com/services/software/Net-DRI/E<gt>
 
 =head1 AUTHOR
 
-Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
+Alexander Biehl, E<lt>abiehl@hexonet.netE<gt>
+Jens Wagner, E<lt>jwagner@hexonet.netE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2010 HEXONET GmbH, E<lt>http://www.hexonet.netE<gt>,
+Alexander Biehl <abiehl@hexonet.net>,
+Jens Wagner <jwagner@hexonet.net>
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -65,20 +66,7 @@ See the LICENSE file that comes with this distribution for more details.
 
 ####################################################################################################
 
-#
-# This is an exact copy of Net::DRI::Protocol::EPP::Message::_get_content
-# Only getChildrenByTagNameNS has been replaced with getElementsByTagNameNS
-# to enable parsing of <???:infData/> inside <iis:notifyXXX/> elements.
-#
-sub _get_content {
-    my ( $self, $node, $nstag, $nodename ) = @_;
-    return unless ( defined($node) && defined($nstag) && $nstag && defined($nodename) && $nodename );
-    my $ns = $self->ns($nstag);
-    $ns = $nstag unless defined($ns) && $ns;
-    my @tmp = $node->getElementsByTagNameNS( $ns, $nodename );
-    return unless @tmp;
-    return $tmp[0];
-}
+sub default_extensions { return qw/ISPAPI::KeyValue/; }
 
 ####################################################################################################
 1;

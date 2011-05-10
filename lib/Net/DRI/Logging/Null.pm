@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Logging::Null;
@@ -21,8 +18,6 @@ use strict;
 use warnings;
 
 use base qw/Net::DRI::Logging/;
-
-our $VERSION=do { my @r=(q$Revision: 1.1 $=~/\d+/g); sprintf '%d'.('.%02d' x $#r), @r; };
 
 ####################################################################################################
 
@@ -40,10 +35,6 @@ __END__
 =head1 NAME
 
 Net::DRI::Logging::Null - Null Logging Operations for Net::DRI
-
-=head1 VERSION
-
-This documentation refers to Net::DRI::Logging::Null version 1.01
 
 =head1 SYNOPSIS
 

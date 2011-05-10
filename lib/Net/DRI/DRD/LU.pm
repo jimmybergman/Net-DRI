@@ -1,6 +1,6 @@
 ## Domain Registry Interface, .LU policy from DocRegistrar-2.0.6.pdf
 ##
-## Copyright (c) 2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2007-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::DRD::LU;
@@ -24,10 +21,7 @@ use base qw/Net::DRI::DRD/;
 
 use Net::DRI::Data::Contact::LU;
 
-our $VERSION=do { my @r=(q$Revision: 1.5 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
-
-__PACKAGE__->make_exception_for_unavailable_operations(qw/domain_renew domain_transfer_accept domain_transfer_refuse contact_transfer contact_transfer_start contact_transfer_stop
-contact_transfer_query contact_transfer_accept contact_transfer_refuse/);
+__PACKAGE__->make_exception_for_unavailable_operations(qw/domain_renew domain_transfer_accept domain_transfer_refuse contact_transfer contact_transfer_start contact_transfer_stop contact_transfer_query contact_transfer_accept contact_transfer_refuse/);
 
 =pod
 
@@ -57,7 +51,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2007-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -137,27 +131,6 @@ sub domain_restore
  my ($self,$ndr,$domain)=@_;
  $self->enforce_domain_name_constraints($ndr,$domain,'restore');
  return $ndr->process('domain','restore',[$domain]);
-}
-
-sub domain_trade_start
-{
- my ($self,$ndr,$domain,$rd)=@_;
- $self->enforce_domain_name_constraints($ndr,$domain,'trade');
- return $ndr->process('domain','trade_request',[$domain,$rd]);
-}
-
-sub domain_trade_query
-{
- my ($self,$ndr,$domain)=@_;
- $self->enforce_domain_name_constraints($ndr,$domain,'trade');
- return $ndr->process('domain','trade_query',[$domain]);
-}
-
-sub domain_trade_stop
-{
- my ($self,$ndr,$domain)=@_;
- $self->enforce_domain_name_constraints($ndr,$domain,'trade');
- return $ndr->process('domain','trade_cancel',[$domain]);
 }
 
 sub domain_transfer_trade_start

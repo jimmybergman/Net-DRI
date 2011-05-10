@@ -1,4 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
@@ -7,23 +10,14 @@ use DateTime::Duration;
 
 use Test::More tests => 48;
 
-our $R1;
-sub mysend
-{
- my ($transport,$count,$msg)=@_;
- $R1=$msg->as_string();
- return 1;
-}
+our ($R1,$R2);
+sub mysend { my ($transport,$count,$msg)=@_; $R1=$msg->as_string(); return 1;}
+sub myrecv { return Net::DRI::Data::Raw->new_from_string($R2? $R2 : "200 Command completed successfully\r\n.\r\n"); }
 
-our $R2;
-sub myrecv
-{
- return Net::DRI::Data::Raw->new_from_string($R2? $R2 : "200 Command completed successfully\r\n.\r\n");
-}
 my $dri=Net::DRI::TrapExceptions->new(-1); ## we do not want caching for now
 
 $dri->add_registry('VNDS',{tz=>'America/New_York'});
-$dri->target('VNDS')->add_current_profile('p1','test=RRP',{f_send=>\&mysend,f_recv=>\&myrecv});
+$dri->target('VNDS')->add_current_profile('p1','rrp',{f_send=>\&mysend,f_recv=>\&myrecv});
 
 $R2="200 Command completed successfully\r\nregistration expiration date:2009-09-22 10:27:00.0\r\nstatus:ACTIVE\r\n.\r\n";
 my $rc=$dri->domain_create('example2.com',{pure_create=>1,duration => DateTime::Duration->new(years => 10)});

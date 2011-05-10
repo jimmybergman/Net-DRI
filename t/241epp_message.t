@@ -1,9 +1,12 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use utf8;
+
+use strict;
+use warnings;
 
 use Net::DRI::Protocol::EPP::Message;
 use Net::DRI::Data::Raw;
-
-use Encode;
 
 use Test::More tests=> 32;
 
@@ -69,7 +72,7 @@ $msg->parse($s);
 
 is($msg->result_code(0),2004,'parse (result,2 errors) result_code(0)');
 is($msg->result_code(1),2005,'parse (result,2 errors) result_code(1)');
-$ri=$msg->result_extra_info(0);
+my $ri=$msg->result_extra_info(0);
 is_deeply($ri,[{type=>'rawxml',from=>'eppcom:value',message=>'<value xmlns:obj="urn:ietf:params:xml:ns:obj"><obj:elem1>2525</obj:elem1></value>'}],'parse (result,2 errors) result_extra_info(0)');
 $ri=$msg->result_extra_info(1);
 is_deeply($ri,[{type=>'rawxml',from=>'eppcom:value',message=>'<value xmlns:obj="urn:ietf:params:xml:ns:obj"><obj:elem2>ex(ample</obj:elem2></value>'},{type=>'rawxml',from=>'eppcom:extValue',message=>'<value xmlns:obj="urn:ietf:params:xml:ns:obj"><obj:elem3>abc.ex(ample</obj:elem3></value>',reason=>'Invalid character found.',lang=>'en'}],'parse (result,2 errors) result_extra_info(1)');
@@ -109,7 +112,7 @@ $s=<<EOF;
 </epp>
 EOF
 
-is($msg->as_string(),_n($s),'build host check [RFC 4932 ง3.1.1]');
+is($msg->as_string(),_n($s),'build host check [RFC 4932 ยง3.1.1]');
 
 $msg=Net::DRI::Protocol::EPP::Message->new();
 $msg->ns({ _main => ['urn:ietf:params:xml:ns:epp-1.0','epp-1.0.xsd'] });
@@ -202,7 +205,7 @@ $s=<<EOF;
 </epp>
 EOF
 
-is($msg->as_string(),_n($s),'build host info [RFC 4932 ง3.1.2]');
+is($msg->as_string(),_n($s),'build host info [RFC 4932 ยง3.1.2]');
 
 ##############################################################################
 
@@ -236,7 +239,7 @@ $s=<<EOF;
 </epp>
 EOF
 
-is($msg->as_string(),_n($s),'build host create [RFC 4932 ง3.2.1]');
+is($msg->as_string(),_n($s),'build host create [RFC 4932 ยง3.2.1]');
 
 ##############################################################################
 
@@ -267,7 +270,7 @@ $s=<<EOF;
 </epp>
 EOF
 
-is($msg->as_string(),_n($s),'build host delete [RFC 4932 ง3.2.2]');
+is($msg->as_string(),_n($s),'build host delete [RFC 4932 ยง3.2.2]');
 
 ##############################################################################
 
@@ -308,7 +311,7 @@ $s=<<EOF;
 </epp>
 EOF
 
-is($msg->as_string(),_n($s),'build host update [RFC 4932 ง3.2.5]');
+is($msg->as_string(),_n($s),'build host update [RFC 4932 ยง3.2.5]');
 
 exit 0;
 

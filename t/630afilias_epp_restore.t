@@ -1,9 +1,11 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
 use DateTime::Duration;
-use Data::Dumper;
 
 use Test::More tests => 3;
 
@@ -30,21 +32,23 @@ sub myrecv
 }
 
 my $dri;
-eval {
+my $ok=eval {
 	$dri = Net::DRI->new(10);
+	1;
 };
-print $@->as_string() if $@;
+print $@->as_string() if ! $ok;
 $dri->{trid_factory} = sub { return 'ABC-12345'; };
 $dri->add_registry('HN');
-eval {
+$ok=eval {
 	$dri->target('HN')->add_current_profile('p1',
-		'test=EPP',
+		'epp',
 		{
 			f_send=> \&mysend,
 			f_recv=> \&myrecv
-		}, {extensions=>['Net::DRI::Protocol::EPP::Extensions::Afilias::Restore']});
+		});
+	1;
 };
-print $@->as_string() if $@;
+print $@->as_string() if ! $ok;
 
 
 my $rc;
@@ -57,13 +61,14 @@ my ($dh,@c);
 $R2 = $E1 . '<response>' . r(1001,'Command completed successfully; ' .
 	'action pending') . $TRID . '</response>' . $E2;
 
-eval {
+$ok=eval {
 	$rc = $dri->domain_renew('deleted-by-accident.com.hn', {
 		current_expiration => new DateTime(year => 2008, month => 12,
 			day => 24),
 		rgp => 1});
+	1;
 };
-print(STDERR $@->as_string()) if ($@);
+print(STDERR $@->as_string()) if ! $ok;
 isa_ok($rc, 'Net::DRI::Protocol::ResultStatus');
 is($rc->is_success(), 1, 'Domain successfully recovered');
 is($R1, '<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd"><command><renew><domain:renew xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>deleted-by-accident.com.hn</domain:name><domain:curExpDate>2008-12-24</domain:curExpDate></domain:renew></renew><extension><rgp:renew xmlns:rgp="urn:EPP:xml:ns:ext:rgp-1.0" xsi:schemaLocation="urn:EPP:xml:ns:ext:rgp-1.0 rgp-1.0.xsd"><rgp:restore/></rgp:renew></extension><clTRID>ABC-12345</clTRID></command></epp>', 'Recover Domain XML correct');

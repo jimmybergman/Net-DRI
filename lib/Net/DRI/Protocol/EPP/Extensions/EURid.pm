@@ -1,6 +1,6 @@
 ## Domain Registry Interface, EURid EPP extensions
 ##
-## Copyright (c) 2005,2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005,2007-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::EURid;
@@ -23,9 +20,6 @@ use warnings;
 use base qw/Net::DRI::Protocol::EPP/;
 
 use Net::DRI::Data::Contact::EURid;
-use Net::DRI::Protocol::EPP::Extensions::EURid::Message;
-
-our $VERSION=do { my @r=(q$Revision: 1.7 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -55,7 +49,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005,2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2005,2007-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -75,21 +69,19 @@ sub setup
  my $version=$self->version();
 
  $self->ns({_main => ['http://www.eurid.eu/xml/epp/epp-1.0','epp-1.0.xsd']});
- foreach my $w (qw/domain contact eurid nsgroup registrar/)
- {
-  $self->ns({ $w => ['http://www.eurid.eu/xml/epp/'.$w.'-1.0',$w.'-1.0.xsd'] });
- }
+ $self->ns({ map { $_ => ['http://www.eurid.eu/xml/epp/'.$_.'-1.0',$_.'-1.0.xsd'] } qw/domain contact eurid nsgroup registrar keygroup/ });
  $self->capabilities('contact_update','status',undef); ## No changes in status possible for .EU domains/contacts
  $self->capabilities('domain_update','status',undef);
  $self->capabilities('domain_update','nsgroup',[ 'add','del']);
  $self->factories('contact',sub { return Net::DRI::Data::Contact::EURid->new(); });
- $self->factories('message',sub { my $m=Net::DRI::Protocol::EPP::Extensions::EURid::Message->new(@_); $m->ns($self->{ns}); $m->version($version); return $m;} );
  $self->default_parameters({domain_create => { auth => { pw => '' } } });
  return;
 }
 
 sub core_contact_types { return ('admin','tech','billing','onsite'); }
-sub default_extensions { return qw/EURid::Domain EURid::Contact EURid::Registrar EURid::Notifications NSgroup SecDNS/; } ## Sunrise should be added when calling, as it is not mandatory
+sub default_extensions { return qw/EURid::Message EURid::Domain EURid::Contact EURid::Registrar EURid::Notifications EURid::IDN Keygroup NSgroup SecDNS/; }
+
+## Extensions not loaded by default: Sunrise
 
 ####################################################################################################
 1;

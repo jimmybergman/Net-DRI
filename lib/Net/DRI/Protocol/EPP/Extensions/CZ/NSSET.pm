@@ -1,6 +1,7 @@
 ## Domain Registry Interface, .CZ EPP NSSET extension commands
 ##
 ## Copyright (c) 2008,2009 Tonnerre Lombard <tonnerre.lombard@sygroup.ch>.
+##           (c) 2010 Patrick Mevzek <netdri@dotandco.com>
 ##                    All rights reserved.
 ##
 ## This file is part of Net::DRI
@@ -11,24 +12,18 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-#  
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::CZ::NSSET;
 
 use strict;
+use warnings;
 
 use Net::DRI::Util;
 use Net::DRI::Exception;
 use Net::DRI::Data::Hosts;
 use Net::DRI::Data::ContactSet;
 use Net::DRI::Protocol::EPP::Util;
-
-use DateTime::Format::ISO8601;
-
-our $VERSION=do { my @r=(q$Revision: 1.4 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -58,7 +53,8 @@ Tonnerre Lombard, E<lt>tonnerre.lombard@sygroup.chE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008,2009 Tonnerre Lombard <tonnerre.lombard@sygroup.ch>.
+Copyright (c) 2008-2009 Tonnerre Lombard <tonnerre.lombard@sygroup.ch>.
+          (c) 2010 Patrick Mevzek <netdri@dotandco.com>
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -254,7 +250,6 @@ sub info_parse
 	return unless $infdata;
 
 	my $ns = Net::DRI::Data::Hosts->new();
-	my $pd = DateTime::Format::ISO8601->new();
 	my $cs = Net::DRI::Data::ContactSet->new();
         my @s;
 	my $c = $infdata->getFirstChild();
@@ -283,7 +278,7 @@ sub info_parse
 		}
 		elsif ($name eq 'status')
 		{
-			push(@s,Net::DRI::Protocol::EPP::Util::parse_status($c));
+			push(@s,Net::DRI::Protocol::EPP::Util::parse_node_status($c));
 		}
 		elsif ($name eq 'authInfo')
 		{
@@ -297,8 +292,7 @@ sub info_parse
 		}
 		elsif ($name =~ /^((?:c[lr]|tr|up)Date)$/)
 		{
-			$rinfo->{nsset}->{$oname}->{$1} = $pd->parse_datetime(
-				$c->getFirstChild()->getData());
+			$rinfo->{nsset}->{$oname}->{$1} = $po->parse_iso8601($c->textContent());
 		}
 		elsif ($name eq 'ns')
 		{

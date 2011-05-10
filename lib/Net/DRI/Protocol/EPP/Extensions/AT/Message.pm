@@ -2,7 +2,7 @@
 ## Contributed by Michael Braunoeder from NIC.AT <mib@nic.at>
 ## Extended by Tonnerre Lombard
 ##
-## Copyright (c) 2006,2007,2008 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2006-2008,2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -12,18 +12,14 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::AT::Message;
 
 use strict;
+use warnings;
 
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.4 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 our $NS='http://www.nic.at/xsd/at-ext-message-1.0';
 
@@ -55,7 +51,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2006,2007,2008 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2006-2008,2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -106,7 +102,7 @@ sub parse_poll
  my $resNS = 'http://www.nic.at/xsd/at-ext-result-1.0';
 
  return unless $mes->is_success();
- return if ($mes->result_code() == 1300);   # no messages in queue
+ return if $mes->result_is('COMMAND_SUCCESSFUL_QUEUE_EMPTY');
 
  my $msgid=$mes->msg_id();
  $rinfo->{message}->{session}->{last_id}=$msgid;

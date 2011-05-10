@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 ##
 ## Copyright (c) 2008 .SE, <http://www.iis.se>,
 ##                    Jan Saell <jan@yask.se>
@@ -29,7 +29,10 @@
 ##
 #######
 
+use encoding "iso-8859-15";
 use strict;
+use warnings;
+
 use Net::DRI;
 use DateTime::Duration;
 use Pod::Usage;

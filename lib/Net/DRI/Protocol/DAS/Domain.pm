@@ -1,6 +1,6 @@
 ## Domain Registry Interface, DAS Domain commands
 ##
-## Copyright (c) 2007,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2007,2009,2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,19 +10,15 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::DAS::Domain;
 
 use strict;
+use warnings;
 
 use Net::DRI::Util;
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -52,7 +48,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2007,2009,2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -100,6 +96,10 @@ sub check_parse
  my $s=uc($rr->{Status});
  $rinfo->{domain}->{$domain}->{exist}=($s eq 'FREE' || $s eq 'AVAILABLE')? 0 : 1;
  $rinfo->{domain}->{$domain}->{exist_reason}=$rr->{Status};
+ if (exists $rr->{'IDNA Domain'})
+ {
+  $rinfo->{domain}->{$domain}->{ace}=(defined $po->tld())? lc($rr->{'IDNA Domain'}.'.'.$po->tld()) : lc($rr->{'IDNA Domain'});
+ }
 }
 
 ####################################################################################################

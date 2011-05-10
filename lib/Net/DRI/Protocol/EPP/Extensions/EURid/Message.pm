@@ -1,6 +1,6 @@
 ## Domain Registry Interface, EPP Message for EURid
 ##
-## Copyright (c) 2005,2006,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005,2006,2008-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,19 +10,12 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::EURid::Message;
 
 use strict;
 use warnings;
-
-use base qw/Net::DRI::Protocol::EPP::Message/;
-
-our $VERSION=do { my @r=(q$Revision: 1.5 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -52,7 +45,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005,2006,2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2005,2006,2008-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -66,23 +59,29 @@ See the LICENSE file that comes with this distribution for more details.
 
 ####################################################################################################
 
+sub register_commands
+{
+ my ($class,$version)=@_;
+ return { 'message' => { 'result' => [ undef, \&parse ] } };
+}
+
 sub parse
 {
- my $self=shift;
- $self->SUPER::parse(@_);
+ my ($po,$otype,$oaction,$oname,$rinfo)=@_;
+ my $mes=$po->message();
 
  ## Parse eurid:ext
- my $result=$self->get_extension('eurid','ext');
+ my $result=$mes->get_extension('eurid','ext');
  return unless $result;
- my $ns=$self->ns('eurid');
+ my $ns=$mes->ns('eurid');
  $result=$result->getChildrenByTagNameNS($ns,'result');
  return unless $result->size();
- $result=$result->shift();
+ $result=$result->get_node(1);
 
  ## We add it to the latest status extra_info seen.
  foreach my $el ($result->getChildrenByTagNameNS($ns,'msg'))
  {
-  $self->add_to_extra_info({from => 'eurid', type => 'text', message => $el->textContent()});
+  $mes->add_to_extra_info({from => 'eurid', type => 'text', message => $el->textContent()});
  }
 }
 

@@ -5,17 +5,17 @@ Send your wishlist to <netdri@dotandco.com>
 All
 	* sign the distribution with Module::Signature (1)
 	* add some introspections to be able to know what methods are really available per DRD, instead of throwing an exception ?
-	* implement RFC5105 « ENUM Validation Token Format Definition »
+	* implement RFC5105 Â« ENUM Validation Token Format Definition Â»
 	* switch from ExtUtils::MakeMaker to Module::Build for better META.yml ?
 	* offer full asynchronous API ?
 
 Net::DRI
 	* IDN support (in a cross registry fashion) with Net-IDN-Tools (1)
 		see also http://www.bsdprojects.net/cgi-bin/archzoom.cgi/tonnerre@bsdprojects.net--2006/Net-DRI--tonnerre--0.81.1--patch-12?log
+	* Exception handling using Exception::Class instead of internal implementation ? (1)
 
 Net::DRI::DRD
 	* bulk operations (many domains at once)
-	* domain_delete() : try to rename nameservers created in domain about to be deleted
 	* domain_update() / host_update()
 	  - try to accomodate (set=>info+add+del, add=>info+set, del=>info+set)
           - verify not same info in add & del
@@ -36,6 +36,9 @@ Net::DRI::Transport::HTTP::*
 	* unify all three modules into one (Net::DRI::Transport::WS ?), taking into account all possible cases
 	* retrofit Transport/SOAP into Transport/HTTP/SOAPLite (1), depending also on previous point
 
+
+Net::DRI::Protocol::EPP::Message
+	* use new API of command_extension_register everywhere (1)
 
 
 (1) would be great to have before releasing Net::DRI version 1.0

@@ -11,9 +11,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::DRD::AT;
@@ -25,8 +22,7 @@ use base qw/Net::DRI::DRD/;
 
 use DateTime::Duration;
 use Net::DRI::Data::Contact::AT;
-
-our $VERSION=do { my @r=(q$Revision: 1.8 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
+use Net::DRI::Util;
 
 __PACKAGE__->make_exception_for_unavailable_operations(qw/domain_transfer_accept domain_transfer_refuse domain_renew contact_transfer_stop contact_transfer_query contact_transfer_accept contact_transfer_refuse contact_check/);
 
@@ -117,9 +113,8 @@ sub domain_withdraw
 {
  my ($self,$ndr,$domain,$rd)=@_;
  $self->enforce_domain_name_constraints($ndr,$domain,'withdraw');
-
- $rd={} unless (defined($rd) && (ref($rd) eq 'HASH'));
- $rd->{transactionname} = 'withdraw';
+ $rd=Net::DRI::Util::create_params('domain_withdraw',$rd);
+ $rd->{transactionname}='withdraw';
 
  my $rc=$ndr->process('domain','nocommand',[$domain,$rd]);
  return $rc;
@@ -129,9 +124,8 @@ sub domain_transfer_execute
 {
  my ($self,$ndr,$domain,$rd)=@_;
  $self->enforce_domain_name_constraints($ndr,$domain,'transfer_execute');
-
- $rd={} unless (defined($rd) && (ref($rd) eq 'HASH'));
- $rd->{transactionname} = 'transfer_execute';
+ $rd=Net::DRI::Util::create_params('domain_transfer_execute',$rd);
+ $rd->{transactionname}='transfer_execute';
 
  my $rc=$ndr->process('domain','nocommand',[$domain,$rd]);
  return $rc;

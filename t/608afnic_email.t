@@ -1,4 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use encoding "iso-8859-15";
+
+use strict;
+use warnings;
 
 use Net::DRI;
 
@@ -35,7 +40,7 @@ my $dri=Net::DRI::TrapExceptions->new({cache_ttl=>10});
 $dri->{trid_factory}=sub { return 'TRID-12345'; };
 
 $dri->add_registry('AFNIC');
-$dri->target('AFNIC')->add_current_profile('profile1','test=email',{f_send=>\&mysend, f_recv=> sub {}},{username=>'CLIENTID',password=>'CLIENTPW',email_from=>'test@localhost'});
+$dri->target('AFNIC')->add_current_profile('profile1','email',{f_send=>\&mysend, f_recv=> sub {}},{username=>'CLIENTID',password=>'CLIENTPW',email_from=>'test@localhost'});
 $dri->transport->is_sync(0);
 
 
@@ -78,7 +83,7 @@ Content-Type: text/plain; charset="iso-8859-15"
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
 MIME-Version: 1.0
-X-Mailer: Net::DRI 0.96/1.03 via MIME-tools 5.417 (Entity 5.417)
+X-Mailer: Net::DRI/0.96_01 via MIME-tools 5.428 (Entity 5.428)
 From: test@localhost
 To: domain@nic.fr
 Subject: CLIENTID domain_create [TRID-12345]
@@ -130,7 +135,7 @@ Content-Type: text/plain; charset="iso-8859-15"
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
 MIME-Version: 1.0
-X-Mailer: Net::DRI 0.96/1.03 via MIME-tools 5.417 (Entity 5.417)
+X-Mailer: Net::DRI/0.96_01 via MIME-tools 5.428 (Entity 5.428)
 From: test@localhost
 To: domain@nic.fr
 Subject: CLIENTID domain_create [TRID-12345]

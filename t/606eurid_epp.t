@@ -1,47 +1,37 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use encoding "iso-8859-15";
+
+use strict;
+use warnings;
+
+use encoding 'latin1';
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
 use DateTime;
 use DateTime::Duration;
+use Encode;
 
-use Test::More tests => 237;
+use Test::More tests => 264;
 eval { no warnings; require Test::LongString; Test::LongString->import(max => 100); $Test::LongString::Context=50; };
 *{'main::is_string'}=\&main::is if $@;
 
 our $E1='<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:contact="http://www.eurid.eu/xml/epp/contact-1.0" xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xmlns:eurid="http://www.eurid.eu/xml/epp/eurid-1.0" xmlns:nsgroup="http://www.eurid.eu/xml/epp/nsgroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd http://www.eurid.eu/xml/epp/contact-1.0 contact-1.0.xsd http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd http://www.eurid.eu/xml/epp/eurid-1.0 eurid-1.0.xsd http://www.eurid.eu/xml/epp/nsgroup-1.0 nsgroup-1.0.xsd">';
-
 our $E2='</epp>';
 our $TRID='<trID><clTRID>TRID-0001</clTRID><svTRID>eurid-488059</svTRID></trID>';
 
-our $R1;
-sub mysend
-{
- my ($transport,$count,$msg)=@_;
- $R1=$msg->as_string();
- return 1;
-}
-
-our $R2;
-sub myrecv
-{
- return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<response>'.r().$TRID.'</response>'.$E2);
-}
-
-sub r
-{
- my ($c,$m)=@_;
- return '<result code="'.($c || 1000).'"><msg>'.($m || 'Command completed successfully').'</msg></result>';
-}
+our ($R1,$R2);
+sub mysend { my ($transport,$count,$msg)=@_; $R1=$msg->as_string(); return 1; }
+sub myrecv { return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<response>'.r().$TRID.'</response>'.$E2); }
+sub r      { my ($c,$m)=@_; return '<result code="'.($c || 1000).'"><msg>'.($m || 'Command completed successfully').'</msg></result>'; }
 
 my $dri=Net::DRI::TrapExceptions->new(10);
 $dri->{trid_factory}=sub { return 'TRID-0001'; };
 $dri->add_registry('EURid');
-$dri->target('EURid')->add_current_profile('p1','test=epp',{f_send=>\&mysend,f_recv=>\&myrecv});
-my $rc;
-my $s;
-my $d;
-my ($dh,@c);
+$dri->target('EURid')->add_current_profile('p1','epp',{f_send=>\&mysend,f_recv=>\&myrecv});
+
+my ($rc,$s,$d,$co,$toc,$cs,$h,$dh,@c);
 
 ########################################################################################################
 ## Examples taken from registration_guidelines_v1_0E-epp.pdf 
@@ -170,7 +160,7 @@ is_deeply([$s->list_status()],['ok'],'contact_info get_info(status) list_status'
 is($s->can_delete(),1,'contact_info get_info(status) can_delete');
 is($co->name(),'Smith Bill','contact_info get_info(self) name');
 is($co->org(),'','contact_info get_info(self) org');
-is_deeply($co->street(),['Green Tower','City Square'],'contact_info get_info(self) street');
+is_deeply(scalar $co->street(),['Green Tower','City Square'],'contact_info get_info(self) street');
 is($co->city(),'London','contact_info get_info(self) city');
 is($co->pc(),'1111','contact_info get_info(self) pc');
 is($co->cc(),'GB','contact_info get_info(self) cc');
@@ -201,8 +191,7 @@ $dh->add('ns2.eurid.eu');
 $dh->add('ns3.eurid.eu');
 $dh->add('ns4.eurid.eu');
 $dh->add('ns5.eurid.eu');
-my $ro=$dri->remote_object('nsgroup');
-$rc=$ro->create($dh);
+$rc=$dri->nsgroup_create($dh);
 is($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><create><nsgroup:create xmlns:nsgroup="http://www.eurid.eu/xml/epp/nsgroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/nsgroup-1.0 nsgroup-1.0.xsd"><nsgroup:name>nsgroup-eurid</nsgroup:name><nsgroup:ns>ns1.eurid.eu</nsgroup:ns><nsgroup:ns>ns2.eurid.eu</nsgroup:ns><nsgroup:ns>ns3.eurid.eu</nsgroup:ns><nsgroup:ns>ns4.eurid.eu</nsgroup:ns><nsgroup:ns>ns5.eurid.eu</nsgroup:ns></nsgroup:create></create><clTRID>TRID-0001</clTRID></command>'.$E2,'nsgroup_create build');
 is($rc->is_success(),1,'nsgroup_create is_success');
 
@@ -212,7 +201,7 @@ $R2=$E1.'<response>'.r().'<extension><eurid:ext><eurid:result><eurid:msg>OK</eur
 $dh=$dri->local_object('hosts')->name('nsgroup-eurid3');
 $toc=$dri->local_object('changes');
 $toc->set('ns',$dri->local_object('hosts')->name('nsgroup-eurid3')->add('ns2.eurid.eu'));
-$rc=$ro->update($dh,$toc);
+$rc=$dri->nsgroup_update($dh,$toc);
 is($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><update><nsgroup:update xmlns:nsgroup="http://www.eurid.eu/xml/epp/nsgroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/nsgroup-1.0 nsgroup-1.0.xsd"><nsgroup:name>nsgroup-eurid3</nsgroup:name><nsgroup:ns>ns2.eurid.eu</nsgroup:ns></nsgroup:update></update><clTRID>TRID-0001</clTRID></command>'.$E2,'nsgroup_update build');
 is($rc->is_success(),1,'nsgroup_update is_success');
 
@@ -220,7 +209,7 @@ is($rc->is_success(),1,'nsgroup_update is_success');
 ## p.44
 $R2=$E1.'<response>'.r().'<extension><eurid:ext><eurid:result><eurid:msg>OK</eurid:msg></eurid:result></eurid:ext></extension>'.$TRID.'</response>'.$E2;
 $dh->name('nsgroup-eurid3');
-$rc=$ro->delete($dh);
+$rc=$dri->nsgroup_delete($dh);
 is($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><delete><nsgroup:delete xmlns:nsgroup="http://www.eurid.eu/xml/epp/nsgroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/nsgroup-1.0 nsgroup-1.0.xsd"><nsgroup:name>nsgroup-eurid3</nsgroup:name></nsgroup:delete></delete><clTRID>TRID-0001</clTRID></command>'.$E2,'nsgroup_delete build');
 is($rc->is_success(),1,'nsgroup_delete is_success');
 
@@ -228,8 +217,8 @@ is($rc->is_success(),1,'nsgroup_delete is_success');
 ## p.46
 $R2=$E1.'<response>'.r().'<resData><nsgroup:chkData><nsgroup:cd><nsgroup:name avail="1">nsgroup-eurid1</nsgroup:name></nsgroup:cd><nsgroup:cd><nsgroup:name avail="0">nsgroup-eurid2</nsgroup:name></nsgroup:cd><nsgroup:cd><nsgroup:name avail="1">nsgroup-eurid3</nsgroup:name></nsgroup:cd><nsgroup:cd><nsgroup:name avail="0">nsgroup-eurid4</nsgroup:name></nsgroup:cd><nsgroup:cd><nsgroup:name avail="1">nsgroup-eurid5</nsgroup:name></nsgroup:cd><nsgroup:cd><nsgroup:name avail="1">nsgroup-eurid6</nsgroup:name></nsgroup:cd><nsgroup:cd><nsgroup:name avail="1">nsgroup-eurid7</nsgroup:name></nsgroup:cd></nsgroup:chkData></resData>'.$TRID.'</response>'.$E2;
 my @dh=map { $dri->local_object('hosts')->name('nsgroup-eurid'.$_) } (1..7);
-$rc=$ro->check_multi(@dh);
-is($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><check><nsgroup:check xmlns:nsgroup="http://www.eurid.eu/xml/epp/nsgroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/nsgroup-1.0 nsgroup-1.0.xsd"><nsgroup:name>nsgroup-eurid1</nsgroup:name><nsgroup:name>nsgroup-eurid2</nsgroup:name><nsgroup:name>nsgroup-eurid3</nsgroup:name><nsgroup:name>nsgroup-eurid4</nsgroup:name><nsgroup:name>nsgroup-eurid5</nsgroup:name><nsgroup:name>nsgroup-eurid6</nsgroup:name><nsgroup:name>nsgroup-eurid7</nsgroup:name></nsgroup:check></check><clTRID>TRID-0001</clTRID></command>'.$E2,'nsgroup_check_multi build');
+$rc=$dri->nsgroup_check(@dh);
+is($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><check><nsgroup:check xmlns:nsgroup="http://www.eurid.eu/xml/epp/nsgroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/nsgroup-1.0 nsgroup-1.0.xsd"><nsgroup:name>nsgroup-eurid1</nsgroup:name><nsgroup:name>nsgroup-eurid2</nsgroup:name><nsgroup:name>nsgroup-eurid3</nsgroup:name><nsgroup:name>nsgroup-eurid4</nsgroup:name><nsgroup:name>nsgroup-eurid5</nsgroup:name><nsgroup:name>nsgroup-eurid6</nsgroup:name><nsgroup:name>nsgroup-eurid7</nsgroup:name></nsgroup:check></check><clTRID>TRID-0001</clTRID></command>'.$E2,'nsgroup_check multi build');
 is($rc->is_success(),1,'nsgroup_check_multi is_success');
 is($dri->get_info('exist','nsgroup','nsgroup-eurid1'),0,'nsgroup_check_multi get_info(exist) 1');
 is($dri->get_info('exist','nsgroup','nsgroup-eurid2'),1,'nsgroup_check_multi get_info(exist) 2');
@@ -240,7 +229,7 @@ is($dri->get_info('exist','nsgroup','nsgroup-eurid6'),0,'nsgroup_check_multi get
 is($dri->get_info('exist','nsgroup','nsgroup-eurid7'),0,'nsgroup_check_multi get_info(exist) 7');
 
 $R2=$E1.'<response>'.r().'<resData><nsgroup:chkData><nsgroup:cd><nsgroup:name avail="1">nsgroup-eurid1</nsgroup:name></nsgroup:cd></nsgroup:chkData></resData>'.$TRID.'</response>'.$E2;
-$rc=$ro->check('nsgroup-eurid1');
+$rc=$dri->nsgroup_check('nsgroup-eurid1');
 is($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><check><nsgroup:check xmlns:nsgroup="http://www.eurid.eu/xml/epp/nsgroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/nsgroup-1.0 nsgroup-1.0.xsd"><nsgroup:name>nsgroup-eurid1</nsgroup:name></nsgroup:check></check><clTRID>TRID-0001</clTRID></command>'.$E2,'nsgroup_check build');
 is($rc->is_success(),1,'nsgroup_check is_success');
 is($dri->get_info('exist','nsgroup','nsgroup-eurid1'),0,'nsgroup_check get_info(exist) 1');
@@ -249,7 +238,7 @@ is($dri->get_info('exist'),0,'nsgroup_check get_info(exist) 2');
 
 ## p.48
 $R2=$E1.'<response>'.r().'<resData><nsgroup:infData><nsgroup:name>nsgroup-eurid4</nsgroup:name><nsgroup:ns>ns1.eurid.eu</nsgroup:ns><nsgroup:ns>ns2.eurid.eu</nsgroup:ns><nsgroup:ns>ns3.eurid.eu</nsgroup:ns><nsgroup:ns>ns4.eurid.eu</nsgroup:ns><nsgroup:ns>ns5.eurid.eu</nsgroup:ns><nsgroup:ns>ns6.eurid.eu</nsgroup:ns><nsgroup:ns>ns7.eurid.eu</nsgroup:ns><nsgroup:ns>ns8.eurid.eu</nsgroup:ns><nsgroup:ns>ns9.eurid.eu</nsgroup:ns></nsgroup:infData></resData>'.$TRID.'</response>'.$E2;
-$rc=$ro->info('nsgroup-eurid4');
+$rc=$dri->nsgroup_info('nsgroup-eurid4');
 is($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><info><nsgroup:info xmlns:nsgroup="http://www.eurid.eu/xml/epp/nsgroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/nsgroup-1.0 nsgroup-1.0.xsd"><nsgroup:name>nsgroup-eurid4</nsgroup:name></nsgroup:info></info><clTRID>TRID-0001</clTRID></command>'.$E2,'nsgroup_info build');
 is($rc->is_success(),1,'nsgroup_info is_success');
 $s=$dri->get_info('self');
@@ -437,22 +426,22 @@ is($rc->is_success(),1,'domain_reactivate is_success');
 ## p.76
 $R2=$E1.'<response>'.r().'<resData><domain:chkData><domain:cd><domain:name avail="0">nothing.eu</domain:name></domain:cd><domain:cd><domain:name avail="1">anything.eu</domain:name></domain:cd><domain:cd><domain:name avail="0">ecom.eu</domain:name></domain:cd><domain:cd><domain:name avail="0">mykingdom.eu</domain:name></domain:cd><domain:cd><domain:name avail="0">everything.eu</domain:name></domain:cd><domain:cd><domain:name avail="1">something.eu</domain:name></domain:cd><domain:cd><domain:name avail="1">mything.eu</domain:name></domain:cd></domain:chkData></resData>'.$TRID.'</response>'.$E2;
 $dri->cache_clear();
-$rc=$dri->domain_check_multi('nothing.eu','anything.eu','ecom.eu','mykingdom.eu','everything.eu','something.eu','mything.eu');
-is($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><check><domain:check xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd"><domain:name>nothing.eu</domain:name><domain:name>anything.eu</domain:name><domain:name>ecom.eu</domain:name><domain:name>mykingdom.eu</domain:name><domain:name>everything.eu</domain:name><domain:name>something.eu</domain:name><domain:name>mything.eu</domain:name></domain:check></check><clTRID>TRID-0001</clTRID></command></epp>','domain_check_multi build');
-is($rc->is_success(),1,'domain_check_multi is_success');
-is($dri->get_info('exist','domain','nothing.eu'),1,'domain_check_multi get_info(exist) 1/7');
-is($dri->get_info('exist','domain','anything.eu'),0,'domain_check_multi get_info(exist) 2/7');
-is($dri->get_info('exist','domain','ecom.eu'),1,'domain_check_multi get_info(exist) 3/7');
-is($dri->get_info('exist','domain','mykingdom.eu'),1,'domain_check_multi get_info(exist) 4/7');
-is($dri->get_info('exist','domain','everything.eu'),1,'domain_check_multi get_info(exist) 5/7');
-is($dri->get_info('exist','domain','something.eu'),0,'domain_check_multi get_info(exist) 6/7');
-is($dri->get_info('exist','domain','mything.eu'),0,'domain_check_multi get_info(exist) 7/7');
+$rc=$dri->domain_check('nothing.eu','anything.eu','ecom.eu','mykingdom.eu','everything.eu','something.eu','mything.eu');
+is($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><check><domain:check xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd"><domain:name>nothing.eu</domain:name><domain:name>anything.eu</domain:name><domain:name>ecom.eu</domain:name><domain:name>mykingdom.eu</domain:name><domain:name>everything.eu</domain:name><domain:name>something.eu</domain:name><domain:name>mything.eu</domain:name></domain:check></check><clTRID>TRID-0001</clTRID></command></epp>','domain_check multi build');
+is($rc->is_success(),1,'domain_check multi is_success');
+is($dri->get_info('exist','domain','nothing.eu'),1,'domain_check multi get_info(exist) 1/7');
+is($dri->get_info('exist','domain','anything.eu'),0,'domain_check multi get_info(exist) 2/7');
+is($dri->get_info('exist','domain','ecom.eu'),1,'domain_check multi get_info(exist) 3/7');
+is($dri->get_info('exist','domain','mykingdom.eu'),1,'domain_check multi get_info(exist) 4/7');
+is($dri->get_info('exist','domain','everything.eu'),1,'domain_check multi get_info(exist) 5/7');
+is($dri->get_info('exist','domain','something.eu'),0,'domain_check multi get_info(exist) 6/7');
+is($dri->get_info('exist','domain','mything.eu'),0,'domain_check multi get_info(exist) 7/7');
 
 
 ## p.78
 $R2=$E1.'<response>'.r().'<resData><domain:infData><domain:name>ecom.eu</domain:name><domain:roid>19204-EURID</domain:roid><domain:status s="ok"/><domain:registrant>mvw14</domain:registrant><domain:contact type="billing">jj1</domain:contact><domain:contact type="tech">mmai1</domain:contact><domain:ns><domain:hostAttr><domain:hostName>ns.anything.eu</domain:hostName></domain:hostAttr><domain:hostAttr><domain:hostName>ns.everything.eu</domain:hostName></domain:hostAttr><domain:hostAttr><domain:hostName>ns.unknown.eu</domain:hostName></domain:hostAttr></domain:ns><domain:clID>t000006</domain:clID><domain:crID>t000006</domain:crID><domain:crDate>2005-09-29T14:45:35.000Z</domain:crDate><domain:upID>t000006</domain:upID><domain:upDate>2005-09-29T14:45:35.000Z</domain:upDate><domain:exDate>2006-09-29T15:45:35.0Z</domain:exDate></domain:infData></resData><extension><eurid:ext><eurid:infData><eurid:domain><eurid:nsgroup>nsgroup-eurid2</eurid:nsgroup></eurid:domain></eurid:infData></eurid:ext></extension>'.$TRID.'</response>'.$E2;
 $rc=$dri->domain_info('ecom.eu');
-is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><info><domain:info xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd"><domain:name hosts="all">ecom.eu</domain:name></domain:info></info><clTRID>TRID-0001</clTRID></command></epp>','domain_info build');
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><info><domain:info xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd"><domain:name hosts="all">ecom.eu</domain:name></domain:info></info><extension><eurid:ext xmlns:eurid="http://www.eurid.eu/xml/epp/eurid-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/eurid-1.0 eurid-1.0.xsd"><eurid:info><eurid:domain version="2.0"/></eurid:info></eurid:ext></extension><clTRID>TRID-0001</clTRID></command></epp>','domain_info build');
 is($rc->is_success(),1,'domain_info is_success');
 is($dri->get_info('exist'),1,'domain_info get_info(exist)');
 is($dri->get_info('roid'),'19204-EURID','domain_info get_info(roid)');
@@ -494,7 +483,7 @@ is($d->name(),'nsgroup-eurid2','domain_info get_info(nsgroup) [0] value');
 # §1.2
 $R2=$E1.'<response>'.r().'<resData><domain:infData><domain:name>0001-inusedomain-0001-test.eu</domain:name><domain:roid>3787937-EURID</domain:roid><domain:status s="ok"/><domain:registrant>c195332</domain:registrant><domain:contact type="billing">c31</domain:contact><domain:contact type="tech">c34</domain:contact><domain:clID>a000005</domain:clID><domain:crID>a000005</domain:crID><domain:crDate>2007-07-31T16:43:44.000Z</domain:crDate><domain:upID>a000005</domain:upID><domain:upDate>2007-07-31T16:46:16.000Z</domain:upDate><domain:exDate>2008-07-31T16:43:44.000Z</domain:exDate></domain:infData></resData><extension><eurid:ext><eurid:infData><eurid:domain><eurid:nsgroup>test</eurid:nsgroup><eurid:onhold>false</eurid:onhold><eurid:quarantined>false</eurid:quarantined></eurid:domain></eurid:infData></eurid:ext></extension>'.$TRID.'</response>'.$E2;
 $rc=$dri->domain_info('0001-inusedomain-0001-test.eu');
-is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><info><domain:info xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd"><domain:name hosts="all">0001-inusedomain-0001-test.eu</domain:name></domain:info></info><clTRID>TRID-0001</clTRID></command></epp>','domain_info version 2.0 build');
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><info><domain:info xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd"><domain:name hosts="all">0001-inusedomain-0001-test.eu</domain:name></domain:info></info><extension><eurid:ext xmlns:eurid="http://www.eurid.eu/xml/epp/eurid-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/eurid-1.0 eurid-1.0.xsd"><eurid:info><eurid:domain version="2.0"/></eurid:info></eurid:ext></extension><clTRID>TRID-0001</clTRID></command></epp>','domain_info version 2.0 build');
 $s=$dri->get_info('status');
 isa_ok($s,'Net::DRI::Data::StatusList','domain_info version 2.0 get_info(status)');
 is_deeply([$s->list_status()],['ok'],'domain_info version 2.0 get_info(status) list');
@@ -575,7 +564,7 @@ is($s->{replyOwner},'NoAnswer','domain_info version 2.0 get_info(pending_transac
 ## Check commands
 $R2=$E1.'<response>'.r().'<resData><domain:chkData><domain:cd><domain:name avail="false">0002-quarantinedomain-0001.eu</domain:name><domain:reason lang="en">quarantine</domain:reason></domain:cd></domain:chkData></resData><extension><eurid:ext><eurid:chkData><eurid:domain><eurid:cd><eurid:name accepted="0" expired="0" initial="0" rejected="0">0002-quarantinedomain-0001.eu</eurid:name><eurid:availableDate>2007-09-09T23:00:00.000Z</eurid:availableDate></eurid:cd></eurid:domain></eurid:chkData></eurid:ext></extension>'.$TRID.'</response>'.$E2;
 $rc=$dri->domain_check('0002-quarantinedomain-0001.eu');
-is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><check><domain:check xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd"><domain:name>0002-quarantinedomain-0001.eu</domain:name></domain:check></check><clTRID>TRID-0001</clTRID></command></epp>','domain_check version 2.0 build');
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><check><domain:check xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd"><domain:name>0002-quarantinedomain-0001.eu</domain:name></domain:check></check><extension><eurid:ext xmlns:eurid="http://www.eurid.eu/xml/epp/eurid-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/eurid-1.0 eurid-1.0.xsd"><eurid:check><eurid:domain version="2.0"/></eurid:check></eurid:ext></extension><clTRID>TRID-0001</clTRID></command></epp>','domain_check version 2.0 build');
 is($rc->is_success(),1,'domain_check version 2.0 is_success');
 is($dri->get_info('exist','domain','0002-quarantinedomain-0001.eu'),1,'domain_check version 2.0 get_info(exist)');
 is($dri->get_info('exist_reason','domain','0002-quarantinedomain-0001.eu'),'quarantine','domain_check version 2.0 get_info(exist_reason)');
@@ -636,12 +625,12 @@ is($rc->get_data('id'),6830,'notification get_data(id)');
 ################################################################################################################
 
 ## Examples from Registration_guidelines_v1_0F-appendix2-sunrise.pdf
-$dri->target('EURid')->add_current_profile('p2','test=epp',{f_send=>\&mysend,f_recv=>\&myrecv},{extensions=>['Net::DRI::Protocol::EPP::Extensions::EURid::Sunrise']});
+$dri->target('EURid')->add_current_profile('p2','epp',{f_send=>\&mysend,f_recv=>\&myrecv},{extensions=>['EURid::Sunrise']});
 
 ## p.8
 $R2='<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:contact="http://www.eurid.eu/xml/epp/contact-1.0" xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xmlns:eurid="http://www.eurid.eu/xml/epp/eurid-1.0" xmlns:nsgroup="http://www.eurid.eu/xml/epp/nsgroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd http://www.eurid.eu/xml/epp/contact-1.0 contact-1.0.xsd http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd http://www.eurid.eu/xml/epp/eurid-1.0 eurid-1.0.xsd http://www.eurid.eu/xml/epp/nsgroup-1.0 nsgroup-1.0.xsd"><response><result code="1500"><msg>Command completed successfully; ending session</msg></result><resData><domain:appData><domain:name>c-and-a.eu</domain:name><domain:reference>c-and-a_1</domain:reference><domain:code>2565100006029999</domain:code><domain:crDate>2005-11-08T14:51:08.929Z</domain:crDate></domain:appData></resData><extension><eurid:ext><eurid:result><eurid:msg>OK</eurid:msg></eurid:result></eurid:ext></extension><trID><clTRID>clientref-12310026</clTRID><svTRID>eurid-1589</svTRID></trID></response></epp>';
 
-$ro=$dri->remote_object('domain');
+my $ro=$dri->remote_object('domain');
 $h=$dri->local_object('hosts')->add('ns.c-and-a.eu',['81.2.4.4'],['2001:0:0:0:8:800:200C:417A'])->add('ns.isp.eu'); ## IPv6 changed
 $cs=$dri->local_object('contactset');
 $cs->set($dri->local_object('contact')->srid('js5'),'registrant');
@@ -686,5 +675,138 @@ is_deeply($c[1],[],'domain_apply get_info(ns) get_details(2) 1');
 is_deeply($c[2],[],'domain_apply get_info(ns) get_details(2) 2');
 is(''.$dri->get_info('docsReceivedDate'),'2005-11-08T21:46:56','domain_apply get_info(docsReceivedDate)');
 is($dri->get_info('adr'),0,'domain_apply get_info(adr)');
+
+####################################################################################################
+## Release 6.1 (2010-12-01)
+
+## p.21
+$R2='<?xml version="1.0" encoding="UTF-8"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xmlns:idn="http://www.eurid.eu/xml/epp/idn-1.0"><response><result code="1000"><msg>Command completed successfully</msg></result><resData><domain:creData><domain:name>dömain.eu</domain:name><domain:crDate>2009-10-14T08:44:50.618Z</domain:crDate></domain:creData></resData><extension><idn:mapping><idn:name><idn:ace>xn--dmain-jua.eu</idn:ace><idn:unicode>dömain.eu</idn:unicode></idn:name></idn:mapping></extension><trID><clTRID>create-domain-00</clTRID><svTRID>eurid-38562</svTRID></trID></response></epp>';
+$R2=Encode::decode('iso-8859-15',$R2);
+
+$cs=$dri->local_object('contactset');
+$cs->set($dri->local_object('contact')->srid('mvw14'),'registrant');
+$cs->set($dri->local_object('contact')->srid('mt24'),'tech');
+$cs->set($dri->local_object('contact')->srid('jj1'),'billing');
+$rc=$dri->domain_create('dömain.eu',{pure_create=>1,contact=>$cs,auth=>{pw=>'not-used'}});
+
+is($rc->get_data('ace'),'xn--dmain-jua.eu','domain_create idn get_data(ace)');
+is($rc->get_data('unicode'),"d\x{00f6}main.eu",'domain_create idn get_data(unicode)');
+
+
+## p.23
+$R2='<?xml version="1.0" encoding="UTF-8"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xmlns:idn="http://www.eurid.eu/xml/epp/idn-1.0"><response><result code="1000"><msg>Command completed successfully</msg></result><resData><domain:infData><domain:name>dömain.eu</domain:name><domain:roid>17941-EURID</domain:roid><domain:status s="ok"/><domain:registrant>c100000</domain:registrant><domain:contact type="billing">c100003</domain:contact><domain:contact type="tech">c100002</domain:contact><domain:clID>a100000</domain:clID><domain:crID>a100000</domain:crID><domain:crDate>2009-10-14T08:44:50.000Z</domain:crDate><domain:upID>a100000</domain:upID><domain:upDate>2009-10-14T08:44:50.000Z</domain:upDate><domain:exDate>2010-10-31T22:59:59.999Z</domain:exDate></domain:infData></resData><extension><idn:mapping><idn:name><idn:ace>xn--dmain-jua.eu</idn:ace><idn:unicode>dömain.eu</idn:unicode></idn:name></idn:mapping></extension><trID><clTRID>info-domain-00</clTRID><svTRID>eurid-0</svTRID></trID></response></epp>';
+$R2=Encode::decode('iso-8859-15',$R2);
+
+$rc=$dri->domain_info('dömain.eu');
+is($rc->get_data('ace'),'xn--dmain-jua.eu','domain_info idn get_data(ace)');
+is($rc->get_data('unicode'),"d\x{00f6}main.eu",'domain_info idn get_data(unicode)');
+
+
+## p.25
+my $idndom1="\x{03B1}\x{03C7}\x{03B1}.eu";
+my $idndom2="\x{0430}\x{0445}\x{0430}.eu";
+$R2='<?xml version="1.0" encoding="UTF-8"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xmlns:idn="http://www.eurid.eu/xml/epp/idn-1.0"><response><result code="1000"><msg>Command completed successfully</msg></result><resData><domain:chkData><domain:cd><domain:name avail="false">d'."\x{00f6}".'main.eu</domain:name><domain:reason lang="en">in use</domain:reason></domain:cd><domain:cd><domain:name avail="true">'.$idndom1.'</domain:name></domain:cd><domain:cd><domain:name avail="true">xn--80aa6d.eu</domain:name></domain:cd></domain:chkData></resData><extension><idn:mapping><idn:name><idn:ace>xn--80aa6d.eu</idn:ace><idn:unicode>'.$idndom2.'</idn:unicode></idn:name><idn:name><idn:ace>xn--dmain-jua.eu</idn:ace><idn:unicode>d'."\x{00f6}".'main.eu</idn:unicode></idn:name><idn:name><idn:ace>xn--mxaa9d.eu</idn:ace><idn:unicode>'.$idndom1.'</idn:unicode></idn:name></idn:mapping></extension><trID><clTRID>check-domain-00</clTRID><svTRID>eurid-0</svTRID></trID></response></epp>';
+
+$rc=$dri->domain_check("d\x{00f6}main.eu",$idndom1,'xn--80aa6d.eu');
+is($rc->get_data('domain','dömain.eu','ace'),'xn--dmain-jua.eu','domain_check idn get_data(ace) 1');
+is($rc->get_data('domain','dömain.eu','unicode'),"d\x{00f6}main.eu",'domain_check idn get_data(unicode) 1');
+is($rc->get_data('domain',$idndom1,'ace'),'xn--mxaa9d.eu','domain_check idn get_data(ace) 2');
+is($rc->get_data('domain',$idndom1,'unicode'),$idndom1,'domain_check idn get_data(unicode) 2');
+is($rc->get_data('domain','xn--80aa6d.eu','ace'),'xn--80aa6d.eu','domain_check idn get_data(ace) 3');
+is($rc->get_data('domain','xn--80aa6d.eu','unicode'),$idndom2,'domain_check idn get_data(unicode) 3');
+
+
+####################################################################################################
+## Release 7.1
+
+## p.19
+
+$R2='';
+%rd=();
+$cs=$dri->local_object('contactset');
+$cs->set($dri->local_object('contact')->srid('c129179'),'billing');
+$cs->set($dri->local_object('contact')->srid('c9232372'),'registrant');
+$cs->set($dri->local_object('contact')->srid('c7838742'),'tech');
+$rd{contact}=$cs;
+$rd{secdns}=[{keyTag=>'6615',alg=>7,digestType=>1,digest=>'e8dadacffab754e9cf40b919d6f698c03309f47c',maxSigLife=>604800,key_flags=>257,key_protocol=>3,key_alg=>7,key_pubKey=>'AwEAAcTnEOkfH1FsT9EI2BmjMB83uDWXpSp57YHa0v6Xg60Usm3Y2Fct1emy+h0+uDstyUl5eILy9eO2eI67m5r0Lck='}];
+$rc=$dri->domain_trade_start('ktz.eu',\%rd);
+
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><trade op="request"><domain:trade xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd"><domain:name>ktz.eu</domain:name></domain:trade></trade><extension><eurid:ext xmlns:eurid="http://www.eurid.eu/xml/epp/eurid-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/eurid-1.0 eurid-1.0.xsd"><eurid:trade><eurid:domain><eurid:registrant>c9232372</eurid:registrant><eurid:billing>c129179</eurid:billing><eurid:tech>c7838742</eurid:tech></eurid:domain></eurid:trade></eurid:ext><secDNS:create xmlns:secDNS="urn:ietf:params:xml:ns:secDNS-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:secDNS-1.0 secDNS-1.0.xsd"><secDNS:dsData><secDNS:keyTag>6615</secDNS:keyTag><secDNS:alg>7</secDNS:alg><secDNS:digestType>1</secDNS:digestType><secDNS:digest>e8dadacffab754e9cf40b919d6f698c03309f47c</secDNS:digest><secDNS:maxSigLife>604800</secDNS:maxSigLife><secDNS:keyData><secDNS:flags>257</secDNS:flags><secDNS:protocol>3</secDNS:protocol><secDNS:alg>7</secDNS:alg><secDNS:pubKey>AwEAAcTnEOkfH1FsT9EI2BmjMB83uDWXpSp57YHa0v6Xg60Usm3Y2Fct1emy+h0+uDstyUl5eILy9eO2eI67m5r0Lck=</secDNS:pubKey></secDNS:keyData></secDNS:dsData></secDNS:create></extension><clTRID>TRID-0001</clTRID></command></epp>','domain_trade +DNSSEC build');
+
+## Keygroups
+
+$rc=$dri->keygroup_create('kwkwwyjzorsqljbvlssqhzz');
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><create><keygroup:create xmlns:keygroup="http://www.eurid.eu/xml/epp/keygroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/keygroup-1.0 keygroup-1.0.xsd"><keygroup:name>kwkwwyjzorsqljbvlssqhzz</keygroup:name></keygroup:create></create><clTRID>TRID-0001</clTRID></command></epp>','keygroup_create build 1');
+
+
+$rc=$dri->keygroup_create('uvmsfcextoydtsltky',{ 'keys' => [{keyTag=>49049,flags=>256,protocol=>3,alg=>7,pubKey=>'AwEAAaQx/SAfK9rmTYsyThhUgvUBQORqQhUNbcIx67sfUtC6Ii1WHn0CdIMcO8FUMT3PE7BhJ04zYiJdX2Gr6VEHXW0='},
+{keyTag=>57695,flags=>256,protocol=>3,alg=>7,pubKey=>'AwEAAdVHFEnY8q8xuiiSO0XvX0LWlcCMWQByFyyCzPFfUmso0677qjIZYEF/fIx/WJuIRup1/Ay58U8pvCnsk0iXIV0='}] });
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><create><keygroup:create xmlns:keygroup="http://www.eurid.eu/xml/epp/keygroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/keygroup-1.0 keygroup-1.0.xsd"><keygroup:name>uvmsfcextoydtsltky</keygroup:name><keygroup:key><keygroup:keyTag>49049</keygroup:keyTag><keygroup:flags>256</keygroup:flags><keygroup:protocol>3</keygroup:protocol><keygroup:algorithm>7</keygroup:algorithm><keygroup:pubKey>AwEAAaQx/SAfK9rmTYsyThhUgvUBQORqQhUNbcIx67sfUtC6Ii1WHn0CdIMcO8FUMT3PE7BhJ04zYiJdX2Gr6VEHXW0=</keygroup:pubKey></keygroup:key><keygroup:key><keygroup:keyTag>57695</keygroup:keyTag><keygroup:flags>256</keygroup:flags><keygroup:protocol>3</keygroup:protocol><keygroup:algorithm>7</keygroup:algorithm><keygroup:pubKey>AwEAAdVHFEnY8q8xuiiSO0XvX0LWlcCMWQByFyyCzPFfUmso0677qjIZYEF/fIx/WJuIRup1/Ay58U8pvCnsk0iXIV0=</keygroup:pubKey></keygroup:key></keygroup:create></create><clTRID>TRID-0001</clTRID></command></epp>','keygroup_create build 2');
+
+
+$rc=$dri->keygroup_delete('dvnqbnzfwnxraquhyjcsizpxdjrclifavmfmebjir');
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><delete><keygroup:delete xmlns:keygroup="http://www.eurid.eu/xml/epp/keygroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/keygroup-1.0 keygroup-1.0.xsd"><keygroup:name>dvnqbnzfwnxraquhyjcsizpxdjrclifavmfmebjir</keygroup:name></keygroup:delete></delete><clTRID>TRID-0001</clTRID></command></epp>','keygroup_delete build');
+
+
+$cs=$dri->local_object('contactset');
+$cs->set($dri->local_object('contact')->srid('c11130723'),'registrant');
+$cs->set($dri->local_object('contact')->srid('c11130718'),'onsite');
+$cs->set($dri->local_object('contact')->srid('c4436955'),'billing');
+$rc=$dri->domain_create('cckyvtdduopvmkjzmikqpnawzjwxgkxqjotabpuw.eu',{pure_create=>1,contact=>$cs,auth=>{pw=>'not-used'},keygroup=>'sswuypdokyplknwrydxighecgprzgeo'});
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><create><domain:create xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd"><domain:name>cckyvtdduopvmkjzmikqpnawzjwxgkxqjotabpuw.eu</domain:name><domain:registrant>c11130723</domain:registrant><domain:contact type="billing">c4436955</domain:contact><domain:contact type="onsite">c11130718</domain:contact><domain:authInfo><domain:pw>not-used</domain:pw></domain:authInfo></domain:create></create><extension><eurid:ext xmlns:eurid="http://www.eurid.eu/xml/epp/eurid-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/eurid-1.0 eurid-1.0.xsd"><eurid:create><eurid:domain><eurid:keygroup>sswuypdokyplknwrydxighecgprzgeo</eurid:keygroup></eurid:domain></eurid:create></eurid:ext></extension><clTRID>TRID-0001</clTRID></command></epp>','domain_create + keygroup build');
+
+
+$R2='<?xml version="1.0" encoding="UTF-8"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:keygroup="http://www.eurid.eu/xml/epp/keygroup-1.0"><response><result code="1000"><msg>Command completed successfully</msg></result><resData><keygroup:chkData><keygroup:cd><keygroup:name avail="true">zgrruirkeklhgeclxjnsccnwawexfigfzxvqwyjzzrrfdar</keygroup:name></keygroup:cd><keygroup:cd><keygroup:name avail="false">jbzrndytpkijpejbmogzdoxmtfqzxus</keygroup:name></keygroup:cd><keygroup:cd><keygroup:name avail="false">dhrejofkvcdrwwwddxqblgdpbpxgqayowadwvedqewnpqdyi</keygroup:name></keygroup:cd><keygroup:cd><keygroup:name avail="false">bcoriadjxfgdtrapgkjwlyatof</keygroup:name></keygroup:cd></keygroup:chkData></resData><trID><svTRID>eurid-0</svTRID></trID></response></epp>';
+$rc=$dri->keygroup_check(qw/zgrruirkeklhgeclxjnsccnwawexfigfzxvqwyjzzrrfdar jbzrndytpkijpejbmogzdoxmtfqzxus dhrejofkvcdrwwwddxqblgdpbpxgqayowadwvedqewnpqdyi bcoriadjxfgdtrapgkjwlyatof/);
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><check><keygroup:check xmlns:keygroup="http://www.eurid.eu/xml/epp/keygroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/keygroup-1.0 keygroup-1.0.xsd"><keygroup:name>zgrruirkeklhgeclxjnsccnwawexfigfzxvqwyjzzrrfdar</keygroup:name><keygroup:name>jbzrndytpkijpejbmogzdoxmtfqzxus</keygroup:name><keygroup:name>dhrejofkvcdrwwwddxqblgdpbpxgqayowadwvedqewnpqdyi</keygroup:name><keygroup:name>bcoriadjxfgdtrapgkjwlyatof</keygroup:name></keygroup:check></check><clTRID>TRID-0001</clTRID></command></epp>','keygroup_check build');
+is($rc->get_data('keygroup','zgrruirkeklhgeclxjnsccnwawexfigfzxvqwyjzzrrfdar','exist'),0,'keygroup_check get_data 1');
+is($rc->get_data('keygroup','jbzrndytpkijpejbmogzdoxmtfqzxus','exist'),1,'keygroup_check get_data 2');
+is($rc->get_data('keygroup','dhrejofkvcdrwwwddxqblgdpbpxgqayowadwvedqewnpqdyi','exist'),1,'keygroup_check get_data 3');
+
+
+$R2='<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:keygroup="http://www.eurid.eu/xml/epp/keygroup-1.0"><response><result code="1000"><msg>Command completed successfully</msg></result><resData><keygroup:infData><keygroup:name>jbzrndytpkijpejbmogzdoxmtfqzxus</keygroup:name><keygroup:key><keygroup:keyTag>49049</keygroup:keyTag><keygroup:flags>256</keygroup:flags><keygroup:protocol>3</keygroup:protocol><keygroup:algorithm>7</keygroup:algorithm><keygroup:pubKey>AwEAAaQx/SAfK9rmTYsyThhUgvUBQORqQhUNbcIx67sfUtC6Ii1WHn0CdIMcO8FUMT3PE7BhJ04zYiJdX2Gr6VEHXW0=</keygroup:pubKey></keygroup:key><keygroup:key><keygroup:keyTag>57695</keygroup:keyTag><keygroup:flags>256</keygroup:flags><keygroup:protocol>3</keygroup:protocol><keygroup:algorithm>7</keygroup:algorithm><keygroup:pubKey>AwEAAdVHFEnY8q8xuiiSO0XvX0LWlcCMWQByFyyCzPFfUmso0677qjIZYEF/fIx/WJuIRup1/Ay58U8pvCnsk0iXIV0=</keygroup:pubKey></keygroup:key></keygroup:infData></resData><trID><svTRID>eurid-0</svTRID></trID></response></epp>';
+$rc=$dri->keygroup_info('jbzrndytpkijpejbmogzdoxmtfqzxus');
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><info><keygroup:info xmlns:keygroup="http://www.eurid.eu/xml/epp/keygroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/keygroup-1.0 keygroup-1.0.xsd"><keygroup:name>jbzrndytpkijpejbmogzdoxmtfqzxus</keygroup:name></keygroup:info></info><clTRID>TRID-0001</clTRID></command></epp>','keygroup_info build');
+is($rc->get_data('exist'),1,'keygroup_info get_data(exist)');
+is_deeply($rc->get_data('keys'),[{keyTag=>49049,flags=>256,protocol=>3,alg=>7,pubKey=>'AwEAAaQx/SAfK9rmTYsyThhUgvUBQORqQhUNbcIx67sfUtC6Ii1WHn0CdIMcO8FUMT3PE7BhJ04zYiJdX2Gr6VEHXW0='},{keyTag=>57695,flags=>256,protocol=>3,alg=>7,pubKey=>'AwEAAdVHFEnY8q8xuiiSO0XvX0LWlcCMWQByFyyCzPFfUmso0677qjIZYEF/fIx/WJuIRup1/Ay58U8pvCnsk0iXIV0='}],'keygroup_info get_data(keys)');
+
+
+$rc=$dri->keygroup_update('krqkdcnjtiigrbvgrsom',$dri->local_object('changes')->set('keys',[]));
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><update><keygroup:update xmlns:keygroup="http://www.eurid.eu/xml/epp/keygroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/keygroup-1.0 keygroup-1.0.xsd"><keygroup:name>krqkdcnjtiigrbvgrsom</keygroup:name></keygroup:update></update><clTRID>TRID-0001</clTRID></command></epp>','keygroup_update empty keys');
+
+
+$rc=$dri->keygroup_update('latrvxveoruzciiuuqfurexahnxqf',$dri->local_object('changes')->set('keys',[{keyTag=>49049,flags=>256,protocol=>3,alg=>7,pubKey=>'AwEAAaQx/SAfK9rmTYsyThhUgvUBQORqQhUNbcIx67sfUtC6Ii1WHn0CdIMcO8FUMT3PE7BhJ04zYiJdX2Gr6VEHXW0='},{keyTag=>57695,flags=>256,protocol=>3,alg=>7,pubKey=>'AwEAAdVHFEnY8q8xuiiSO0XvX0LWlcCMWQByFyyCzPFfUmso0677qjIZ YEF/fIx/WJuIRup1/Ay58U8pvCnsk0iXIV0='}]));
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><update><keygroup:update xmlns:keygroup="http://www.eurid.eu/xml/epp/keygroup-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/keygroup-1.0 keygroup-1.0.xsd"><keygroup:name>latrvxveoruzciiuuqfurexahnxqf</keygroup:name><keygroup:key><keygroup:keyTag>49049</keygroup:keyTag><keygroup:flags>256</keygroup:flags><keygroup:protocol>3</keygroup:protocol><keygroup:algorithm>7</keygroup:algorithm><keygroup:pubKey>AwEAAaQx/SAfK9rmTYsyThhUgvUBQORqQhUNbcIx67sfUtC6Ii1WHn0CdIMcO8FUMT3PE7BhJ04zYiJdX2Gr6VEHXW0=</keygroup:pubKey></keygroup:key><keygroup:key><keygroup:keyTag>57695</keygroup:keyTag><keygroup:flags>256</keygroup:flags><keygroup:protocol>3</keygroup:protocol><keygroup:algorithm>7</keygroup:algorithm><keygroup:pubKey>AwEAAdVHFEnY8q8xuiiSO0XvX0LWlcCMWQByFyyCzPFfUmso0677qjIZ YEF/fIx/WJuIRup1/Ay58U8pvCnsk0iXIV0=</keygroup:pubKey></keygroup:key></keygroup:update></update><clTRID>TRID-0001</clTRID></command></epp>','keygroup_update add 2 keys');
+
+
+## domain_update with keygroup => not specified in documentation nor XML schemas !
+
+
+%rd=();
+$rd{duration}=DateTime::Duration->new(years => 1);
+$cs=$dri->local_object('contactset');
+$cs->set($dri->local_object('contact')->srid('c4436955'),'billing');
+$cs->set($dri->local_object('contact')->srid('c11130723'),'registrant');
+$cs->set($dri->local_object('contact')->srid('c4436957'),'tech');
+$rd{contact}=$cs;
+$rd{keygroup}='lmgpblhauvcmlxyrlldlhxzyzsguzesshqqkubcteacsc';
+$rc=$dri->domain_transfer_start('avaialebledomainsaname2xr.eu',\%rd);
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><transfer op="request"><domain:transfer xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd"><domain:name>avaialebledomainsaname2xr.eu</domain:name><domain:period unit="y">1</domain:period></domain:transfer></transfer><extension><eurid:ext xmlns:eurid="http://www.eurid.eu/xml/epp/eurid-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/eurid-1.0 eurid-1.0.xsd"><eurid:transfer><eurid:domain><eurid:registrant>c11130723</eurid:registrant><eurid:billing>c4436955</eurid:billing><eurid:tech>c4436957</eurid:tech><eurid:keygroup>lmgpblhauvcmlxyrlldlhxzyzsguzesshqqkubcteacsc</eurid:keygroup></eurid:domain></eurid:transfer></eurid:ext></extension><clTRID>TRID-0001</clTRID></command></epp>','domain_transfer_start + keygroup build');
+
+
+%rd=();
+$cs=$dri->local_object('contactset');
+$cs->set($dri->local_object('contact')->srid('c4436955'),'billing');
+$cs->set($dri->local_object('contact')->srid('c11130723'),'registrant');
+$cs->set($dri->local_object('contact')->srid('c4436957'),'tech');
+$rd{contact}=$cs;
+$rd{keygroup}='roxqcrztngn';
+$rc=$dri->domain_trade_start('cxlbbmyncvebyqsum.eu',\%rd);
+is_string($R1,'<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eurid.eu/xml/epp/epp-1.0 epp-1.0.xsd"><command><trade op="request"><domain:trade xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/domain-1.0 domain-1.0.xsd"><domain:name>cxlbbmyncvebyqsum.eu</domain:name></domain:trade></trade><extension><eurid:ext xmlns:eurid="http://www.eurid.eu/xml/epp/eurid-1.0" xsi:schemaLocation="http://www.eurid.eu/xml/epp/eurid-1.0 eurid-1.0.xsd"><eurid:trade><eurid:domain><eurid:registrant>c11130723</eurid:registrant><eurid:billing>c4436955</eurid:billing><eurid:tech>c4436957</eurid:tech><eurid:keygroup>roxqcrztngn</eurid:keygroup></eurid:domain></eurid:trade></eurid:ext></extension><clTRID>TRID-0001</clTRID></command></epp>','domain_trade_start + keygroup build');
+
+
+$R2='<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="http://www.eurid.eu/xml/epp/epp-1.0" xmlns:domain="http://www.eurid.eu/xml/epp/domain-1.0" xmlns:eurid="http://www.eurid.eu/xml/epp/eurid-1.0"><response><result code="1000"><msg>Command completed successfully</msg></result><resData><domain:infData><domain:name>moscou.eu</domain:name><domain:roid>6590858-EURID</domain:roid><domain:status s="ok"/><domain:registrant>c11814810</domain:registrant><domain:contact type="billing">c129179</domain:contact><domain:contact type="onsite">c11814791</domain:contact><domain:ns><domain:hostAttr><domain:hostName>ns2.domainmonster.com</domain:hostName></domain:hostAttr><domain:hostAttr><domain:hostName>ns1.domainmonster.com</domain:hostName></domain:hostAttr><domain:hostAttr><domain:hostName>ns3.domainmonster.com</domain:hostName></domain:hostAttr></domain:ns><domain:clID>a000475</domain:clID><domain:crID>a000475</domain:crID><domain:crDate>2009-12-21T07:41:31.000Z</domain:crDate><domain:upID>a000475</domain:upID><domain:upDate>2010-04-08T12:27:25.000Z</domain:upDate><domain:exDate>2010-12-31T22:59:59.999Z</domain:exDate></domain:infData></resData><extension><eurid:ext><eurid:infData><eurid:domain><eurid:keygroup>l2vor0ki4km3byl6twsin3v5lumi68i</eurid:keygroup><eurid:onhold>false</eurid:onhold><eurid:quarantined>false</eurid:quarantined></eurid:domain></eurid:infData></eurid:ext></extension><trID><svTRID>eurid-0</svTRID></trID></response></epp>';
+$rc=$dri->domain_info('moscou.eu');
+is($rc->get_data('keygroup'),'l2vor0ki4km3byl6twsin3v5lumi68i','domain_info parse keygroup');
 
 exit 0;

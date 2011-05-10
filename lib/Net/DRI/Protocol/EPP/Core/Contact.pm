@@ -1,4 +1,4 @@
-## Domain Registry Interface, EPP Contact commands (RFC4933)
+## Domain Registry Interface, EPP Contact commands (RFC5733)
 ##
 ## Copyright (c) 2005-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
@@ -10,13 +10,11 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Core::Contact;
 
+use utf8;
 use strict;
 use warnings;
 
@@ -24,13 +22,11 @@ use Net::DRI::Util;
 use Net::DRI::Exception;
 use Net::DRI::Protocol::EPP::Util;
 
-our $VERSION=do { my @r=(q$Revision: 1.18 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
-
 =pod
 
 =head1 NAME
 
-Net::DRI::Protocol::EPP::Core::Contact - EPP Contact commands (RFC4933 obsoleting RFC3733) for Net::DRI
+Net::DRI::Protocol::EPP::Core::Contact - EPP Contact commands (RFC5733 obsoleting RFC4933 and RFC3733) for Net::DRI
 
 =head1 DESCRIPTION
 
@@ -170,7 +166,8 @@ sub info_parse
  my $infdata=$mes->get_response('contact','infData');
  return unless defined $infdata;
 
- my %cd=map { $_ => [] } qw/name org street city sp pc cc/;
+ my %cd=map { $_ => [] } qw/name org city sp pc cc/;
+ $cd{street}=[[],[]];
  my $contact=$po->create_local_object('contact');
  my @s;
 
@@ -190,7 +187,7 @@ sub info_parse
    $rinfo->{contact}->{$oname}->{roid}=$contact->roid();
   } elsif ($name eq 'status')
   {
-   push @s,Net::DRI::Protocol::EPP::Util::parse_status($c);
+   push @s,Net::DRI::Protocol::EPP::Util::parse_node_status($c);
   } elsif ($name=~m/^(clID|crID|upID)$/)
   {
    $rinfo->{contact}->{$oname}->{$1}=$c->textContent();
@@ -274,7 +271,7 @@ sub parse_postalinfo
  }
 }
 
-sub parse_disclose ## RFC 4933 ง2.9
+sub parse_disclose ## RFC 4933 ยง2.9
 {
  my $c=shift;
  my $flag=Net::DRI::Util::xml_parse_boolean($c->getAttribute('flag'));
@@ -483,9 +480,9 @@ sub transfer_cancel
 
 sub transfer_answer
 {
- my ($epp,$c,$approve)=@_;
+ my ($epp,$c,$ep)=@_;
  my $mes=$epp->message();
- my @d=build_command($mes,['transfer',{'op'=>((defined($approve) && $approve)? 'approve' : 'reject' )}],$c);
+ my @d=build_command($mes,['transfer',{'op'=>((Net::DRI::Util::has_key($ep,'approve') && $ep->{approve})? 'approve' : 'reject' )}],$c);
  $mes->command_body(\@d);
 }
 
@@ -515,7 +512,7 @@ sub update
 }
 
 ####################################################################################################
-## RFC4933 ง3.3 Offline Review of Requested Actions
+## RFC4933 ยง3.3 Offline Review of Requested Actions
 
 sub pandata_parse
 {

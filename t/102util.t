@@ -1,4 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use warnings;
+use strict;
 
 use Test::More tests => 340;
 
@@ -6,7 +9,7 @@ use Net::DRI::Util;
 
 is(defined(%Net::DRI::Util::CCA2),1,'%CCA2 defined');
 isa_ok(\%Net::DRI::Util::CCA2,'HASH','%CCA2 hash');
-is(keys(%Net::DRI::Util::CCA2),245,'%CCA2 number of elements');
+is(keys(%Net::DRI::Util::CCA2),249,'%CCA2 number of elements');
 is_deeply([grep { ! /^[A-Z]{2}$/ } keys(%Net::DRI::Util::CCA2)],[],'%CCA2 keys');
 is(exists($Net::DRI::Util::CCA2{'FR'}),1,'%CCA2 FR exists');
 is(!exists($Net::DRI::Util::CCA2{'ZZ'}),1,'%CCA2 ZZ not exists');                  
@@ -179,8 +182,6 @@ is(Net::DRI::Util::xml_is_boolean('f'),0,'xml_is_boolean() 6');
 is(Net::DRI::Util::xml_is_language('fr'),1,'xml_is_language() 1');
 is(Net::DRI::Util::xml_is_language('0fr'),0,'xml_is_language() 2');
 is(Net::DRI::Util::xml_is_language('fr-FR'),1,'xml_is_language() 3');
-
-
 
 
 TODO: {

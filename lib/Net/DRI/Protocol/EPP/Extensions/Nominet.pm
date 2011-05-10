@@ -11,9 +11,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::Nominet;
@@ -24,8 +21,6 @@ use warnings;
 use base qw/Net::DRI::Protocol::EPP/;
 
 use Net::DRI::Data::Contact::Nominet;
-
-our $VERSION=do { my @r=(q$Revision: 1.6 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -109,7 +104,7 @@ sub transport_default
 
 ## The registry gives back a mix of 1.0 1.1 1.2 and 1.3 versions of its namespaces and what not, see http://www.nominet.org.uk/registrars/systems/nominetepp/Namespace+URIs/
 ## We previously kept only the highest seen, which does not seem a good idea
-## Now we explicitely set them from what we support; this may break compatibility with registry as soon as they introduce a new version
+## Now we explicitly set them from what we support; this may break compatibility with registry as soon as they introduce a new version
 sub set_objuri
 {
  return (['objURI','urn:ietf:params:xml:ns:host-1.0'],map { ['objURI','http://www.nominet.org.uk/epp/xml/nom-'.$_] } @NS);

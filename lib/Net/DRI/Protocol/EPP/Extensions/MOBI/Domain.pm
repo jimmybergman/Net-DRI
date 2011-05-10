@@ -1,6 +1,6 @@
 ## Domain Registry Interface, .MOBI Domain EPP extension commands
 ##
-## Copyright (c) 2006,2007,2008 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2006,2007,2008,2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,18 +10,15 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::MOBI::Domain;
 
 use strict;
+use warnings;
 
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
+use Net::DRI::Protocol::EPP::Extensions::Afilias::MaintainerUrl;
 
 =pod
 
@@ -51,7 +48,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2006,2007,2008 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2006,2007,2008,2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -81,9 +78,9 @@ sub register_commands
 
 sub add_maintainer_url
 {
- my ($mes,$tag,$url)=@_;
+ my ($mes,$tag,$d)=@_;
  my $eid=$mes->command_extension_register($tag,sprintf('xmlns:mobi="%s" xsi:schemaLocation="%s %s"',$mes->nsattrs('mobi')));
- $mes->command_extension($eid,['mobi:maintainerUrl',$url]);
+ $mes->command_extension($eid,$d);
 }
 
 sub create
@@ -91,8 +88,9 @@ sub create
  my ($epp,$domain,$rd)=@_;
  my $mes=$epp->message();
 
- return unless (defined($rd) && (ref($rd) eq 'HASH') && exists($rd->{maintainer_url}) && $rd->{maintainer_url});
- add_maintainer_url($mes,'mobi:create',$rd->{maintainer_url});
+ my $d=Net::DRI::Protocol::EPP::Extensions::Afilias::MaintainerUrl::create('mobi',$rd);
+ return unless defined $d;
+ add_maintainer_url($mes,'mobi:create',$d);
 }
 
 sub update
@@ -100,13 +98,9 @@ sub update
  my ($epp,$domain,$todo)=@_;
  my $mes=$epp->message();
 
- if (grep { ! /^(?:set)$/ } $todo->types('maintainer_url'))
- {
-  Net::DRI::Exception->die(0,'protocol/EPP',11,'Only maintainer_url set available for domain');
- }
-
- return unless $todo->set('maintainer_url');
- add_maintainer_url($mes,'mobi:update',$todo->set('maintainer_url'));
+ my $d=Net::DRI::Protocol::EPP::Extensions::Afilias::MaintainerUrl::update('mobi',$todo);
+ return unless defined $d;
+ add_maintainer_url($mes,'mobi:update',$d);
 }
 
 sub info_parse
@@ -118,10 +112,8 @@ sub info_parse
  my $infdata=$mes->get_extension('mobi','infData');
  return unless $infdata;
 
- my $c=$infdata->getChildrenByTagNameNS($mes->ns('mobi'),'maintainerUrl');
- return unless ($c && $c->size()==1);
-
- $rinfo->{domain}->{$oname}->{maintainer_url}=$c->shift()->getFirstChild()->getData();
+ my $c=Net::DRI::Protocol::EPP::Extensions::Afilias::MaintainerUrl::info_parse($mes->ns('mobi'),$infdata);
+ $rinfo->{$otype}->{$oname}->{maintainer_url}=$c if defined $c;
 }
 
 ####################################################################################################

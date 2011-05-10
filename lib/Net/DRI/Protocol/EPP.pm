@@ -1,6 +1,6 @@
 ## Domain Registry Interface, EPP Protocol (STD 69)
 ##
-## Copyright (c) 2005,2006,2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005-2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,13 +10,11 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP;
 
+use utf8;
 use strict;
 use warnings;
 
@@ -26,13 +24,11 @@ use Net::DRI::Util;
 use Net::DRI::Protocol::EPP::Message;
 use Net::DRI::Protocol::EPP::Core::Status;
 
-our $VERSION=do { my @r=(q$Revision: 1.14 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
-
 =pod
 
 =head1 NAME
 
-Net::DRI::Protocol::EPP - EPP Protocol (STD 69 aka RFC 5730,5731,5732,5733,5734 obsoleting RFC 3730,3731,3732,3733,3734 and RFC 3735) for Net::DRI
+Net::DRI::Protocol::EPP - EPP Protocol (STD 69 aka RFC 5730,5731,5732,5733,5734 and RFC 3735) for Net::DRI
 
 =head1 DESCRIPTION
 
@@ -56,7 +52,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005,2006,2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2005-2011 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -72,8 +68,9 @@ See the LICENSE file that comes with this distribution for more details.
 
 sub new
 {
- my ($c,$drd,$rp)=@_;
- my $self=$c->SUPER::new();
+ my ($c,$ctx,$rp)=@_;
+ my $drd=$ctx->{registry}->driver();
+ my $self=$c->SUPER::new($ctx);
  $self->name('EPP');
  my $version=Net::DRI::Util::check_equal($rp->{version},['1.0'],'1.0');
  $self->version($version);
@@ -88,11 +85,9 @@ sub new
  $self->{hostasattr}=$drd->info('host_as_attr') || 0;
  $self->{contacti18n}=$drd->info('contact_i18n') || 7; ## bitwise OR with 1=LOC only, 2=INT only, 4=LOC+INT only
  $self->{defaulti18ntype}=undef; ## only needed for registries not following truely EPP standard, like .CZ
- $self->{usenullauth}=$drd->info('use_null_auth') || 0; ## See RFC4931 ง3.2.5
- my $extensionparams=$drd->info('extension_params'); ## allow sending custom param to EPP extension setup
+ $self->{usenullauth}=$drd->info('use_null_auth') || 0; ## See RFC4931 ยง3.2.5
  $self->ns({ _main   => ['urn:ietf:params:xml:ns:epp-1.0','epp-1.0.xsd'],
              domain  => ['urn:ietf:params:xml:ns:domain-1.0','domain-1.0.xsd'],
-             host    => ['urn:ietf:params:xml:ns:host-1.0','host-1.0.xsd'],
              contact => ['urn:ietf:params:xml:ns:contact-1.0','contact-1.0.xsd'],
            });
 
@@ -101,7 +96,7 @@ sub new
  $self->factories('status',sub { return Net::DRI::Protocol::EPP::Core::Status->new(); });
 
  $self->_load($rp);
- $self->setup($rp, $extensionparams);
+ $self->setup($rp);
  return $self;
 }
 
@@ -111,8 +106,7 @@ sub _load
  my $extramods=$rp->{extensions};
  my @class=$self->core_modules($rp);
  push @class,map { 'Net::DRI::Protocol::EPP::Extensions::'.$_; } $self->default_extensions($rp) if $self->can('default_extensions');
- push @class,map { my $f=$_; $f='Net::DRI::Protocol::EPP::Extensions::'.$f unless $f=~m/::/; $f=~s!/!::!g; $f; } (ref($extramods)? @$extramods : ($extramods)) if defined $extramods && $extramods;
-
+ push @class,map { my $f=$_; $f='Net::DRI::Protocol::EPP::Extensions::'.$f unless ($f=~s/^\+//); $f; } (ref $extramods ? @$extramods : ($extramods)) if defined $extramods && $extramods;
  $self->SUPER::_load(@class);
 }
 
@@ -122,19 +116,46 @@ sub core_modules
 {
  my ($self,$rp)=@_;
  my @core=qw/Session RegistryMessage Domain Contact/;
- push @core,'Host' unless $self->{hostasattr};
+ if (! $self->{hostasattr})
+ {
+  push @core,'Host';
+  $self->ns({host => ['urn:ietf:params:xml:ns:host-1.0','host-1.0.xsd']});
+ }
  return map { 'Net::DRI::Protocol::EPP::Core::'.$_ } @core;
 }
 
-sub server_greeting { my ($self,$v)=@_; $self->{server_greeting}=$v if $v; return $self->{server_greeting}; }
-
-sub core_contact_types { return ('admin','tech','billing'); }
+sub core_contact_types { return qw/admin tech billing/; }
 
 sub ns
 {
  my ($self,$add)=@_;
- $self->{ns}={ ref($self->{ns})? %{$self->{ns}} : (), %$add } if (defined($add) && ref($add) eq 'HASH');
+ $self->{ns}={ ref $self->{ns} ? %{$self->{ns}} : (), %$add } if defined $add && ref $add eq 'HASH';
  return $self->{ns};
+}
+
+## Called during server greeting parse
+sub switch_to_highest_namespace_version
+{
+ my ($self,$nsalias)=@_;
+
+ my ($basens)=($self->message()->ns($nsalias)=~m/^(\S+)-[\d.]+$/);
+ my $rs=$self->default_parameters()->{server};
+ my @ns=grep { m/^${basens}-\S+$/ } @{$rs->{extensions_selected}};
+ Net::DRI::Exception::err_invalid_parameters("No extension found under namespace ${basens}-*") unless @ns;
+
+ my $version;
+ foreach my $ns (@ns)
+ {
+  my ($v)=($ns=~m/^\S+-([\d.]+)$/);
+  $version=$v if ! defined $version || $v > $version;
+ }
+
+ my $xsd=($self->message()->nsattrs($nsalias))[2];
+ $xsd=~s/-([\d.]+)\.xsd$/-${version}.xsd/;
+ $self->ns({ $nsalias => [ $basens.'-'.$version, $xsd ]});
+ $self->message()->ns($self->ns()); ## not necessary, just to make sure
+ ## remove all other versions of same namespace
+ $rs->{extensions_selected}=[ grep { ! m/^${basens}-([\d.]+)$/ || $1 eq $version } @{$rs->{extensions_selected}} ];
 }
 
 sub transport_default

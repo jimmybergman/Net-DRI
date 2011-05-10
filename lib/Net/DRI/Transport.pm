@@ -1,6 +1,6 @@
 ## Domain Registry Interface, Superclass of all Transport/* modules (hence virtual class, never used directly)
 ##
-## Copyright (c) 2005-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005-2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Transport;
@@ -24,8 +21,6 @@ use base qw(Class::Accessor::Chained::Fast Net::DRI::BaseClass);
 __PACKAGE__->mk_accessors(qw/name version retry pause trace timeout defer current_state has_state is_sync time_creation time_open time_used trid_factory logging/);
 
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.20 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -79,7 +74,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005-2010 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2005-2011 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -102,10 +97,9 @@ sub new
  	   is_sync   => exists($ropts->{is_sync})? $ropts->{is_sync} : 1, ## do we need to wait for reply as soon as command sent ?
            retry     => exists($ropts->{retry})?   $ropts->{retry}   : 2,  ## by default, we will try once only
            pause     => exists($ropts->{pause})?   $ropts->{pause}   : 10, ## time in seconds to wait between two retries
-#           trace     => exists($ropts->{trace})?   $ropts->{trace}   : 0, ## NOT IMPL
            timeout   => exists($ropts->{timeout})? $ropts->{timeout} : 60,
            defer     => exists($ropts->{defer})?   $ropts->{defer}   : 0, ## defer opening connection as long as possible (irrelevant if stateless) ## XX maybe not here, too low
-           logging   => exists($ropts->{logging})? $ropts->{logging} : $ndr->logging(),
+           logging   => $ndr->logging(),
            trid_factory => (exists($ropts->{trid}) && (ref($ropts->{trid}) eq 'CODE'))? $ropts->{trid} : $ndr->trid_factory(),
            current_state => undef, ## for stateless transport, otherwise 0=close, 1=open
            has_state     => undef, ## do we need to open a session before sending commands ?
@@ -113,11 +107,6 @@ sub new
            time_creation => time(),
            logging_ctx => { registry => $ndr->name(), profile => $pname, protocol => $ctx->{protocol}->name() },
           };
-
- if (exists($ropts->{log_fh}) && defined($ropts->{log_fh}))
- {
-  print STDERR 'log_fh is deprecated and will not be used now, please use new Logging framework',"\n";
- }
 
  bless $self,$class;
  $self->log_setup_channel($class,'transport',$self->{logging_ctx}); ## if we need the transport name here, we will have to put that further below, in another method called after new() ; otherwise we derive it from $class
@@ -135,6 +124,28 @@ sub log_output
  return $self->logging()->output($level,$type,{ %{$self->{logging_ctx}}, %$data1, %$data2 });
 }
 
+## WARNING : this is a preliminary implementation of this new feature, it WILL change
+sub protocol_parse
+{
+ my ($to,$po,$otype,$oaction,$dr,$trid,$dur,$sent)=@_;
+ my ($rc,$rinfo)=$po->reaction($otype,$oaction,$dr);
+
+ $rinfo->{session}->{exchange}->{transport}=$to->name().'/'.$to->version();
+
+ foreach my $v1 (values(%$rinfo))
+ {
+  foreach my $v2 (values(%{$v1}))
+  {
+   delete($v2->{result_status}) if exists $v2->{result_status};
+  }
+ }
+
+ $rinfo->{session}->{exchange}={ %{$rinfo->{session}->{exchange}}, duration_seconds => $dur, raw_command => defined $sent ? $sent->as_string() : undef, raw_reply => $dr->as_string(), object_type => $otype, object_action => $oaction };
+ $rc->_set_data($rinfo);
+## die($rc) unless $rc->is_success(); ## was done just after reaction before ## TODO maybe not necessary ? Tweak Registry::add_profile + search for other die in Transport/
+ return $rc;
+}
+
 sub send
 {
  my ($self,$ctx,$tosend,$cb1,$cb2,$count)=@_; ## $cb1=how to send, $cb2=how to test if fatal (to break loop) or not (retry once more)
@@ -142,7 +153,7 @@ sub send
  my $ok=0;
 
  ## Try to reconnect if needed
- $self->open_connection($ctx) if ($self->has_state() && !$self->current_state());
+ $self->open_connection($ctx) if ($self->has_state() && !$self->current_state()); ## TODO : grab result !
  ## Here $tosend is a Net::DRI::Protocol::Message object (in fact, a subclass of that), in perl internal encoding, no transport related data (such as EPP 4 bytes header)
  $self->log_output('notice','transport',$ctx,{phase=>'active',direction=>'out',message=>$tosend});
  $ok=$self->$cb1($count,$tosend,$ctx);
@@ -158,7 +169,7 @@ sub receive
 
  my $ans;
  $ans=$self->$cb1($count,$ctx); ## a Net::DRI::Data::Raw object
- Net::DRI::Exception->die(0,'transport',5,'Unable to receive message from registry') unless defined($ans);
+ Net::DRI::Exception->die(0,'transport',5,'Unable to receive message from registry') unless defined $ans;
  ## $ans should have been properly decoded into a native Perl string
  $self->log_output('notice','transport',$ctx,{phase=>'active',direction=>'in',message=>$ans});
  return $ans;
@@ -175,14 +186,14 @@ sub open_connection
 {
  my ($self,$ctx)=@_;
  return unless $self->has_state();
- Net::DRI::Exception::err_method_not_implemented();
+ Net::DRI::Exception::method_not_implemented('open_connection',$self);
 }
 
 sub end
 {
- my ($self)=@_;
+ my ($self,$ctx)=@_;
  return unless $self->has_state();
- Net::DRI::Exception::err_method_not_implemented();
+ Net::DRI::Exception::method_not_implemented('end',$self);
 }
 
 ####################################################################################################
@@ -192,7 +203,7 @@ sub ping
 {
  my ($self,$autorecon)=@_;
  return unless $self->has_state();
- Net::DRI::Exception::err_method_not_implemented();
+ Net::DRI::Exception::method_not_implemented('ping',$self);
 }
 
 ####################################################################################################

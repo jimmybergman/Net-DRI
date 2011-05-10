@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 #########################################################################################
 
 package Net::DRI::DRD::SIDN;
@@ -21,8 +18,6 @@ use strict;
 use warnings;
 
 use base qw/Net::DRI::DRD/;
-
-our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 __PACKAGE__->make_exception_for_unavailable_operations(qw/domain_renew domain_transfer_stop domain_update_status domain_update_status_add domain_update_status_del domain_update_status_set contact_update_status contact_update_status_add contact_update_status_del contact_update_status_set host_update_status host_update_status_add host_update_status_del host_update_status_set host_update_name_set/);
 

@@ -12,9 +12,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::NO::Message;
@@ -29,10 +26,6 @@ use Net::DRI::Protocol::EPP::Extensions::NO::Contact;
 use Net::DRI::Protocol::EPP::Extensions::NO::Host;
 use Net::DRI::Protocol::EPP::Extensions::NO::Result;
 use Net::DRI::Protocol::EPP::Util;
-
-use DateTime::Format::ISO8601;
-
-our $VERSION = do { my @r = ( q$Revision: 1.5 $ =~ /\d+/gmx ); sprintf( "%d" . ".%02d" x $#r, @r ); };
 
 =pod
 
@@ -124,49 +117,41 @@ sub parse_resp_result
 {
  my ($node, $NS, $rinfo, $msgid)=@_;
 
- push @{$rinfo->{message}->{$msgid}->{results}},Net::DRI::Protocol::EPP::Util::parse_result($node,$NS,'no');
+ push @{$rinfo->{message}->{$msgid}->{results}},Net::DRI::Protocol::EPP::Util::parse_node_result($node,$NS,'no');
  return;
 }
 
 sub transfer_resp_parse {
- my ($trndata, $oname, $rinfo, $msgid)=@_;
+ my ($po, $trndata, $oname, $rinfo, $msgid)=@_;
 
  return unless $trndata;
 
- my $pd=DateTime::Format::ISO8601->new();
- my $c=$trndata->getFirstChild();
-
- while ($c) {
-
-  next unless ($c->nodeType() == 1); ## only for element nodes
-  my $name=$c->localname() || $c->nodeName();
-  next unless $name;
+ foreach my $el (Net::DRI::Util::xml_list_children($trndata))
+ {
+  my ($name,$c)=@$el;
 
   if ($name eq 'name') {
-   $oname=lc($c->getFirstChild()->getData());
+   $oname=lc($c->textContent());
    $rinfo->{message}->{$msgid}->{domain}->{$oname}->{action}='transfer';
 
    $rinfo->{message}->{$msgid}->{domain}->{$oname}->{exist}=1;
   } elsif ($name=~m/^(trStatus|reID|acID)$/mx) {
-   $rinfo->{message}->{$msgid}->{domain}->{$oname}->{$1}=$c->getFirstChild()->getData() if ($c->getFirstChild());
+   $rinfo->{message}->{$msgid}->{domain}->{$oname}->{$1}=$c->textContent() if ($c->getFirstChild());
   } elsif ($name=~m/^(reDate|acDate|exDate)$/mx) {
-   $rinfo->{message}->{$msgid}->{domain}->{$oname}->{$1}=$pd->parse_datetime($c->getFirstChild()->getData());
+   $rinfo->{message}->{$msgid}->{domain}->{$oname}->{$1}=$po->parse_iso8601($c->textContent());
   }
- } continue { $c=$c->getNextSibling(); }
+ }
  return;
 }
 
 sub contact_resp_parse {
- my ($credata, $oname, $rinfo, $msgid)=@_;
+ my ($po, $credata, $oname, $rinfo, $msgid)=@_;
 
  return unless $credata;
  
- my $c=$credata->getFirstChild();
- 
- while ($c)
+ foreach my $el (Net::DRI::Util::xml_list_children($credata))
  {
-  next unless ($c->nodeType() == 1); ## only for element nodes
-  my $name=$c->localname() || $c->nodeName();
+  my ($name,$c)=@$el;
   if ($name eq 'id')
   {
    my $new=$c->getFirstChild()->getData();
@@ -177,9 +162,9 @@ sub contact_resp_parse {
    $rinfo->{message}->{$msgid}->{contact}->{$oname}->{exist}=1;
   } elsif ($name=~m/^(crDate)$/)
   {
-   $rinfo->{message}->{$msgid}->{contact}->{$oname}->{$1}=DateTime::Format::ISO8601->new()->parse_datetime($c->getFirstChild()->getData());
+   $rinfo->{message}->{$msgid}->{contact}->{$oname}->{$1}=$po->parse_iso8601($c->textContent());
   }
- } continue { $c=$c->getNextSibling(); }
+ }
 }
 
 ## We take into account all parse functions, to be able to parse any result
@@ -193,7 +178,7 @@ sub parse_poll {
     my $NS = $mes->ns('no_result');
 
     return unless $mes->is_success();
-    return if ( $mes->result_code() == 1300 );    # no messages in queue
+    return if $mes->result_is('COMMAND_SUCCESSFUL_QUEUE_EMPTY');
 
     my $msgid = $mes->msg_id();
     $rinfo->{message}->{session}->{last_id} = $msgid;
@@ -294,12 +279,12 @@ sub parse_poll {
 
     # Parse any domain transfer late response data
     if (my $trndata = (($data->getElementsByTagNameNS($mes->ns('domain'), 'trnData'))[0])) {
-	transfer_resp_parse($trndata, $oname, $rinfo, $msgid);
+	transfer_resp_parse($po, $trndata, $oname, $rinfo, $msgid);
     }
 
     # Parse any any contact create late response data
     if (my $credata = (($data->getElementsByTagNameNS($mes->ns('contact'), 'creData'))[0])) {
-       contact_resp_parse($credata, $oname, $rinfo, $msgid);
+       contact_resp_parse($po, $credata, $oname, $rinfo, $msgid);
     }
 
     # Parse any any contact info late response data

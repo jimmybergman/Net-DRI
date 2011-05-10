@@ -1,4 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
@@ -18,10 +21,10 @@ sub mysend { my ($transport,$count,$msg)=@_; $R1=$msg->as_string(); return 1;}
 sub myrecv { return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<response>'.r().$TRID.'</response>'.$E2); }
 sub r { my ($c,$m)=@_;  return '<result code="'.($c || 1000).'"><msg>'.($m || 'Command completed successfully').'</msg></result>'; }
 
-my $dri=Net::DRI::TrapExceptions->new(10);
+my $dri=Net::DRI::TrapExceptions->new({cache_ttl => -1});
 $dri->{trid_factory}=sub { return 'ABC-12345'; };
 $dri->add_registry('SIDN');
-$dri->target('SIDN')->add_current_profile('p1','test=Net::DRI::Protocol::EPP::Extensions::SIDN',{f_send=>\&mysend,f_recv=>\&myrecv});
+$dri->target('SIDN')->add_current_profile('p1','epp',{f_send=>\&mysend,f_recv=>\&myrecv});
 print $@->as_string() if $@;
 
 my ($rc,$co,$h,$toc);
@@ -34,7 +37,6 @@ $rc=$dri->domain_check('whatever.nl');
 is($rc->is_success(),0,'error is_success');
 is($rc->code(),2400,'error code');
 is_deeply([$rc->get_extended_results()],[{from=>'sidn',type=>'text',message=>"De deelnemer heeft niet de status 'Active'.",field=>'deelnemernummer',code=>'C0013'}],'error parsing 1');
-
 
 $R2=$E1.'<response>'.r(2303,' The specified contact person is unknown.').'<extension><urn:ext xmlns:urn="http://rxsd.domain-registry.nl/sidn-ext-epp-1.0"><urn:response><urn:msg field="handle" code="F0001">Waarde voldoet niet aan de expressie: [A-Z]{3}[0-9]{6}[-][A-Z0-9]{5}.</urn:msg><urn:msg field="handle" code="T0002">De opgegeven handle is onbekend.</urn:msg></urn:response></urn:ext></extension>'.$TRID.'</response>'.$E2;
 $rc=$dri->domain_check('whatever2.nl');
@@ -108,7 +110,7 @@ $R2=$E1.'<response>'.r().'<resData><host:infData xmlns:host="urn:ietf:params:xml
 
 $rc=$dri->host_info('ns1.domain100.nl');
 $h=$rc->get_data('self');
-@c=$h->get_details(1);
+my @c=$h->get_details(1);
 is_deeply($c[-1],{limited => 0},'host_info parse limited');
 
 ####################################################################################################

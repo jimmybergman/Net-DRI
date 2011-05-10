@@ -1,4 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
@@ -21,7 +24,7 @@ sub r { my ($c,$m)=@_;  return '<result code="'.($c || 1000).'"><msg>'.($m || 'C
 my $dri=Net::DRI::TrapExceptions->new(10);
 $dri->{trid_factory}=sub { return 'ABC-12345'; };
 $dri->add_registry('PT');
-$dri->target('PT')->add_current_profile('p1','test=Net::DRI::Protocol::EPP::Extensions::FCCN',{f_send=>\&mysend,f_recv=>\&myrecv});
+$dri->target('PT')->add_current_profile('p1','epp',{f_send=>\&mysend,f_recv=>\&myrecv});
 print $@->as_string() if $@;
 
 my ($rc,$s,$d,$dh,@c,$co);
@@ -43,7 +46,7 @@ $R2=$E1.'<response><result code="2302"><msg>Object exists</msg><extValue><value>
 $rc=$dri->domain_create('mytestdomain2.pt',{pure_create=>1,duration=>DateTime::Duration->new(years=>1),contact=>$cs,legitimacy=>1,registration_basis=>'090',add_period=>1,next_possible_registration=>0,auto_renew=>1});
 is($rc->is_success(),0,'domain_create is_success');
 is($rc->code(),2302,'domain_create code');
-is_deeply([$rc->get_extended_results()],[{from=>'eppcom:extValue',type=>'rawxml',message=>'<value><domain:name xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd">mytestdomain2.pt</domain:name></value>',reason=>'There was a previous submission for the same domain name that is still in pending create. To put a new submission into the next-possible-registration queue resend this command with the next-possible-registration extension element set to true',lang=>'en'}],'domain_create extra info');
+is_deeply([$rc->get_extended_results()],[{from=>'eppcom:extValue',type=>'rawxml',message=>'<domain:name xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd">mytestdomain2.pt</domain:name>',reason=>'There was a previous submission for the same domain name that is still in pending create. To put a new submission into the next-possible-registration queue resend this command with the next-possible-registration extension element set to true',lang=>'en'}],'domain_create extra info');
 
 $R2=$E1.'<response>'.r().'<resData><domain:infData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>mytestdomain3.pt</domain:name><domain:roid>2221881-FCCN</domain:roid><domain:status s="inactive"/><domain:status s="pendingUpdate"/><domain:registrant>FCZA-142520-FCCN</domain:registrant><domain:contact type="tech">FCZA-142520-FCCN</domain:contact><domain:ns><domain:hostAttr><domain:hostName>ns1.anything.pt</domain:hostName></domain:hostAttr><domain:hostAttr><domain:hostName>ns2.everything.pt</domain:hostName></domain:hostAttr></domain:ns><domain:clID>FCZA-142520-FCCN</domain:clID><domain:crID>FCZA-142520-FCCN</domain:crID><domain:crDate>2006-03-21T12:19:25.000Z</domain:crDate><domain:upID>FCZA-142520-FCCN</domain:upID><domain:upDate>2006-03-21T12:19:25.000Z</domain:upDate><domain:exDate>2007-03-21T12:19:25.000Z</domain:exDate></domain:infData></resData><extension><ptdomain:infData xmlns:ptdomain="http://www.dns.pt/xml/epp/ptdomain-1.0" xsi:schemaLocation="http://www.dns.pt/xml/epp/ptdomain-1.0 ptdomain-1.0.xsd"><ptdomain:legitimacy type="1"/><ptdomain:registration_basis type="30"/><ptdomain:autoRenew>true</ptdomain:autoRenew></ptdomain:infData></extension>'.$TRID.'</response>'.$E2;
 $rc=$dri->domain_info('mytestdomain3.pt',{roid=>'2221881-FCCN'});
@@ -53,7 +56,7 @@ is($dri->get_info('registration_basis'),30,'domain_info get_info(registration_ba
 is($dri->get_info('auto_renew'),1,'domain_info get_info(auto_renew)');
 
 $R2='';
-$toc=$dri->local_object('changes');
+my $toc=$dri->local_object('changes');
 $toc->add('ns',$dri->local_object('hosts')->add('ns.mytestdomain3.pt',['19.0.2.2']));
 $cs=$dri->local_object('contactset');
 $cs->set($dri->local_object('contact')->srid('c112574'),'tech');

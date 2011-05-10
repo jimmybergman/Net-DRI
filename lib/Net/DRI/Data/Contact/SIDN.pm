@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 #########################################################################################
 
 package Net::DRI::Data::Contact::SIDN;
@@ -23,8 +20,6 @@ use warnings;
 use base qw/Net::DRI::Data::Contact/;
 
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.2 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 __PACKAGE__->register_attributes(qw(legal_form legal_id limited));
 
@@ -75,10 +70,6 @@ __END__
 =head1 NAME
 
 Net::DRI::Data::Contact::SIDN - Handle SIDN contact data for Net::DRI
-
-=head1 VERSION
-
-This documentation refers to Net::DRI::Contact::SIDN version 1.01
 
 =head1 SYNOPSIS
 

@@ -1,6 +1,6 @@
 ## Domain Registry Interface, Misc. useful functions
 ##
-## Copyright (c) 2005,2006,2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005-2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,21 +10,17 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 #########################################################################################
 
 package Net::DRI::Util;
 
+use utf8;
 use strict;
 use warnings;
 
 use Time::HiRes ();
 use Encode ();
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.20 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -54,7 +50,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005,2006,2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2005-2011 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -69,7 +65,8 @@ See the LICENSE file that comes with this distribution for more details.
 
 ####################################################################################################
 
-our %CCA2=map { $_ => 1 } qw/AD AE AF AG AI AL AM AN AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR ST SV SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM/;
+## See http://www.iso.org/iso/country_codes/check_what_s_new.htm for updates
+our %CCA2=map { $_ => 1 } qw/AF AX AL DZ AS AD AO AI AQ AG AR AM AW AU AT AZ BS BH BD BB BY BE BZ BJ BL BM BT BO BQ BA BW BV BR IO BN BG BF BI KH CM CA CV CW KY CF TD CL CN CX CC CO KM CG CD CK CR CI HR CU CY CZ DK DJ DM DO EC EG SV SX GQ ER EE ET FK FO FJ FI FR GF PF TF GA GM GE DE GH GI GR GL GD GP GU GT GG GN GW GY HT HM HN HK HU IS IN ID IR IQ IE IM IL IT JM JP JE JO KZ KE KI KP KR KW KG LA LV LB LS LR LY LI LT LU MO MK MG MW MY MV ML MT MH MQ MR MU YT MX FM MD ME MF MC MN MS MA MZ MM NA NR NP NL NC NZ NI NE NG NU NF MP NO OM PK PW PS PA PG PY PE PH PN PL PT PR QA RE RO RS RU RW SH KN LC PM VC WS SM ST SA SN CS SC SL SG SK SI SB SO ZA GS ES LK SD SR SJ SZ SE CH SY TW TJ TZ TH TL TG TK TO TT TN TR TM TC TV UG UA AE GB US UM UY UZ VU VA VE VN VG VI WF EH YE ZM ZW/;
 
 sub all_valid
 {
@@ -122,12 +119,31 @@ sub deepcopy
  }
 }
 
+sub link_rs
+{
+ my (@rs)=@_;
+ my %seen;
+ foreach my $i (1..$#rs)
+ {
+  $rs[$i-1]->_set_last($rs[$i]) unless exists $seen{$rs[$i]};
+  $seen{$rs[$i]}=1;
+ }
+ return $rs[0];
+}
+
 ####################################################################################################
 
 sub isint
 {
  my $in=shift;
  return ($in=~m/^\d+$/)? 1 : 0;
+}
+
+## eppcom:roidType
+sub is_roid
+{
+ my $in=shift;
+ return xml_is_token($in,3,89) && $in=~m/^\w{1,80}-[0-9A-Za-z]{1,8}$/;
 }
 
 sub check_equal
@@ -145,53 +161,59 @@ sub check_equal
 sub check_isa
 {
  my ($what,$isa)=@_;
- Net::DRI::Exception::usererr_invalid_parameters((${what} || 'parameter').' must be a '.$isa.' object') unless ($what && UNIVERSAL::isa($what,$isa));
+ Net::DRI::Exception::usererr_invalid_parameters((${what} || 'parameter').' must be a '.$isa.' object') unless $what && is_class($what,$isa);
  return 1;
+}
+
+sub is_class
+{
+ my ($obj,$class)=@_;
+ return eval { $obj->isa($class); } ? 1 : 0;
 }
 
 sub isa_contactset
 {
  my $cs=shift;
- return (defined($cs) && UNIVERSAL::isa($cs, 'Net::DRI::Data::ContactSet') && !$cs->is_empty())? 1 : 0;
+ return (defined $cs && is_class($cs,'Net::DRI::Data::ContactSet') && !$cs->is_empty())? 1 : 0;
 }
 
 sub isa_contact
 {
  my ($c,$class)=@_;
- $class='Net::DRI::Data::Contact' unless defined($class);
- return (defined($c) && UNIVERSAL::isa($c,$class))? 1 : 0; ## no way to check if it is empty or not ? Contact->validate() is too strong as it may die, Contact->roid() maybe not ok always
+ $class='Net::DRI::Data::Contact' unless defined $class;
+ return (defined $c && is_class($c,$class))? 1 : 0; ## no way to check if it is empty or not ? Contact->validate() is too strong as it may die, Contact->roid() maybe not ok always
 }
 
 sub isa_hosts
 {
  my ($h,$emptyok)=@_;
- $emptyok||=0;
- return (defined($h) && UNIVERSAL::isa($h, 'Net::DRI::Data::Hosts') && ($emptyok || !$h->is_empty()) )? 1 : 0;
+ $emptyok=0 unless defined $emptyok;
+ return (defined $h && is_class($h,'Net::DRI::Data::Hosts') && ($emptyok || !$h->is_empty()) )? 1 : 0;
 }
 
 sub isa_nsgroup
 {
  my $h=shift;
- return (defined($h) && UNIVERSAL::isa($h, 'Net::DRI::Data::Hosts'))? 1 : 0;
+ return (defined $h && is_class($h,'Net::DRI::Data::Hosts'))? 1 : 0;
 }
 
 sub isa_changes
 {
  my $c=shift;
- return (defined($c) && UNIVERSAL::isa($c, 'Net::DRI::Data::Changes') && !$c->is_empty())? 1 : 0;
+ return (defined $c && is_class($c,'Net::DRI::Data::Changes') && !$c->is_empty())? 1 : 0;
 }
 
 sub isa_statuslist
 {
  my $s=shift;
- return (defined($s) && UNIVERSAL::isa($s,'Net::DRI::Data::StatusList') && !$s->is_empty())? 1 : 0;
+ return (defined $s && is_class($s,'Net::DRI::Data::StatusList') && !$s->is_empty())? 1 : 0;
 }
 
 sub has_key
 {
  my ($rh,$key)=@_;
- return 0 unless (defined($key) && $key);
- return 0 unless (defined($rh) && (ref($rh) eq 'HASH') && exists($rh->{$key}) && defined($rh->{$key}));
+ return 0 unless (defined $key && $key);
+ return 0 unless (defined $rh && (ref $rh eq 'HASH') && exists $rh->{$key} && defined $rh->{$key});
  return 1;
 }
 
@@ -216,7 +238,13 @@ sub has_duration
 sub has_auth
 {
  my $rh=shift;
- return (has_key($rh,'auth') && (ref($rh->{'auth'}) eq 'HASH'))? 1 : 0;
+ return (has_key($rh,'auth') && ref $rh->{'auth'} eq 'HASH')? 1 : 0;
+}
+
+sub has_status
+{
+ my $rh=shift;
+ return (has_key($rh,'status') && isa_statuslist($rh->{status}))? 1 : 0;
 }
 
 ####################################################################################################
@@ -242,19 +270,29 @@ sub create_trid_1
  return uc($name).'-'.$$.'-'.$mt;
 }
 
+sub create_params
+{
+ my ($op,$rd)=@_;
+ return {} unless defined $rd;
+ Net::DRI::Exception::usererr_invalid_parameters('last parameter of '.$op.', if defined, must be a ref hash holding extra parameters as needed') unless ref $rd eq 'HASH';
+ return { %$rd };
+}
+
 ####################################################################################################
 
 sub is_hostname ## RFC952/1123
 {
- my ($name)=@_;
- return 0 unless defined($name);
+ my ($name,$unicode)=@_;
+ return 0 unless defined $name;
+ $unicode=0 unless defined $unicode;
 
  my @d=split(/\./,$name,-1);
  foreach my $d (@d)
  {
-  return 0 unless (defined($d) && ($d ne ''));
-  return 0 unless (length($d)<=63);
-  return 0 if (($d=~m/[^A-Za-z0-9\-]/) || ($d=~m/^-/) || ($d=~m/-$/));
+  return 0 unless (defined $d && $d ne '');
+  return 0 unless (length $d <= 63);
+  return 0 if (($d=~m/^-/) || ($d=~m/-$/));
+  return 0 if (!$unicode && $d=~m/[^A-Za-z0-9\-]/);
  }
  return 1;
 }
@@ -263,7 +301,7 @@ sub is_ipv4
 {
  my ($ip,$checkpublic)=@_;
 
- return 0 unless defined($ip);
+ return 0 unless defined $ip;
  my (@ip)=($ip=~m/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
  return 0 unless (@ip==4);
  foreach my $s (@ip)
@@ -271,7 +309,7 @@ sub is_ipv4
   return 0 unless (($s >= 0) && ($s <= 255));
  }
 
- return 1 unless (defined($checkpublic) && $checkpublic);
+ return 1 unless (defined $checkpublic && $checkpublic);
 
  ## Check if this IP is public (see RFC3330)
  return 0 if ($ip[0] == 0); ## 0.x.x.x [ RFC 1700 ]
@@ -290,7 +328,7 @@ sub is_ipv4
 sub is_ipv6
 {
  my ($ip,$checkpublic)=@_;
- return 0 unless defined($ip);
+ return 0 unless defined $ip;
 
  my (@ip)=split(/:/,$ip);
  return 0 unless ((@ip > 0) && (@ip <= 8));
@@ -309,11 +347,11 @@ sub is_ipv6
  my $wip=$ip1.('0' x (32-length($ip1)-length($ip2))).$ip2; ## 32 chars
  my $bip=unpack('B128',pack('H32',$wip)); ## 128-bit array
 
- ## RFC 3513 ง2.4
+ ## RFC 3513 ยง2.4
  return 0 if ($bip=~m/^0{127}/); ## unspecified + loopback
  return 0 if ($bip=~m/^1{7}/); ## multicast + link-local unicast + site-local unicast
  ## everything else is global unicast,
- ## but see ง4 and http://www.iana.org/assignments/ipv6-address-space
+ ## but see ยง4 and http://www.iana.org/assignments/ipv6-address-space
  return 0 if ($bip=~m/^000/); ## unassigned + reserved (first 6 lines)
  return 1 if ($bip=~m/^001/); ## global unicast (2000::/3)
  return 0; ## everything else is unassigned
@@ -343,12 +381,20 @@ sub compare_durations
 sub xml_is_normalizedstring
 {
  my ($what,$min,$max)=@_;
+ my $r=xml_is_string($what,$min,$max);
+ return 0 if $r==0;
+ return 0 if $what=~m/[\r\n\t]/;
+ return 1;
+}
 
- return 0 unless defined($what);
- return 0 if ($what=~m/[\r\n\t]/);
- my $l=length($what);
- return 0 if (defined($min) && ($l < $min));
- return 0 if (defined($max) && ($l > $max));
+sub xml_is_string
+{
+ my ($what,$min,$max)=@_;
+ return 0 unless defined $what;
+ return 0 unless $what=~m/^[\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]*$/; ## XML Char definition (all Unicode excluding the surrogate blocks, FFFE, and FFFF)
+ my $l=length $what;
+ return 0 if (defined $min && $l < $min);
+ return 0 if (defined $max && $l > $max);
  return 1;
 }
 
@@ -356,15 +402,15 @@ sub xml_is_token
 {
  my ($what,$min,$max)=@_;
 
- return 0 unless defined($what);
- return 0 if ($what=~m/[\r\n\t]/);
- return 0 if ($what=~m/^\s/);
- return 0 if ($what=~m/\s$/);
- return 0 if ($what=~m/\s\s/);
+ return 0 unless defined $what;
+ return 0 if $what=~m/[\r\n\t]/;
+ return 0 if $what=~m/^\s/;
+ return 0 if $what=~m/\s$/;
+ return 0 if $what=~m/\s\s/;
 
- my $l=length($what);
- return 0 if (defined($min) && ($l < $min));
- return 0 if (defined($max) && ($l > $max));
+ my $l=length $what;
+ return 0 if (defined $min && $l < $min);
+ return 0 if (defined $max && $l > $max);
  return 1;
 }
 
@@ -382,8 +428,8 @@ sub verify_int
 {
  my ($in,$min,$max)=@_;
  return 0 unless defined($in) && ($in=~m/^-?\d+$/);
- return 0 if ($in < (defined($min)? $min : -2147483648));
- return 0 if ($in > (defined($max)? $max : 2147483647));
+ return 0 if ($in < (defined $min ? $min : -2147483648));
+ return 0 if ($in > (defined $max ? $max : 2147483647));
  return 1;
 }
 
@@ -394,8 +440,8 @@ sub verify_base64
  my $b16='[AEIMQUYcgkosw048]';
  my $b64='[A-Za-z0-9+/]';
  return 0 unless ($in=~m/^(?:(?:$b64 ?$b64 ?$b64 ?$b64 ?)*(?:(?:$b64 ?$b64 ?$b64 ?$b64)|(?:$b64 ?$b64 ?$b16 ?=)|(?:$b64 ?$b04 ?= ?=)))?$/);
- return 0 if (defined($min) && (length($in) < $min));
- return 0 if (defined($max) && (length($in) > $max));
+ return 0 if (defined $min && (length $in < $min));
+ return 0 if (defined $max && (length $in > $max));
  return 1;
 }
 
@@ -403,7 +449,7 @@ sub verify_base64
 sub xml_is_language
 {
  my $in=shift;
- return 0 unless defined($in);
+ return 0 unless defined $in;
  return 1 if ($in=~m/^[a-zA-Z]{1,8}(?:-[a-zA-Z0-9]{1,8})*$/);
  return 0;
 }
@@ -411,7 +457,7 @@ sub xml_is_language
 sub xml_is_boolean
 {
  my $in=shift;
- return 0 unless defined($in);
+ return 0 unless defined $in;
  return 1 if ($in=~m/^(?:1|0|true|false)$/);
  return 0;
 }
@@ -548,8 +594,8 @@ sub normalize_name
  $type=lc($type);
  ## contact IDs may be case sensitive...
  ## Will need to be redone differently with IDNs
- $key=lc($key) if ($type eq 'domain' || $type eq 'nsgroup');
- $key=lc($key) if ($type eq 'host' && $key=~m/\./); ## last test part is done only to handle the pure mess created by Nominet .UK "EPP" implementation...
+ $key=lc $key if ($type eq 'domain' || $type eq 'nsgroup');
+ $key=lc $key if ($type eq 'host' && $key=~m/\./); ## last test part is done only to handle the pure mess created by Nominet .UK "EPP" implementation...
  return ($type,$key);
 }
 

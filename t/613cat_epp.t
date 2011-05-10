@@ -1,4 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use encoding "iso-8859-15";
+
+use strict;
+use warnings;
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
@@ -15,24 +20,14 @@ our $E1='<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="urn:i
 our $E2='</epp>';
 our $TRID='<trID><clTRID>ABC-12345</clTRID><svTRID>54322-XYZ</svTRID></trID>';
 
-our $R1;
-sub mysend
-{
- my ($transport,$count,$msg)=@_;
- $R1=substr(Net::DRI::Protocol::EPP::Connection->write_message(undef,$msg),4);
- return 1;
-}
-
-our $R2;
-sub myrecv
-{
- return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<response>'.r().$TRID.'</response>'.$E2);
-}
+our ($R1,$R2);
+sub mysend { my ($transport,$count,$msg)=@_; $R1=substr(Net::DRI::Protocol::EPP::Connection->write_message(undef,$msg),4); return 1; }
+sub myrecv { return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<response>'.r().$TRID.'</response>'.$E2); }
 
 my $dri=Net::DRI->new(10);
 $dri->{trid_factory}=sub { return 'ABC-12345'; };
 $dri->add_registry('CAT');
-$dri->target('CAT')->add_current_profile('p1','test=epp',{f_send=>\&mysend,f_recv=>\&myrecv});
+$dri->target('CAT')->add_current_profile('p1','epp',{f_send=>\&mysend,f_recv=>\&myrecv});
 
 my ($rc,$s,$d,$dh,@c,$co);
 
@@ -63,7 +58,7 @@ is($R1,$E1.'<command><create><contact:create xmlns:contact="urn:ietf:params:xml:
 ##p.33
 $R2='';
 $co=$dri->local_object('contact')->srid('sh8013')->auth({pw=>'2fooBAR'});
-$toc=$dri->local_object('changes');
+my $toc=$dri->local_object('changes');
 $toc->add('status',$dri->local_object('status')->no('delete'));
 my $co2=$dri->local_object('contact');
 $co2->org('');
@@ -102,7 +97,7 @@ is_deeply([$s->list_status()],['clientDeleteProhibited','linked'],'contact_info 
 is($s->can_delete(),0,'contact_info get_info(status) can_delete');
 is($co->name(),'John Doe','contact_info get_info(self) name');
 is($co->org(),'Example Inc.','contact_info get_info(self) org');
-is_deeply($co->street(),['123 Example Dr.','Suite 100'],'contact_info get_info(self) street');
+is_deeply(scalar $co->street(),['123 Example Dr.','Suite 100'],'contact_info get_info(self) street');
 is($co->city(),'Dulles','contact_info get_info(self) city');
 is($co->sp(),'VA','contact_info get_info(self) sp');
 is($co->pc(),'20166-6503','contact_info get_info(self) pc');
@@ -181,8 +176,8 @@ is($s->get('registrant')->srid(),'jd1234','domain_info get_info(contact) registr
 is($s->get('admin')->srid(),'sh8013','domain_info get_info(contact) admin srid');
 is($s->get('tech')->srid(),'sh8013','domain_info get_info(contact) tech srid');
 is($s->get('billing')->srid(),'sh8013','domain_info get_info(contact) billing srid');
-$dh=$dri->get_info('host');
-isa_ok($dh,'Net::DRI::Data::Hosts','domain_info get_info(host)');
+$dh=$dri->get_info('subordinate_hosts');
+isa_ok($dh,'Net::DRI::Data::Hosts','domain_info get_info(subordinate_hosts)');
 @c=$dh->get_names();
 is_deeply(\@c,['ns1.barca.cat','ns2.barca.cat'],'domain_info get_info(host) get_names');
 $dh=$dri->get_info('ns');

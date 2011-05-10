@@ -1,7 +1,7 @@
 ## Domain Registry Interface, .SE EPP Domain/Contact Extensions for Net::DRI
 ## Contributed by Elias Sidenbladh and Ulrich Wisser from NIC SE
 ##
-## Copyright (c) 2006,2008,2009,2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2006,2008-2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -11,9 +11,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::SE::Extensions;
@@ -23,8 +20,6 @@ use warnings;
 use Net::DRI::Util;
 use Net::DRI::Exception;
 use Net::DRI::Protocol::EPP::Util;
-
-our $VERSION=do { my @r=(q$Revision: 1.6 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -54,7 +49,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2006,2008,2009,2010 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2006,2008-2011 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -87,7 +82,11 @@ sub register_commands {
         info             => [ undef, \&host_parse ],
         transfer_request => [ undef, \&host_transfer_parse ],
     };
-    return { 'domain' => $domain, 'contact' => $contact, 'host' => $host, };
+    my %session=(
+        'connect' => [ undef, \&parse_greeting ],
+        'noop'    => [ undef, \&parse_greeting ],
+       );
+    return { 'domain' => $domain, 'contact' => $contact, 'host' => $host, session => \%session };
 }
 
 sub capabilities_add {
@@ -95,14 +94,28 @@ sub capabilities_add {
 }
 ###################################################################################################
 
+## This was previously basically Extensions/SE/Message/_get_content
+## but since anyway it should be done properly by walking the XML tree inside of poking like this,
+## put it here to remove the SE/Message module
+sub find_node
+{
+ my ($mes,$nstag,$nodename)=@_;
+ my $node=$mes->resdata();
+ my $ns=$mes->ns($nstag);
+ $ns=$nstag unless defined $ns && $ns;
+ my @tmp=$node->getElementsByTagNameNS($ns,$nodename);
+ return unless @tmp;
+ return $tmp[0];
+}
+
 sub get_notify {
     my $mes = shift;
     my $ns=$mes->ns('iis');
     # only one of these will be given, but we can't know which in advance
-    return 'create'   if defined $mes->get_response($ns, 'createNotify' );
-    return 'update'   if defined $mes->get_response($ns, 'updateNotify' );
-    return 'delete'   if defined $mes->get_response($ns, 'deleteNotify' );
-    return 'transfer' if defined $mes->get_response($ns, 'transferNotify' );
+    return 'create'   if defined find_node($mes,$ns,'createNotify');
+    return 'update'   if defined find_node($mes,$ns,'updateNotify');
+    return 'delete'   if defined find_node($mes,$ns,'deleteNotify');
+    return 'transfer' if defined find_node($mes,$ns,'transferNotify');
 
     # done, no notify found
     return;
@@ -206,7 +219,7 @@ sub host_transfer_parse {
     my $mes = $po->message();
     return unless $mes->is_success();
 
-    my $trndata = $mes->get_response( $mes->ns('host'), 'trnData' );
+    my $trndata = find_node($mes,$mes->ns('host'),'trnData');
     return unless defined $trndata;
 
     foreach my $el (Net::DRI::Util::xml_list_children($trndata))
@@ -238,7 +251,7 @@ sub contact_transfer_parse {
     my $mes = $po->message();
     return unless $mes->is_success();
 
-    my $trndata = $mes->get_response( $mes->ns('contact'), 'trnData' );
+    my $trndata = find_node($mes,$mes->ns('contact'), 'trnData' );
     return unless defined $trndata;
 
     foreach my $el (Net::DRI::Util::xml_list_children($trndata))
@@ -277,21 +290,21 @@ sub delete_parse {
     return if ( ( !defined $notify ) || ( $notify ne 'delete' ) );
 
     # check for host
-    my $host = $mes->get_response( $mes->ns('host'), 'name' );
+    my $host = find_node($mes,$mes->ns('host'), 'name' );
     if ( defined $host ) {
         $oname = $host->textContent();
         $otype = 'host';
     }
 
     # check for contact
-    my $contact = $mes->get_response( $mes->ns('contact'), 'id' );
+    my $contact = find_node($mes, $mes->ns('contact'), 'id' );
     if ( defined $contact ) {
         $oname = $contact->textContent();
         $otype = 'contact';
     }
 
     # check for domain
-    my $domain = $mes->get_response( $mes->ns('domain'), 'name' );
+    my $domain = find_node($mes, $mes->ns('domain'), 'name' );
     if ( defined $domain ) {
         $oname = $domain->textContent();
         $otype = 'domain';
@@ -321,7 +334,7 @@ sub domain_update {
     return unless @data;
 
     # create <iis:update/>
-    my $iis_extension = $mes->command_extension_register( 'iis:update', 'xmlns:iis="' . $mes->ns('iis') . '" xsi:schemaLocation="' . $mes->ns('iis') . ' iis-' . $mes->{"iis_extension_version"} . '.xsd"' );
+    my $iis_extension = $mes->command_extension_register('iis','update');
 
     # now add extension to message
     $mes->command_extension( $iis_extension, \@data );
@@ -342,7 +355,7 @@ sub domain_transfer {
     return unless @data;
 
     # create <iis:transfer/>
-    my $iis_extension = $mes->command_extension_register( 'iis:transfer', 'xmlns:iis="' . $mes->ns('iis') . '" xsi:schemaLocation="' . $mes->ns('iis') . ' iis-' . $mes->{"iis_extension_version"} . '.xsd" xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"' );
+    my $iis_extension = $mes->command_extension_register('iis','transfer');
 
     # now add extension to message
     $mes->command_extension( $iis_extension, \@data );
@@ -379,7 +392,7 @@ sub contact_create {
     return unless @data;
 
     # create <iis:create/>
-    my $iis_extension = $mes->command_extension_register( 'iis:create', 'xmlns:iis="' . $mes->ns('iis') . '" xsi:schemaLocation="' . $mes->ns('iis') . ' iis-' . $mes->{"iis_extension_version"} . '.xsd"' );
+    my $iis_extension = $mes->command_extension_register('iis','create');
 
     # now add extension to message
     $mes->command_extension( $iis_extension, \@data );
@@ -410,7 +423,7 @@ sub contact_update {
     return unless @data;
 
     # create <iis:update/>
-    my $iis_extension = $mes->command_extension_register( 'iis:update', 'xmlns:iis="' . $mes->ns('iis') . '" xsi:schemaLocation="' . $mes->ns('iis') . ' iis-' . $mes->{"iis_extension_version"} . '.xsd"' );
+    my $iis_extension = $mes->command_extension_register('iis','update');
 
     # now add extension to message
     $mes->command_extension( $iis_extension, \@data );
@@ -419,6 +432,18 @@ sub contact_update {
     return;
 }
 
+####################################################################################################
+## Session commands, adapt to server greeting
+
+sub parse_greeting
+{
+ my ($po,$otype,$oaction,$oname,$rinfo)=@_;
+ my $mes=$po->message();
+
+ return unless defined $mes->node_greeting(); ## only work here for true greeting reply handling, not for all polling responses !
+
+ $po->switch_to_highest_namespace_version('iis');
+}
 
 ####################################################################################################
 1;

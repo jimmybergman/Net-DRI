@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+use encoding "iso-8859-15";
 use strict;
 use warnings;
 
@@ -7,7 +8,7 @@ use Net::DRI;
 
 my $dri=Net::DRI->new();
 
-eval {
+my $ok=eval {
 ############################################################################################################
 
 ## You need to modify the following information to make this script work :
@@ -61,18 +62,19 @@ $rc=$dri->domain_create('toto2.fr',{pure_create => 1, contact => $cs, maintainer
 print "Mail successfully sent.\n" if $rc->is_success() && $rc->is_pending();
 
 ############################################################################################################
-
+1;
 };
 
-if ($@)
+if (! $ok)
 { 
+ my $err=$@;
  print "AN ERROR happened !!!\n";
- if (ref($@))
+ if (ref $err)
  {
-  $@->print();
+  $err->print();
  } else
  {
-  print($@);
+  print $err;
  }
 } else
 {

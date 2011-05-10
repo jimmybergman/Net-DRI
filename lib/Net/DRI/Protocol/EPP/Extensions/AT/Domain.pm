@@ -11,9 +11,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::AT::Domain;
@@ -23,7 +20,6 @@ use strict;
 use Net::DRI::Util;
 use Net::DRI::Exception;
 
-our $VERSION = do { my @r = ( q$Revision: 1.4 $ =~ /\d+/g ); sprintf( "%d" . ".%02d" x $#r, @r ); };
 our $NS = 'http://www.nic.at/xsd/at-ext-domain-1.0';
 our $ExtNS = 'http://www.nic.at/xsd/at-ext-epp-1.0';
 

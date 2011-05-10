@@ -1,12 +1,13 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
 
 use Test::More tests => 45;
 
 use Net::DRI::Exception;
 
-my $e=Net::DRI::Exception->new(1,'test area',786,'test message');
-my $ln=__LINE__;
-$ln--;
+my $e=Net::DRI::Exception->new(1,'test area',786,'test message'); my $ln=__LINE__;
 my $fn=__FILE__;
 
 isa_ok($e,'Net::DRI::Exception','Exception object');
@@ -36,12 +37,12 @@ is($@->area(),'test area die','Exception->die() area');
 is($@->code(),788,'Exception->die() code');
 is($@->msg(),'test message die','Exception->die() message');
 
-eval { Net::DRI::Exception::err_method_not_implemented('foobar'); };
-isa_ok($@,'Net::DRI::Exception','err_method_not_implemented() results');
-is($@->is_error(),1,'err_method_not_implemented() is error');
-is($@->area(),'internal','err_method_not_implemented() area');
-is($@->code(),1,'err_method_not_implemented() code');
-is($@->msg(),'Method not implemented: foobar','err_method_not_implemented() message');
+eval { Net::DRI::Exception::method_not_implemented('foobar','zorglub'); };
+isa_ok($@,'Net::DRI::Exception','method_not_implemented() results');
+is($@->is_error(),1,'method_not_implemented() is error');
+is($@->area(),'internal','method_not_implemented() area');
+is($@->code(),1,'method_not_implemented() code');
+is($@->msg(),'Method "foobar" not implemented in "zorglub"','method_not_implemented() message');
 
 eval { Net::DRI::Exception::err_insufficient_parameters('stuff missing'); };
 isa_ok($@,'Net::DRI::Exception','err_insufficient_parameters() results');

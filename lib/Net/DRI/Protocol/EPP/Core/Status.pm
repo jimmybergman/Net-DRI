@@ -1,6 +1,6 @@
 ## Domain Registry Interface, EPP Status
 ##
-## Copyright (c) 2005,2007,2008 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005,2007,2008,2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,20 +10,17 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Core::Status;
 
 use base qw!Net::DRI::Data::StatusList!;
 
+use utf8;
 use strict;
+use warnings;
 
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.6 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -81,16 +78,9 @@ sub new
  $self->_register_pno(\%s);
 
  my $msg=shift;
- return $self unless defined($msg);
-
- if (ref($msg) eq 'ARRAY')
- {
-  $self->add(@$msg);
- } else
- {
-  Net::DRI::Exception::err_invalid_parameters();
- }
-
+ return $self unless defined $msg;
+ Net::DRI::Exception::err_invalid_parameters() unless ref $msg eq 'ARRAY';
+ $self->add(@$msg);
  return $self;
 }
 
@@ -108,10 +98,10 @@ sub build_xml
  while(my ($k,$v)=each(%$rd))
  {
   next if (($range eq 'core') xor is_core_status($k));
-  if ($v && ref($v) && keys(%$v))
+  if ($v && ref $v && keys %$v)
   {
    my %tmp=(s => $k);
-   $tmp{lang}=$v->{lang} if exists($v->{lang});
+   $tmp{lang}=$v->{lang} if exists $v->{lang};
    push @d,[$name,$v->{msg} || '',\%tmp];
   } else
   {
@@ -122,14 +112,15 @@ sub build_xml
 }
 
 sub is_active    { return shift->has_any('ok'); }
-sub is_published { return shift->has_not('clientHold','serverHold','inactive'); }
-sub is_pending   { return shift->has_any('pendingCreate','pendingDelete','pendingRenew','pendingTransfer','pendingUpdate'); }
+sub is_published { return shift->has_not(qw/clientHold serverHold inactive/); }
+sub is_pending   { return shift->has_any(qw/pendingCreate pendingDelete pendingRenew pendingTransfer pendingUpdate/); }
 sub is_linked    { return shift->has_any('linked'); }
+sub is_grace     { return shift->has_any(qw/addPeriod autoRenewPeriod renewPeriod transferPeriod redemptionPeriod pendingRestore pendingDelete/); } ## defined in RFC3915 §3.1
 
-sub can_delete   { return shift->has_not('clientDeleteProhibited','serverDeleteProhibited'); }
-sub can_renew    { return shift->has_not('clientRenewProhibited','serverRenewProhibited'); }
-sub can_update   { return shift->has_not('clientUpdateProhibited','serverUpdateProhibited'); }
-sub can_transfer { return shift->has_not('clientTransferProhibited','serverTransferProhibited'); }
+sub can_delete   { my $self=shift; return (!$self->is_linked() && !$self->is_pending() && $self->has_not(qw/clientDeleteProhibited serverDeleteProhibited/))? 1 : 0; }
+sub can_renew    { my $self=shift; return (!$self->is_pending() && $self->has_not(qw/clientRenewProhibited serverRenewProhibited/))? 1 : 0; }
+sub can_update   { my $self=shift; return (!$self->is_pending() && $self->has_not(qw/clientUpdateProhibited serverUpdateProhibited/))? 1 : 0; }
+sub can_transfer { my $self=shift; return (!$self->is_pending() && $self->has_not(qw/clientTransferProhibited serverTransferProhibited/))? 1 : 0; }
 
 ####################################################################################################
 1;

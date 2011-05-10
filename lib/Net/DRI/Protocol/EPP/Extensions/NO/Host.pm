@@ -12,9 +12,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::NO::Host;
@@ -23,8 +20,6 @@ use strict;
 use warnings;
 
 use Net::DRI::Util;
-
-our $VERSION = do { my @r = ( q$Revision: 1.3 $ =~ /\d+/gmx ); sprintf( "%d" . ".%02d" x $#r, @r ); };
 
 =pod
 
@@ -139,10 +134,19 @@ sub parse_info {
     my @e = $condata->getElementsByTagNameNS( $NS, 'contact' );
     return unless @e;
 
-    # Contact is a single scalar
-    my $t = $e[0];
-    if ( my $ct = $t->getFirstChild()->getData() ) {
-        $rinfo->{host}->{$oname}->{contact} = $ct;
+    # Contact is optional, may be single or multiple,
+    # return the contactIDs in an ARRAY 
+    my @hc;
+    foreach my $el ( @e)
+    {
+        my $c = $el->getFirstChild();
+        my $v;
+        $v = $c->getData() if ($c);
+        push @hc, $v if ($v);
+    }
+    if ( @hc > 0 ) {
+       # multiple, return array
+       push @{$rinfo->{host}->{$oname}->{contact}}, @hc;
     }
     return;
 }
@@ -199,18 +203,33 @@ sub create {
        my $eid = build_command_extension( $mes, $epp, 'no-ext-host:create' );
        my $c = $rd->{contact};
        my $srid;
-       
-       # $c may be a contact object or a direct scalar
-       if (   Net::DRI::Util::has_contact( $rd ) )
+ 
+       if ( ref($c) eq 'ARRAY' ) {
+           foreach my $cn (@$c) {
+               if (Net::DRI::Util::isa_contact($cn))
        {
-           my @o = $c->get('contact');
-           $srid = $o[0]->srid() if (@o);
+        $srid = $cn->srid();
        } else {
-           
-           # Contact shall be a single scalar!
-           $srid = $c;
+                   $srid = $cn;
       }
        push @e, [ 'no-ext-host:contact', $srid ];
+           }
+       } else {
+           # $c may be a contact set, contact object or a direct scalar
+           my @contacts;
+           if (Net::DRI::Util::isa_contactset($c)) { 
+              foreach my $cn (keys %{ $$c{'c'} } ) { 
+                   push @contacts, ${$$c{'c'}}{$cn}->[0]->srid(); 
+               }
+           } elsif (Net::DRI::Util::isa_contact($c)) { 
+              @contacts = $c->srid(); 
+           } else {
+               @contacts = $c;
+           }
+           foreach my $srid (@contacts) { 
+               push @e, [ 'no-ext-host:contact', $srid ]; 
+           }
+       }
        $r = $mes->command_extension( $eid, \@e );
     }
 
@@ -237,16 +256,70 @@ sub update {
     if ( $ca || $cd ) {
        my $eid = build_command_extension( $mes, $epp, 'no-ext-host:update' );
 
-       my ( @n, @s );
+       my ( @n, @e, $c, $srid );
 
        if ( defined($ca) && $ca ) {
-           push @s, [ 'no-ext-host:contact', $ca ];
-           push @n, [ 'no-ext-host:add', @s ] if ( @s > 0 );
+       $c = $ca;
+       if ( ref($c) eq 'ARRAY' ) {
+           foreach my $cn (@$c) {
+               if (Net::DRI::Util::isa_contact($cn)) 
+               {
+                   $srid = $cn->srid(); 
+               } else {
+                   $srid = $cn;
        }
-       @s = undef;
+               push @e, [ 'no-ext-host:contact', $srid ]; 
+           }
+       } else {
+           # $c may be a contact set, contact object or a direct scalar
+           my @contacts;
+           if (Net::DRI::Util::isa_contactset($c)) { 
+              foreach my $cn (keys %{ $$c{'c'} } ) { 
+                   push @contacts, ${$$c{'c'}}{$cn}->[0]->srid(); 
+               }
+           } elsif (Net::DRI::Util::isa_contact($c)) { 
+              @contacts = $c->srid(); 
+           } else {
+               @contacts = $c;
+           }
+           foreach my $srid (@contacts) { 
+               push @e, [ 'no-ext-host:contact', $srid ]; 
+           }
+       }
+
+          push @n, [ 'no-ext-host:add', @e ] if ( @e > 0 ); 
+      }
+      @e = undef;
        if ( defined($cd) && $cd ) {
-           push @s, [ 'no-ext-host:contact', $cd ];
-           push @n, [ 'no-ext-host:rem', @s ] if ( @s > 0 );
+
+       $c = $cd;
+       if ( ref($c) eq 'ARRAY' ) {
+           foreach my $cn (@$c) {
+               if (Net::DRI::Util::isa_contact($cn)) 
+               {
+                   $srid = $cn->srid(); 
+               } else {
+                   $srid = $cn;
+               }
+               push @e, [ 'no-ext-host:contact', $srid ]; 
+           }
+       } else {
+           # $c may be a contact set, contact object or a direct scalar
+           my @contacts;
+           if (Net::DRI::Util::isa_contactset($c)) { 
+              foreach my $cn (keys %{ $$c{'c'} } ) { 
+                   push @contacts, ${$$c{'c'}}{$cn}->[0]->srid(); 
+               }
+           } elsif (Net::DRI::Util::isa_contact($c)) { 
+              @contacts = $c->srid(); 
+           } else {
+               @contacts = $c;
+           }
+           foreach my $srid (@contacts) { 
+               push @e, [ 'no-ext-host:contact', $srid ]; 
+           }
+       }
+          push @n, [ 'no-ext-host:rem', @e ] if ( @e > 0 );
        }
        $r = $mes->command_extension( $eid, \@n );
     }

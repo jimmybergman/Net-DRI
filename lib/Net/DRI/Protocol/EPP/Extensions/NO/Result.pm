@@ -1,6 +1,6 @@
 ## Domain Registry Interface, .NO Result extension
 ##
-## Copyright (c) 2008 UNINETT Norid AS, E<lt>http://www.norid.noE<gt>,
+## Copyright (c) 2008,2010 UNINETT Norid AS, E<lt>http://www.norid.noE<gt>,
 ##                    Trond Haugen E<lt>info@norid.noE<gt>
 ##                    All rights reserved.
 ##
@@ -12,16 +12,11 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::NO::Result;
 
 use strict;
-
-our $VERSION = do { my @r = ( q$Revision: 1.3 $ =~ /\d+/gxm ); sprintf( "%d" . ".%02d" x $#r, @r ); };
 
 =pod
 
@@ -51,7 +46,7 @@ Trond Haugen, E<lt>info@norid.noE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008 UNINETT Norid AS, E<lt>http://www.norid.noE<gt>,
+Copyright (c) 2008,2010 UNINETT Norid AS, E<lt>http://www.norid.noE<gt>,
 Trond Haugen, E<lt>info@norid.noE<gt>
 All rights reserved.
 
@@ -70,9 +65,6 @@ sub register_commands {
     my ( $class, $version ) = @_;
     my %tmp = (
 
-        # hmmm, would like to parse our login response extensions as well,
-        # but that doesn't work ..
-        #login            => [ undef, \&condition_parse ],
         check            => [ undef, \&condition_parse ],
         info             => [ undef, \&condition_parse ],
         create           => [ undef, \&condition_parse ],
@@ -90,7 +82,8 @@ sub register_commands {
     return {
         'domain'  => \%tmp,
         'contact' => \%tmp,
-        'host'    => \%tmp
+        'host'    => \%tmp,
+	'session' => { 'login' => [ undef, \&condition_parse ] },
     };
 }
 
@@ -134,6 +127,7 @@ sub parse {
             $c = $c->getNextSibling();
         }
         push @conditions, \%con;
+        $mes->add_to_extra_info({from=>'no',type=>'text',message => $con{msg}, %con});
     }
 
     # Extension results can be returned in all 3 object types

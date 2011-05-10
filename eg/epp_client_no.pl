@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 ##
 ## Copyright (c) 2008-2010 UNINETT Norid AS, E<lt>http://www.norid.noE<gt>,
 ##                    Trond Haugen E<lt>info@norid.noE<gt>
@@ -29,7 +29,10 @@
 ##
 #######
 
+use encoding "iso-8859-15";
 use strict;
+use warnings;
+
 use Net::DRI;
 use DateTime::Duration;
 use Pod::Usage;
@@ -45,7 +48,7 @@ use encoding "utf-8";    # assume utf-8 encoded argument input
 
 our $VERSION     = '0.95.no';
 our $SVN_VERSION = do {
-    my @r = ( q$Revision: 1.3 $ =~ /\d+/gxm );
+    my @r = ( q$Revision: 1.4 $ =~ /\d+/gxm );
     sprintf( "%d" . ".%02d" x $#r, @r );
 };
 
@@ -400,7 +403,7 @@ sub host_object_as_string {
 
     my $ct = "-";
     if ( $ct = $dri->get_info('contact') ) {
-        $s .= sprintf "$F", 'contact', $ct;
+        $s .= sprintf "$F", 'contact', $ct->[0];
     }
     foreach my $i (
         'roid',   'exDate', 'crDate', 'upDate',

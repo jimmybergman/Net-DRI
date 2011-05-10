@@ -10,13 +10,11 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 #########################################################################################
 
 package Net::DRI::Data::Contact::AFNIC;
 
+use utf8;
 use strict;
 use warnings;
 
@@ -26,8 +24,6 @@ use Email::Valid;
 
 use Net::DRI::Exception;
 use Net::DRI::Util;
-
-our $VERSION=do { my @r=(q$Revision: 1.8 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 __PACKAGE__->register_attributes(qw(firstname legal_form legal_form_other legal_id jo trademark key birth vat id_status));
 
@@ -65,7 +61,7 @@ French SIREN/SIRET of organization
 
 =head2 jo()
 
-reference to an hash with 4 keys storing details about «Journal Officiel» :
+reference to an hash with 4 keys storing details about Â«Journal OfficielÂ» :
 date_declaration (Declaration date), date_publication (Publication date),
 number (Announce number) and page (Announce page)
 
@@ -124,7 +120,7 @@ See the LICENSE file that comes with this distribution for more details.
 
 ####################################################################################################
 
-our $LETTRES=qr(A-Z\x{C0}\x{C2}\x{C7}\x{C8}\x{C9}\x{CA}\x{CB}\x{CE}\x{CF}\x{D4}\x{D9}\x{DB}\x{DC}\x{178}\x{C6}\x{152}a-z\x{E0}\x{E2}\x{E7}\x{E8}\x{E9}\x{EA}\x{EB}\x{EE}\x{EF}\x{F4}\x{F9}\x{FB}\x{FC}\x{FF}\x{E6}\x{153});
+our $LETTRES=qr(A-Z\x{00C0}\x{00C2}\x{00C7}\x{00C8}\x{00C9}\x{00CA}\x{00CB}\x{00CE}\x{00CF}\x{00D4}\x{00D9}\x{00DB}\x{00DC}\x{0178}\x{00C6}\x{0152}a-z\x{00E0}\x{00E2}\x{00E7}\x{00E8}\x{00E9}\x{00EA}\x{00EB}\x{00EE}\x{00EF}\x{00F4}\x{00F9}\x{00FB}\x{00FC}\x{00FF}\x{00E6}\x{0153});
 our $NOM_LIBRE_ITEM=qr{[${LETTRES}0-9\(\)\.\[\]\?\+\*#&/!\@',><":-]+};
 our $NOM_PROPRE_ITEM=qr{[${LETTRES}]+(('?(?:[${LETTRES}]+(?:\-?[${LETTRES}]+)?)+)|(?:\.?))};
 our $NOM_PROPRE=qr{${NOM_PROPRE_ITEM}( +${NOM_PROPRE_ITEM})*};

@@ -11,9 +11,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::CZ::Domain;
@@ -27,8 +24,6 @@ use Net::DRI::Data::Hosts;
 use Net::DRI::Protocol::EPP::Util;
 
 use DateTime::Format::ISO8601;
-
-our $VERSION = do { my @r = ( q$Revision: 1.4 $ =~ /\d+/g ); sprintf( "%d" . ".%02d" x $#r, @r ); };
 
 =pod
 
@@ -155,7 +150,7 @@ sub info_parse
 		}
 		elsif ($name eq 'status')
 		{
-			push(@s, Net::DRI::Protocol::EPP::Util::parse_status($c));
+			push(@s, Net::DRI::Protocol::EPP::Util::parse_node_status($c));
 		}
 		elsif ($name =~ /^(registrant|admin)$/)
 		{

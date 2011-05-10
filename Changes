@@ -1,10 +1,142 @@
+Net::DRI changelog from newest to oldest changes
+
+0.96_01 2011-03-13 DEVELOPMENT RELEASE (not to be used in production without extensive testing if upgrading from some previous version)
+
+WARNING: due to work in progress in Transport and Transport::Socket, only EPP protocol will work among Socket based protocols, so no Whois,DAS,IRIS,RRI and RRP.
+This will be fixed for production release 0.97
+
++ DRD/ISPAPI + Protocol/EPP/Extensions/ISPAPI + Protocol/EPP/Extensions/ISPAPI/KeyValue + eg/ispapi_epp.pl : Net::DRI support for Hexonet's ISPAPI EPP server (contributed by Alexander Biehl & Jans Wagner from Hexonet)
++ Protocol/EPP/Extensions/VeriSign/WhoWas : "VeriSign Who Was EPP Extension", loaded by default
++ Protocol/EPP/Extensions/VeriSign/PremiumDomain : "VeriSign Premium Domain EPP extension", not loaded by default
++ Protocol/EPP/Extensions/VeriSign/Suggestion : "VeriSign Domain Name Suggestion EPP extension", not loaded by default
++ Protocol/EPP/Extensions/ME : placeholder for now
++ Protocol/EPP/Extensions/ASIA/Domain : domainRoid extension that was previously in ASIA/IPR + domain operations previously in ASIA/CED
++ Protocol/EPP/Extensions/Afilias/MaintainerUrl : previously in MOBI/Domain and in part of ASIA/CED
++ Protocol/EPP/Extensions/Afilias/Trademark : used in INFO,MOBI,IN sunrises+OT&E
++ Protocol/EPP/Extensions/Afilias/Message : better parsing of error messages in the oxrs namespace
++ Protocol/EPP/Extensions/EURid/IDN : loaded by default
++ Protocol/EPP/Extensions/Keygroup : handling of groups of keys for DNSSEC, loaded by default in .EU & .BE
+= Shell : export run() method so that calling is simpler from CLI
+= Util : update of %CCA2 hash (contributed by Jimmy Bergman)
+= Util : ISO updates of 2010-12-15, addition of BQ,CW,SX and deletion of AN
+= DRI::new() : prepend Net::DRI::Logging:: to all logging module names not starting with a +
+= DRI::add_registry() & DRI::add_current_registry() : prepend Net::DRI::DRD:: to all registry module names not starting with a +
+= DRI::add_current_registry() : simplify
+= DRI::end() : returns 1, to make it easy to test if everything before was ok or not, if we are inside an eval {} and $dri->end() is the last operation in the block
+= DRD : make sure not to modify the content of optional ref hash with extra parameters, by creating a copy first
+= DRD::add_registry : the client id is now passed through the client_id key instead of the clid keys (later one still accepted as fallback)
+= DRD::raw_command() : new command to pass pure strings in the selected transport (for EPP, other protocols may need more work to pass objects instead of pure strings)
+= DRD::domain_renew(): removal of old API, only a ref hash is expected after the domain name, with all data on dates if needed
+= DRD::domain_check() : takes into account registry limit in case of multiple domains at once, as defined in each DRD module (currently value known for AFNIC, INFO, VNDS, please contribute if you know other values)
+= DRD::_verify_name_rules() + DRD::check_name() : allow full unicode domain names
+= DRD::{domain,host,contact}_is_mine() : slight change of output API, return undef if not enough information + let fatal errors propagate
+= DRD::verify_* + DRD/* : we always expect a $ndr (so that it synchronizes inside and outside API, and make less uneasy tests) + factorize in DRD common case of policy 'no transfer in less than 15 days'
+= DRD::domain_delete() : correctly implement case of pure_delete=0 and delete or rename subordinate hosts, rename is done if delete failed and a key "subordinate_rename" exists in extra hash whose value is used as base for new name
+= DRD + DRD/{AFNIC,BE,EURid,LU} : factorization directly in DRD of operations done by at least 2 DRDs (like trade), in order to compartimentalize things better in the future (see TODO)
+= DRD::nsgroup_*() : new methods to use instead of RemoteObject
+= DRD/ICANN : updates to latest registry agreements versions, and only check for create operations
+= DRD/ICANN::is_reserved_name() : better error messages
+= DRD/AFNIC : add IRIS DAS endpoint
+= DRD/OpenSRS : domain_is_mine using is_mine action (patch by Jeroen Koekkoek, applied with changes)
+= DRD/OpenSRS : update in tlds() (provided by Jimmy Bergman)
+= DRD/{ORG,INFO,MOBI,ASIA,AERO,AG,BZ,HN,ME,SC,VC} : contact_i18n=2 because registry allows INT only (bugreport by Michael McCallister)
+= DRD/NU : allow 1 year domain names
+= DRD/CentralNic : add gr.com in the list of tlds
+= DRD/INFO : use Protocol::EPP::Extensions::Afilias instead of bare EPP, to enable all Afilias extensions
+= DRD/EURid : switch to DAS version 2.0 + allow full unicode domain name
+= DRD/GL : .GL does not impose any time limits on transfers, the sub verify_duration_transfer has been deleted so the default procedure (no check) is used (contributed by Jørgen Thomsen)
+= DRD/CIRA : modify agreement_get to implement a work-around for non-conformant registry extension handling
+= DRD + DRD/* : remove {domain,host,contact}_multi methods & references to them + changes in related *.t files ===================================================== TODO
+= Data/Contact : in array context, always return a 2 element array for streets, even if only one ref array was given (for localized version), in which case, the second array element is explicitely undef
+= Data/StatusList : new virtual method is_grace()
+= Registry::add_profile() : simplification of test cases handling, automatically triggered if Test/More.pm is loaded, no need to have test= in profile name
+= Registry::try_restore_from_cache() : simplification by removing unnecessary hash copies, with abundant comments
+= Protocol::find_action_in_class() : new method to easily cross reference action calls (example: SecDNS in EURid/Domain)
+= Protocol::reaction() : call also parsing methods for object=message action=result, so that we do not need to make subclasses of Message just for that + various related changes in Protocol/EPP/Extensions/{SIDN,EURid,DNSBE}/Message
+= Protocol/OpenSRS/XCP/Domain : new is_mine action (patch by Jeroen Koekkoek, applied with changes)
+= Protocol/OpenSRS/XCP/Domain : new update action (patch by Jimmy Bergman, applied with changes) + related changes in Protocol/OpenSRS/XCP and DRD/OpenSRS
+= Protocol/OpenSRS/XCP/Domain : new send_authcode action + handling encoding_type attribute in sw_register + tld_data attribute (patch by Jimmy Bergman)
+= Protocol/OpenSRS/XCP/Connection : bugfix in UTF8 handling (contributed by Jimmy Bergman)
+= Protocol/{RRP,EPP}/Connection::transport_default() : TLSv1 used as default ssl_version, not touching ssl_cipher_list anymore here, as a more strict default is now in Net::DRI::Transport::Socket (suggested by Jørgen Thomsen)
+= Protocol/RRP : for modules listed in the "extensions" key during add_profile() call, all modules names are prepended with "Net::DRI::Protocol::RRP::Extensions::", except if they start with a +
+= Protocol/EPP : for modules listed in the "extensions" key during add_profile() call, all modules names are prepended with "Net::DRI::Protocol::EPP::Extensions::", except if they start with a +
+= Protocol/EPP/Util : change test on domain name, just do the XML syntax one, not the hostname one (to allow full unicode domain names like in .EU)
+= Protocol/EPP/Util::parse_node_value() : new method called by parse_node_result() to simplify value text content if possible, hence some changes in results of ResultStatus->get_extended_results()
+= Protocol/EPP/Message::result_is() : new method to test symbolic names + make use of it from various extension classes
+= Protocol/EPP/Core/Contact : slight change in parsing of street elements, when using Contact->street() the calling context (scalar or array) triggers distinct behaviors, see change in t/601vnds_epp
+= Protocol/EPP/Core/Domain : in result of info command, the list of subordinate hosts is now in information key name "subordinate_hosts" where it was called key "host" before
+= Protocol/EPP/Core/Status : implements is_grace() based on RFC3915 values
+= Protocol/EPP/core/Status::can_delete() : also take into account is_linked() and is_pending()
+= Protocol/EPP/Core/Status::can_renew() can_update() can_transfer() : also take into account is_pending()
+= Protocol/EPP/Extensions/SecDNS : support of RFC 5910 (secDNS-1.1) alongside current support of RFC 4310 (secDNS-1.0) with automated transparent switch based on extensions announced by server
+= Protocol/EPP/Extensions/GracePeriod : remove workaround for VeriSign RFC3915 breakage, since it has been fixed by registry
+= Protocol/EPP/Extensions/VeriSign : the NameStore extension is not loaded by default, local GracePeriod support does not break RFC3915 anymore
+= Protocol/EPP/Extensions/ASIA/IPR is now Protocol/EPP/Extensions/Afilias/IPR (rewritten from scratch) since it is used by both .ASIA and .ME with unknown differences (as seen in liberty-rtk-addon-0.5.1.tar.gz)
+= Protocol/EPP/Extensions/ASIA : the maintainer url is now in "maintainer_url" key instead of just "url"
+= Protocol/EPP/Extensions/MOBI/Domain : use the new Protocol/EPP/Extensions/Afilias/MaintainerUrl extension
+= Protocol/EPP/Extensions/NAME : loads VeriSign::IDNLanguage extension by default
+= Protocol/EPP/Extensions/{DNSBE,CentralNic,Afilias,ASIA,VeriSign,AFNIC} : loads SecDNS extension by default
+= Protocol/EPP/Extensions/EURid : loads EURid::IDN & SecDNS extensions by default
+= Protocol/EPP/Extensions/EURid/Domain : call SecDNS create action for transfer_request and trade_request
+= Protocol/EPP/Extensions/NO/Domain : allowing empty authinfo in case of transfers due to the complex and non-standard transfer procedure designed by NORID (contributed by Jørgen Thomsen)
+= Protocol/EPP/Extensions/NO/Domain : the delete domain command has been supplied with the deleteDate, the supplied date will be used for the deletefromdns and deletefromregistry parameters, when they have not been supplied (contributed by Jørgen Thomsen)
+= Protocol/EPP/Extensions/NO/Domain : the delete domain command parameters deletefromdns and deletefromregistry may now be supplied as DateTime objects, but textual representation may still be used (contributed by Jørgen Thomsen)
+= Protocol/EPP/Extensions/NO/Host : the contact of host objects may now be a contact set, a contact object or just a contact handle making contact parameters more consistent across the extension (contributed by Jørgen Thomsen)
+= Protocol/EPP/Extensions/NO/Host : the host_info() method now returns an arry for the host contact(s), so clients may need to be adapted
+= Protocol/EPP/Extensions/NO/Result : add information parsed also to message hence to result status (contributed by Jørgen Thomsen, with changes) + parse extension also during login reply
+= Protocol/EPP/Extensions/SE/Message : removed, only feature needed in it was retrofitted in Protocol/EPP/Extensions/SE/Extensions
+= Protocol/EPP/Extensions/VeriSign/NameStore : better handling of errors
+= Protocol/EPP/Extensions/CentralNic : loads VeriSign/Sync extension by default
+= Protocol/DAS : allow version 2.0
+= Protocol/DAS/Domain : parse "IDNA Domain" field
+= Protocol/IRIS/DCHK/Domain : various changes to correctly handle .FR IRIS server
+= Protocol/IRIS/LWZ : supports message deflation when sending (either forced or conditionnaly based on payload size, through options in DRD module)
+= Protocol/Whois/Domain/EU : parse "IDNA Domain" field
+= Protocol/ResultStatus : accessors (is_success() get_extended_results() get_data() get_data_collection() as_string()) are now "global" taking into account all linked objects + local (= not walking through all linked object) versions available through local_* methods
+= Protocol/ResultStatus : get rid of GENERIC_SUCCESS/GENERIC_ERROR (local EPP "extensions") and use instead pure EPP COMMAND_SUCCESSFUL/COMMAND_FAILED + define all symbolic names from EPP RFC + rewrite is_pending/is_closing
+= Protocol/ResultStatus : print_full removed, just call print with a true value to have all data, otherwise only summary
+= Protocol/ResultStatus : remove new_generic_success+new_generic_error & enhance new_success
+= Protocol/ResultStatus::is() : can be called as a class method, useful from EPP/Message
+= Transport/Socket : change of default ssl_cipher_list, now stronger by default
+= Logging/Files::output() : test the fh existence before using it
+= Logging/Files::generate_output() : change format of filename, add the type value
+= BaseClass : test to prevent attempts of logging, when it is not possible (contributed by Jørgen Thomsen)
+= Exception : better error message for non implemented methods, method_not_implemented() replacing err_method_not_implemented()
+= Registry::add_profile : catch Transport $rc if there, in order to return registry data given as result of login (from suggestion by *******************)
+= various spelling mistakes corrected in documentation/comments, from Debian package patch by Gregor Herrmann
+= t/* : various simplifications, and consolidations, relying more on DRD->transport_protocol_default instead of hardcoding specific extensions classes in tests
+= t/* : change of profile names to remove test= not needed anymore after changes in Registry::add_profile()
+= t/629asia_epp.t : added 2 IPR tests
+= t/604vnds_epp_secdns.t : added 15 tests related to secDNS-1.1
+= t/633norid_epp.t + eg/epp_client_no.pl : adjusted to the host change
+= following Perl Best Practices, convert UNIVERSAL::can(X,Y) into eval { X->can(Y); }
+= following Perl Best Practices, convert UNIVERSAL::isa(X,Y) into eval { X->isa(Y); } capture that into Net::DRI::Util::is_class()
+= following Perl Best Practices, after eval {} do not test $@ to see if there was an error
+- Shell : correct passing of id during add_registry, the parameter is now client_id but previous versions of clID/clid are accepted
+- eg/* + documentation : create_status() does not exist anymore, the correct call is local_object('status') (bugreport by Michael McCallister)
+- DRD::domain_create() : bugfix for hosts creations when not using pure_create=1 (bugreport by Michael McCallister)
+- DRD::domain_transfer() : better test on duration (bugreport by Michael McCallister)
+- DRD::{domain,host,contact}_exist() : make sure to forward $rd to *_check() only if defined otherwise since dealing with list of objects, we may get an undef, which is later a fatal error in *_check()
+- DRD/ICANN::is_reserved_name() : do not create spurious warnings when $op is not defined, which happens when verify_name_domain called from outside (from bugreport by Michael McCallister)
+- DRD/ICANN::is_reserved_name() : correct handling of exceptions in one/two-characters domain names cases
+- DRD/CIRA : missing periods() method (bugreport by Scott Alexander)
+- DRD/Nominet::profile_types() : also show epp_nominet & epp_standard since they are known by transport_protocol_default()
+- DRD/IT : docfix, remove the sentence about being only a stub with no extensions implemented, since it is not true (from question by Andreas Wittkemper)
+- Data/Contact/NO : wrong field name displayed in case of errors (contributed by Jørgen Thomsen)
+- Data/Contact/AFNIC : use Unicode code points for characters in regex
+- Protocol/EPP/Message : <qDate> and <msg> are optional in <msgQ>, make sure not to feed undefined data to DateTime (bugreport by Michael McCallister)
+- Protocol/EPP/Extensions/CIRA/Domain : correct formatting of transfer requests (bugreport by Scott Alexander)
+- Protocol/EPP/Extensions/CIRA/Contact : create/update for whoisdisplay attribute
+- Protocol/EPP/Extensions/IT/Notifications : correct API use of retrieve_ext everywhere since it needs $po as first param (from bugreport by David Lipkowski)
+- Protocol/EPP/Connection : correct parsing of cases like lang='en-US' instead of just lang='en' in find_code (bugreport by Ogi Sigit)
+
 0.96 2010-03-25
 
 + DRD/SIDN & associated modules : .NL EPP full support (work sponsored by SIDN)
 + DRD/CIRA & associated modules : .CA EPP full support (work sponsored by CIRA)
 + .IT EPP extensions contributed by Alessandro Zummo, with some changes
-+ Logging/Syslog : contributed by J�rgen Thomsen
-+ .GL EPP support contributed by J�rgen Thomsen
++ Logging/Syslog : contributed by Jørgen Thomsen
++ .GL EPP support contributed by Jørgen Thomsen
 + Protocol/EPP/Util : some utility functions previously in Protocol/EPP/Message Protocol/EPP Protocol/EPP/Core/{Contact,Domain}, but needed in other places (various EPP extensions that has been modified to use this new module)
 + XML::LibXML version 1.61 is needed for getChildrenByTagName('*') (reported by Cipriano Groenendal)
 = Data/Contact/AFNIC : relax test on country, as TLD is opening to French abroad
@@ -15,7 +147,7 @@
 = .NO : Updated the test client eg/epp_client_no.pl to support setting of facets for all operations. The client has been used for testing and verification of the implementation.
 = .NO : Added some tests to t/633norid_epp.t to verify some operations without and with facets. Added module test for domain_withdraw.
 = .NO : Improved parsing of various service messages.
-= .SE various updates (contributed by J�rgen Thomsen, with some changes)
+= .SE various updates (contributed by Jørgen Thomsen, with some changes)
 = Protocol/ResultStatus::get_extended_results() : change of output API, now gets back an array of ref hashes (previously: array of scalars)
 = Protocol/EPP/Message : new add_to_extra_info() internal method
 = Protocol/EPP/Message : changing the API of data parsed out of value/extValue nodes + better parse of extValue nodes in EPP
@@ -26,19 +158,19 @@
 = Protocol/EPP/Extensions/SE : added SecDNS as default extension (from Andreas Wittkemper)
 = Protocol/IRIS/LWZ : removing fallback to RFC1950 as Denic server should be fixed by now (to use RFC1951 as mandatory by the LWZ RFC)
 = Protocol/ResultStatus::as_string() : changed the output format
-= DRD/{SE,SIDN} : various updates regarding durations (contributed by J�rgen Thomsen)
+= DRD/{SE,SIDN} : various updates regarding durations (contributed by Jørgen Thomsen)
 = DRD/BE : add proper methods for transfer_quarantine,trade,reactivate,undelete (reported by Andreas Wittkemper)
 = DRD/ICANN : add .CAT for allowed 1 and 2 characters domain names
 = Protocol/EPP/Extensions/SWITCH : add the SecDNS extension
 = DRD + DRD/* : check_name() verify_name_{host,domain}() enforce_{domain,host}_name_constraints() _verify_name_rules() : return error string instead of error code for better error tracking
 = DRD/NO : remove verify_name_host() the superclass version is the same
 = DRD/{AT,IENUMAT} : verify_name_domain() converted to new framework
-= Logging framework : internal changes for simplicity and less context passing, only external change: key "driver" used in header format is now named "transport" (prompted by bugreport from J�rgen Thomse regarding Transport->ping() missing logging context)
+= Logging framework : internal changes for simplicity and less context passing, only external change: key "driver" used in header format is now named "transport" (prompted by bugreport from Jørgen Thomse regarding Transport->ping() missing logging context)
 = Transport : login/logout exchanges use the same "namespace" for the TRID than the relevant profil, instead of the transport name
 = Transport : added some more transport logging in all subclasses (besides Socket & HTTP that had it already)
 = Transport/Socket : remove use of eof() in _get as introduced in previous version as it seems to only create problems
 = Protocol/EPP/Extensions/PL/Connection : now renamed to Protocol/EPP/Extensions/HTTP as it is also used by .IT
-- DRD domain_create : bugfix for domain_check when pure_create!=1 (reported by Gerben Versluis)
+- DRD::domain_create() : bugfix for domain_check when pure_create!=1 (reported by Gerben Versluis)
 - Protocol/EPP/Extensions/Nominet/Host : update() bugfix (contributed by Marc Winoto)
 - Protocol/EPP/Extensions/{AFNIC,ARNES,DNSBE,EURid,PL}/Domain,Protocol/EPP/Extensions/{FCCN,Nominet}/Contact,Protocol/EPP/Extensions/Nominet/Account,Protocol/EPP/Extensions,CAT/DefensiveRegistration : correct test of contact class
 - Protocol/EPP/Connection find_code : correct (and better) regex when some extension is present (bugfix by Michael Braunoeder from NIC.AT, applied with changes)
@@ -479,7 +611,7 @@ Detailed changes:
 + EPP & RRP : for all actions returning information, a key action is created whose value is the name of the action that has triggered this reply
             (see 600vnds_rrp.t 601vnds_epp.t 605vnds_epp_nsgroup.t 613cat_epp.t)
 = EPP/Core/Contact : correctly handle case of contact:id being chosen by registry during contact:create (see 601vnds_epp.t)
-= EPP : uses <hello> instead of <poll> as keepalive message (explicitely allowed in draft-hollenbeck-epp-rfc3730bis-02.txt)
+= EPP : uses <hello> instead of <poll> as keepalive message (explicitly allowed in draft-hollenbeck-epp-rfc3730bis-02.txt)
 = EPP/Extensions/CAT/DefensiveRegistration : better handling of XML namespace
 = Transport : creation time is available through time_creation() like time_open() and time_used()
 - Transport : correct month & minutes in logging (bugfix by Rony Meyer & Christian Kratzer)
@@ -578,7 +710,7 @@ Detailed changes:
    (reference, code, crDate, application_status, contact, ns, docsReceivedDate, adr)
 + Protocol/Resultatus : extra information from registry (error messages) is available with info()
 + EPP/Extensions/EURid : we parse eurid:msg for extra information, especially useful if errors
-- EPP/Extensions/EURid/Sunrise : invalid call for nsgroup (bug found & fixed by J�rgen Thomsen)
+- EPP/Extensions/EURid/Sunrise : invalid call for nsgroup (bug found & fixed by Jørgen Thomsen)
 = Data/Hosts has 2 significative changes : you can use get_details with a name and
   you can add a nameserver already in the list, in which case the new IP addresses are added with existing
   ones (without duplicates)
@@ -652,7 +784,7 @@ Detailed changes:
 + New protocol: Gandi Web Site (domain update only)
 + New protocol: AFNIC web services (domain check only)
 + New way of using profiles in Net::DRI::Registry : an auto switch functionnality is provided
-    so that the calling app does not have to call target() explicitely over and over
+    so that the calling app does not have to call target() explicitly over and over
     (see README for details)
 - BUGFIX for RRP : order of elements is now exactly as specified by standard
 - BUGFIX for Net::DRI::DRD in host_is_mine: parameters (warning not triggered in some perls)

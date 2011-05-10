@@ -11,7 +11,7 @@ unless ($ENV{TEST_ADAMSNAMES_WS_LIVE})
  plan tests => 4;
 }
 
-eval
+my $ok=eval
 {
  my $dri=Net::DRI->new(10);
  $dri->add_registry('AdamsNames');
@@ -21,8 +21,10 @@ eval
  is($rc->get_data('exist'),1,'domain_info(adamsnames.tc) get_data(exist)');
  is($rc->get_data('crDate').'','1998-08-28T00:00:00','domain_info(adamsnames.tc) get_data(crDate)');
  is($rc->get_data('roid'),'ada4404.tc','domain_info(adamsnames.tc) get_data(roid)');
+
+ $dri->end();
 };
 
-diag('Caught unexpected exception: '.(ref($@)? $@->as_string() : $@)) if $@;
+diag('Caught unexpected exception: '.(ref($@)? $@->as_string() : $@)) if ! $ok;
 
 exit 0;

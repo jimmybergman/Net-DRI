@@ -1,6 +1,6 @@
 ## Domain Registry Interface, BookMyName Registry Driver
 ##
-## Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2008,2009,2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 #########################################################################################
 
 package Net::DRI::DRD::BookMyName;
@@ -21,8 +18,6 @@ use strict;
 use warnings;
 
 use base qw/Net::DRI::DRD/;
-
-our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -56,7 +51,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2008,2009,2011 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -91,14 +86,6 @@ sub domain_operation_needs_is_mine
 {
  my ($self,$ndr,$domain,$op)=@_;
  return;
-}
-
-sub account_list_domains
-{
- my ($self,$ndr)=@_;
- my $rc=$ndr->try_restore_from_cache('account','domains','list');
- if (! defined $rc) { $rc=$ndr->process('account','list_domains'); }
- return $rc;
 }
 
 ####################################################################################################

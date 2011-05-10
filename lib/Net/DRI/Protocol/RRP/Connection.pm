@@ -1,6 +1,6 @@
 ## Domain Registry Interface, RRP Connection handling
 ##
-## Copyright (c) 2005,2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005,2007-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,21 +10,17 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::RRP::Connection;
 
 use strict;
+use warnings;
 
 use Net::DRI::Protocol::RRP::Message;
 use Net::DRI::Protocol::ResultStatus;
 use Net::DRI::Data::Raw;
 use Net::DRI::Util;
-
-our $VERSION=do { my @r=(q$Revision: 1.17 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -54,7 +50,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005,2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2005,2007-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -151,7 +147,7 @@ sub parse_logout
   return Net::DRI::Protocol::ResultStatus->new_error($eppcode,($msg || 'Logout failed').' ('.($code || '?').')','en');
  } else
  {
-  return Net::DRI::Protocol::ResultStatus->new_success('COMMAND_SUCCESSFUL_END ',$msg || 'Logout OK','en');
+  return Net::DRI::Protocol::ResultStatus->new_success('COMMAND_SUCCESSFUL_END',$msg || 'Logout OK','en');
  }
 }
 
@@ -169,7 +165,7 @@ sub find_code
 sub transport_default
 {
  my ($self,$tname)=@_;
- return (defer => 0, socktype => 'ssl', ssl_cipher_list => 'TLSv1', remote_port => 648);
+ return (defer => 0, socktype => 'ssl', ssl_version => 'TLSv1', remote_port => 648);
 }
 
 ####################################################################################################

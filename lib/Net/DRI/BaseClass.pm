@@ -1,6 +1,6 @@
 ## Domain Registry Interface, Superclass of various classes for Net::DRI
 ##
-## Copyright (c) 2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2009-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::BaseClass;
@@ -21,8 +18,6 @@ use strict;
 use warnings;
 
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.1 $=~/\d+/gxm); sprintf '%d'.('.%02d' x $#r), @r; };
 
 ####################################################################################################
 ## CLASS METHODS
@@ -34,7 +29,7 @@ sub make_exception_if_not_implemented
  foreach my $name (@methods)
  {
   no strict 'refs'; ## no critic (ProhibitNoStrict)
-  *{"${class}::${name}"}=sub { my $self=shift; Net::DRI::Exception->die(1,'internal',1,sprintf('Method %s not implemented in %s, please report.',$name,ref $self)); };
+  *{"${class}::${name}"}=sub { my $self=shift; Net::DRI::Exception->die(1,'internal',1,sprintf('Method %s not implemented in %s, please report.',$name,$class)); };
  }
  return;
 }
@@ -65,7 +60,7 @@ sub generate_trid
 }
 
 sub log_setup_channel { my ($self,@r)=@_; $self->logging()->setup_channel(@r); }
-sub log_output        { my ($self,@r)=@_; $self->logging()->output(@r);        }
+sub log_output        { my ($self,@r)=@_; $self->logging()->output(@r) if $self->logging(); }
 
 ####################################################################################################
 1;
@@ -77,10 +72,6 @@ __END__
 =head1 NAME
 
 Net::DRI::BaseClass - Superclass of various classes inside Net::DRI
-
-=head1 VERSION
-
-This documentation refers to Net::DRI::BaseClass version 1.1
 
 =head1 SYNOPSIS
 
@@ -148,7 +139,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+Copyright (c) 2009-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

@@ -10,7 +10,7 @@ use Net::DRI;
 
 my ($rc,$dri);
 
-eval {
+my $ok=eval {
 
 $dri=Net::DRI->new(10);
 $dri->add_registry('EURid',{});
@@ -49,15 +49,16 @@ das('netdri-test-doestnotexist.com');
 $dri->end();
 };
 
-if ($@)
+if (! $ok)
 { 
+ my $err=$@;
  print "\n\nAn EXCEPTION happened !\n";
- if (ref($@))
+ if (ref $err)
  {
-  $@->print();
+  $err->print();
  } else
  {
-  print($@);
+  print $err;
  }
 } else
 {

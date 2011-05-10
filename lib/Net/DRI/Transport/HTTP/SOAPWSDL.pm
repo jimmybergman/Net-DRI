@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Transport::HTTP::SOAPWSDL;
@@ -26,8 +23,6 @@ use Net::DRI::Exception;
 use Net::DRI::Data::Raw;
 use Net::DRI::Util;
 use SOAP::WSDL;
-
-our $VERSION=do { my @r=(q$Revision: 1.5 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -91,7 +86,7 @@ sub new
  my $self=$class->SUPER::new($ctx,\%opts); ## We are now officially a Net::DRI::Transport instance
  $self->is_sync(1);
  $self->name('soapwsdl');
- $self->version($VERSION);
+ $self->version('0.1');
 
  $t{has_login}=(exists($opts{has_login}) && defined($opts{has_login}))? $opts{has_login} : 0;
  $t{has_logout}=(exists($opts{has_logout}) && defined($opts{has_logout}))? $opts{has_logout} : 0;
@@ -163,7 +158,7 @@ sub init
  $soap->wsdlinit();
  $soap->servicename($self->{transport}->{servicename});
  $soap->portname($self->{transport}->{portname});
- $soap->get_client()->get_transport()->agent(sprintf('Net::DRI/%s Net::DRI::Transport::HTTP::SOAPWSDL/%s ',$Net::DRI::VERSION,$VERSION).$soap->get_client()->get_transport()->agent());
+ $soap->get_client()->get_transport()->agent(sprintf('Net::DRI/%s ',$Net::DRI::VERSION).$soap->get_client()->get_transport()->agent());
  $self->soap($soap);
 }
 

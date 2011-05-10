@@ -1,6 +1,6 @@
 ## Domain Registry Interface, OVH Web Services Message
 ##
-## Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2008-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,13 +10,11 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::OVH::WS::Message;
 
+use utf8;
 use strict;
 use warnings;
 
@@ -25,8 +23,6 @@ use Net::DRI::Protocol::ResultStatus;
 
 use base qw(Class::Accessor::Chained::Fast Net::DRI::Protocol::Message);
 __PACKAGE__->mk_accessors(qw(version method params result errcode errmsg));
-
-our $VERSION=do { my @r=(q$Revision: 1.5 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -56,7 +52,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2008-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -121,25 +117,25 @@ sub parse
 my %CODES=( 	201 => 2003,# parametre(s) manquant(s)
 		202 => 2005,# parametre(s) invalide(s)
 		203 => 2306,# parametres incompatibles
-		210 => 2306,# donnée inconnue
-		211 => 2306,# donnée deja existante
-		212 => 2308,# l'action n'a affectée aucune donnée
-		213 => 2306,# donnée en doublon
-		214 => 2308,# l'action a affectée trop de données
-		220 => 2304,# donnée en cours de traitement
+		210 => 2306,# donnÃ©e inconnue
+		211 => 2306,# donnÃ©e deja existante
+		212 => 2308,# l'action n'a affectÃ©e aucune donnÃ©e
+		213 => 2306,# donnÃ©e en doublon
+		214 => 2308,# l'action a affectÃ©e trop de donnÃ©es
+		220 => 2304,# donnÃ©e en cours de traitement
 		230 => 2101,# fonction inactive
 		240 => 2304,# action en cours de traitement
 		241 => 2308,# action impossible
-		250 => 2101,# fonction non implémenté
-		251 => 2000,# fonction obsolète
+		250 => 2101,# fonction non implÃ©mentÃ©
+		251 => 2000,# fonction obsolÃ¨te
 		252 => 2308,# fonction innaccessible
 		260 => 2400,# erreur, pas d'info supplementaire
-		266 => 2400,# toutes les fonctions du merge ont échoué: pas de resultat
-		267 => 2400,# certaines fonctions ont échoués: l'action devra etre entreprise de nouveau plus tard
+		266 => 2400,# toutes les fonctions du merge ont Ã©chouÃ©: pas de resultat
+		267 => 2400,# certaines fonctions ont Ã©chouÃ©s: l'action devra etre entreprise de nouveau plus tard
 		280 => 2400,# erreur interne
-		281 => 2400,# traitement échoué
+		281 => 2400,# traitement Ã©chouÃ©
 		299 => 2005,# parametres excedentaires
-		301 => 2200,# session expirée ## should trigger a new login
+		301 => 2200,# session expirÃ©e ## should trigger a new login
 		302 => 2200,# session inexistante ## should trigger a new login
 		303 => 2200,# session corrompue ## should trigger a new login
 		304 => 2502,# trop de sessions actives ## should trigger a call to ClearNicSessions and a retry
@@ -148,21 +144,21 @@ my %CODES=( 	201 => 2003,# parametre(s) manquant(s)
 		401 => 2201,# pas de droit d'acces
 		402 => 2201,# droits insuffisants
 		403 => 2200,# session en lecture seule
-		451 => 2400,# quota dépassé
-		461 => 2400,# hacké
-		501 => 2400,# probleme connexion base de données
-		502 => 2400,# donnée erronée au sein du serveur
+		451 => 2400,# quota dÃ©passÃ©
+		461 => 2400,# hackÃ©
+		501 => 2400,# probleme connexion base de donnÃ©es
+		502 => 2400,# donnÃ©e erronÃ©e au sein du serveur
 		503 => 2400,# probleme connexion
 		504 => 2400,# probleme connexion dns
 		505 => 2400,# probleme interne au serveur
 		506 => 2400,# parametre interne invalide
-		510 => 2308,# données introuvable
+		510 => 2308,# donnÃ©es introuvable
 		601 => 2400,# parametres mysql corrompus
 		701 => 2304,# domaine dans un etat incompatible
-		702 => 2307,# fonction non supportée par le domaine (ex:multidomain sur un gp)
-		703 => 2304,# objet dans un état incompatible
-		704 => 2305,# un processus bloquant interdit la création de l'objet
-		705 => 2002,# plus de données a traité.
+		702 => 2307,# fonction non supportÃ©e par le domaine (ex:multidomain sur un gp)
+		703 => 2304,# objet dans un Ã©tat incompatible
+		704 => 2305,# un processus bloquant interdit la crÃ©ation de l'objet
+		705 => 2002,# plus de donnÃ©es a traitÃ©.
 		706 => 2400,# impossible d'obtenir le lock
 		777 => 2400,# pas de numero d'erreur donne
 	);
@@ -182,7 +178,7 @@ sub result_status
   $ok=1;
  }
 
- my $eppcode=(defined($code) && exists($CODES{$code}))? $CODES{$code} : 'GENERIC_ERROR';
+ my $eppcode=(defined $code && exists $CODES{$code})? $CODES{$code} : 'COMMAND_FAILED';
  return Net::DRI::Protocol::ResultStatus->new('ovh_ws',$code,$ok? 'COMMAND_SUCCESSFUL' : $eppcode,$ok,$msg,'en');
 }
 

@@ -1,6 +1,6 @@
-## Domain Registry Interface, SYSLOG Logging operations for Net::DRI 
+## Domain Registry Interface, SYSLOG Logging operations for Net::DRI
 ##
-## Copyright (c) 2009 Jørgen Thomsen <netdri@jth.net>. All rights reserved. 
+## Copyright (c) 2009 JÃ¸rgen Thomsen <netdri@jth.net>. All rights reserved
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,21 +10,17 @@
 ## (at your option) any later version. 
 ##
 ## See the LICENSE file that comes with this distribution for more details. 
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Logging::Syslog;
 
+use utf8;
 use strict;
 use warnings;
 
 use base qw/Net::DRI::Logging/;
 
 use Sys::Syslog qw(:DEFAULT);
-
-our $VERSION=do { my @r=(q$Revision: 1.1 $=~/\d+/gxm); sprintf '%d'.('.%02d' x $#r), @r; };
 
 ####################################################################################################
 
@@ -81,12 +77,6 @@ __END__
 =head1 NAME
 
 Net::DRI::Logging::Syslog - SYSLOG Logging Operations for Net::DRI
-
-=head1 VERSION
-
-This documentation refers to Net::DRI::Logging::Syslog version 1.01
-
-Read e.g. with pod2text Net/DRI/Logging/Syslog.pm|less
 
 =head1 SYNOPSIS
 
@@ -182,11 +172,11 @@ E<lt>http://www.dotandco.com/services/software/Net-DRI/E<gt>
 
 =head1 AUTHOR
 
-Jørgen Thomsen, E<lt>netdri@jth.netE<gt>
+JÃ¸rgen Thomsen, E<lt>netdri@jth.netE<gt>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2009 Jørgen Thomsen <netdri@jth.net>. All rights reserved.
+Copyright (c) 2009 JÃ¸rgen Thomsen <netdri@jth.net>. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the Free

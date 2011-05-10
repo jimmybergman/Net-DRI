@@ -1,6 +1,6 @@
 ## Domain Registry Interface, OpenSRS Registry Driver
 ##
-## Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2008-2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::DRD::OpenSRS;
@@ -24,8 +21,6 @@ use base qw/Net::DRI::DRD/;
 
 use DateTime::Duration;
 use Net::DRI::Util;
-
-our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -59,7 +54,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2008-2011 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -121,7 +116,7 @@ sub domain_info
   ## First grab a cookie, if needed
   unless (Net::DRI::Util::has_key($rd,'cookie'))
   {
-   $rd={} unless defined($rd); ## will fail in set_cookie because other params needed, but at least this will be ok for next line ; otherwise do true checks of value needed
+   $rd=Net::DRI::Util::create_params('domain_info',$rd); ## will fail in set_cookie because other params needed, but at least this will be ok for next line ; otherwise do true checks of value needed
    $rd->{domain}=$domain;
    $rc=$ndr->process('session','set_cookie',[$rd]);
    return $rc unless $rc->is_success();
@@ -141,7 +136,7 @@ sub domain_update
  ## First grab a cookie, if needed
  unless (Net::DRI::Util::has_key($rd,'cookie'))
  {
-  $rd={} unless defined($rd); ## will fail in set_cookie because other params needed, but at least this will be ok for next line ; otherwise do true checks of value needed
+  $rd=Net::DRI::Util::create_params('domain_update',$rd); ## will fail in set_cookie because other params needed, but at least this will be ok for next line ; otherwise do true checks of value needed
   $rd->{domain}=$domain;
   my $rc=$ndr->process('session','set_cookie',[$rd]);
   return $rc unless $rc->is_success();
@@ -152,68 +147,22 @@ sub domain_update
  return $rc;
 }
 
+sub domain_is_mine
+{
+ my ($self,$ndr,$domain,$rd)=@_;
+ my $clid=$self->info('clid');
+ return unless defined $clid;
+ my $rc=$ndr->process('domain','is_mine',[$domain,$rd]);
+ return unless $rc->is_success();
+ my $mine=$ndr->get_info('mine');
+ return unless defined $mine;
+ return $mine;
+}
+
 sub domain_send_authcode
 {
  my ($self,$ndr,$domain)=@_;
  my $rc=$ndr->process('domain','send_authcode',[$domain]);
- return $rc;
-}
-
-sub domain_name_suggest
-{
- my ($self,$ndr,$domain,$rd)=@_;
- my $rc=$ndr->process('domain','name_suggest',[$domain,$rd]);
- return $rc;
-}
-
-sub host_create
-{
- my ($self,$ndr,$ns,$rd)=@_;
-
- ## First grab a cookie, if needed
- unless (Net::DRI::Util::has_key($rd,'cookie'))
- {
-  $rd={} unless defined($rd); ## will fail in set_cookie because other params needed, but at least this will be ok for next line ; otherwise do true checks of value needed
-  my $rc=$ndr->process('session','set_cookie',[$rd]);
-  return $rc unless $rc->is_success();
-  $rd->{cookie}=$ndr->get_info('value','session','cookie'); ## Store cookie somewhere (taking into account date of expiry or some TTLs) ?
- }
- ## Now do the real command 
- my $rc=$ndr->process('host','create',[$ns,$rd]);
- return $rc;
-}
-
-sub host_update
-{
- my ($self,$ndr,$ns,$changes,$rd)=@_;
-
- ## First grab a cookie, if needed
- unless (Net::DRI::Util::has_key($rd,'cookie'))
- {
-  $rd={} unless defined($rd); ## will fail in set_cookie because other params needed, but at least this will be ok for next line ; otherwise do true checks of value needed
-  my $rc=$ndr->process('session','set_cookie',[$rd]);
-  return $rc unless $rc->is_success();
-  $rd->{cookie}=$ndr->get_info('value','session','cookie'); ## Store cookie somewhere (taking into account date of expiry or some TTLs) ?
- }
- ## Now do the real command 
- my $rc=$ndr->process('host','update',[$ns,$changes,$rd]);
- return $rc;
-}
-
-sub host_delete
-{
- my ($self,$ndr,$ns,$rd)=@_;
-
- ## First grab a cookie, if needed
- unless (Net::DRI::Util::has_key($rd,'cookie'))
- {
-  $rd={} unless defined($rd); ## will fail in set_cookie because other params needed, but at least this will be ok for next line ; otherwise do true checks of value needed
-  my $rc=$ndr->process('session','set_cookie',[$rd]);
-  return $rc unless $rc->is_success();
-  $rd->{cookie}=$ndr->get_info('value','session','cookie'); ## Store cookie somewhere (taking into account date of expiry or some TTLs) ?
- }
- ## Now do the real command 
- my $rc=$ndr->process('host','delete',[$ns,$rd]);
  return $rc;
 }
 

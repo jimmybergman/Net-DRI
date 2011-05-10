@@ -1,6 +1,7 @@
 ## Domain Registry Interface, .PRO domain extensions
 ##
 ## Copyright (c) 2008 Tonnerre Lombard <tonnerre.lombard@sygroup.ch>.
+##           (c) 2010 Patrick Mevzek <netdri@dotandco.com>.
 ##                    All rights reserved.
 ##
 ## This file is part of Net::DRI
@@ -11,19 +12,14 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::PRO::Domain;
 
 use strict;
+use warnings;
 
 use Net::DRI::Util;
-use DateTime::Format::ISO8601;
-
-our $VERSION=do { my @r = (q$Revision: 1.1 $ =~ /\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -57,6 +53,7 @@ E<lt>http://www.hexonet.net/E<gt>.
 =head1 COPYRIGHT
 
 Copyright (c) 2008 Tonnerre Lombard <tonnerre.lombard@sygroup.ch>.
+          (c) 2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -102,7 +99,7 @@ sub add_pro_extinfo
  push(@prodata, ['rpro:tradeMarkJurisdiction', $ph->{tmjurisdiction}])
 	if (exists($ph->{tmjurisdiction}));
  push(@prodata, ['rpro:tradeMarkDate', $ph->{tmdate}->strftime('%Y-%m-%dT%H:%M:%S.%1NZ')])
-	if (exists($ph->{tmdate}) && UNIVERSAL::isa($ph->{tmdate}, 'DateTime'));
+	if (exists($ph->{tmdate}) && Net::DRI::Util::is_class($ph->{tmdate}, 'DateTime'));
  push(@prodata, ['rpro:tradeMarkNumber', int($ph->{tmnumber})])
 	if (exists($ph->{tmnumber}) && int($ph->{tmnumber}));
 
@@ -137,7 +134,6 @@ sub parse
  my $c;
 
  return unless ($infdata);
- my $pd = DateTime::Format::ISO8601->new();
 
  $c = $infdata->getFirstChild();
 
@@ -175,7 +171,7 @@ sub parse
 			}
 			elsif ($totag eq 'tradeMarkDate')
 			{
-				$pro->{tmdate} = $pd->parse_datetime(
+				$pro->{tmdate} = $po->parse_iso8601(
 					$to->getFirstChild()->getData());
 			}
 			elsif ($totag eq 'tradeMarkNumber')

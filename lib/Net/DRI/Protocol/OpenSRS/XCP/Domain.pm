@@ -1,6 +1,6 @@
 ## Domain Registry Interface, OpenSRS XCP Domain commands
 ##
-## Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2008-2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::OpenSRS::XCP::Domain;
@@ -22,8 +19,6 @@ use warnings;
 
 use Net::DRI::Exception;
 use Net::DRI::Util;
-
-our $VERSION=do { my @r=(q$Revision: 1.2 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -53,7 +48,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2008-2011 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -79,9 +74,9 @@ sub register_commands
           transfer_request => [ \&transfer_request, \&transfer_request_parse ],
           transfer_query => [ \&transfer_query, \&transfer_query_parse ],
           transfer_cancel => [ \&transfer_cancel, \&transfer_cancel_parse ],
-          update => [ \&update ],
+          is_mine => [\&is_mine, \&is_mine_parse ],
+          update => [\&update, undef],
           send_authcode => [ \&send_authcode ],
-          name_suggest => [ \&name_suggest, \&name_suggest_parse ],
          );
 
  return { 'domain' => \%tmp };
@@ -291,59 +286,36 @@ sub update
  my $nsset=$todo->set('ns');
  my $contactset=$todo->set('contact');
 
- my $lockstate = undef;
- my $statusadd = $todo->add('status');
- $lockstate = 1 if Net::DRI::Util::isa_statuslist($statusadd) && !$statusadd->can_transfer();
- my $statusdel=$todo->del('status');
- $lockstate = 0 if Net::DRI::Util::isa_statuslist($statusdel) && !$statusdel->can_transfer();
-
- if (defined($nsset))
+ if (defined $nsset)
  {
   Net::DRI::Exception::usererr_invalid_parameters('ns changes for set must be a Net::DRI::Data::Hosts object') unless Net::DRI::Util::isa_hosts($nsset);
-  Net::DRI::Exception::usererr_invalid_parameters('change of nameservers, contacts and lock state is supported, but not in the same operation') if defined($contactset) || defined($lockstate);
+  Net::DRI::Exception::usererr_invalid_parameters('change of nameservers and contacts is not supported in the same operation') if defined $contactset;
   Net::DRI::Exception::usererr_insufficient_parameters('at least 2 nameservers are mandatory') unless ($nsset->count()>=2);
 
   build_msg_cookie($msg,'advanced_update_nameservers',$rd->{cookie},$rd->{registrant_ip});
-  $attr->{op_type} = "assign";
-
-  my $nslist = [];
-  for (my $i = 1; $i <= $nsset->count(); $i++) { # Net:DRI name server list starts at 1.
-   push @$nslist, scalar($nsset->get_details($i));
-  }
-  $attr->{assign_ns} = $nslist;
+  $attr->{op_type}='assign';
+  $attr->{assign_ns}=[ $nsset->get_names() ];
  }
- elsif (defined($contactset))
+ else 
  {
+  Net::DRI::Exception::usererr_invalid_parameters('contact changes for set must be a Net::DRI::Data::ContactSet') unless defined($contactset) && Net::DRI::Util::isa_contactset($contactset);
+
   build_msg_cookie($msg,'update_contacts',$rd->{cookie},$rd->{registrant_ip});
-
-  Net::DRI::Exception::usererr_invalid_parameters('contact changes for set must be a Net::DRI::Data::ContactSet') unless Net::DRI::Util::isa_contactset($contactset);
-  Net::DRI::Exception::usererr_invalid_parameters('change of nameservers, contacts and lock state is supported, but not in the same operation') if defined($lockstate);
-
   my %contact_set = ();
   my $types = [];
-  CONTACT_TYPE: foreach my $t (qw/registrant admin billing tech/)
+  foreach my $t (qw/registrant admin billing tech/)
   {
    my @t=$contactset->get($t);
-   next CONTACT_TYPE unless @t==1;
-   my $co=$contactset->get($t);
-   next CONTACT_TYPE unless Net::DRI::Util::isa_contact($co);
+   next unless @t==1;
+   my $co=$t[0];
+   next unless Net::DRI::Util::isa_contact($co);
    $co->validate();
-   my $registry_type = $t eq "registrant" ? "owner" : $t;
-   $contact_set{$registry_type} = add_contact_info($msg,$co);
+   my $registry_type = $t eq 'registrant' ? 'owner' : $t;
+   $contact_set{$registry_type}=add_contact_info($msg,$co);
    push @$types, $registry_type;
   }
   $attr->{contact_set} = \%contact_set;
   $attr->{types} = $types;
- }
- elsif (defined($lockstate))
- {
-  build_msg_cookie($msg,'modify',$rd->{cookie},$rd->{registrant_ip});
-
-  $attr->{affect_domains} = 0;
-  $attr->{data} = "status";
-  $attr->{lock_state} = $lockstate;
- } else {
-  Net::DRI::Exception::usererr_invalid_parameters('only change of nameservers, contacts and lock state is supported');
  }
 }
 
@@ -568,6 +540,38 @@ sub transfer_cancel_parse
  # This response has no attributes to capture
 }
 
+sub is_mine
+{
+ my ($xcp,$domain,$rd)=@_;
+ my $msg=$xcp->message();
+
+ # Cookie isn't used with belongs_to_rsp
+
+ $msg->command ({ action => 'belongs_to_rsp' });
+ $msg->command_attributes ({ domain => $domain });
+}
+
+sub is_mine_parse
+{
+ my ($xcp,$otype,$oaction,$oname,$rinfo)=@_;
+ my $mes=$xcp->message();
+ return unless $mes->is_success();
+
+ $rinfo->{domain}->{$oname}->{action} = 'is_mine';
+ $rinfo->{domain}->{$oname}->{exist} = 1;
+
+ my $ra=$mes->response_attributes();
+ return unless exists $ra->{belongs_to_rsp} && defined $ra->{belongs_to_rsp};
+
+ $rinfo->{domain}->{$oname}->{mine}=($ra->{belongs_to_rsp})? 1 : 0;
+ if (exists $ra->{domain_expdate} && defined $ra->{domain_expdate}) ## only here if belongs_to_rsp=1
+ {
+  my $d=$ra->{domain_expdate}; 
+  $d=~s/\s+/T/; ## with a little effort we become ISO8601
+  $rinfo->{domain}->{$oname}->{exDate}=$xcp->parse_iso8601($d);
+ }
+}
+
 sub send_authcode
 {
  my ($xcp,$domain,$rd)=@_;
@@ -575,32 +579,6 @@ sub send_authcode
  my %r=(action=>'send_authcode',object=>'domain');
  $msg->command(\%r);
  $msg->command_attributes({domain_name => $domain});
-}
-
-sub name_suggest
-{
- my ($xcp,$domain,$rd)=@_;
- my $msg=$xcp->message();
-
- Net::DRI::Exception::usererr_insufficient_parameters('tlds parameter is mandatory') unless (Net::DRI::Util::has_key($rd, 'tlds'));
-
- my %r=(action=>'name_suggest',object=>'domain');
- $msg->command(\%r);
- $msg->command_attributes({ searchstring => $domain, services => Net::DRI::Util::has_key($rd, 'services') ? $rd->{"services"} : [ "lookup" ], tlds => $rd->{"tlds"} });
-}
-
-sub name_suggest_parse
-{
- my ($xcp,$otype,$oaction,$oname,$rinfo)=@_;
- my $mes=$xcp->message();
- return unless $mes->is_success();
-
- $rinfo->{domain}->{$oname}->{action}='name_suggest';
-
- my $ra=$mes->response_attributes();
- foreach (qw/lookup suggestion premium personal_names/) {
-  $rinfo->{domain}->{$oname}->{$_} = $ra->{$_} if exists $ra->{$_};
- }
 }
 
 ####################################################################################################

@@ -10,7 +10,7 @@ use Net::DRI;
 
 my ($dri,$rc);
 
-eval {
+my $ok=eval {
 $dri=Net::DRI->new(10);
 $dri->add_registry('DENIC',{});
 $rc=$dri->target('DENIC')->add_current_profile('profile1','dchk');
@@ -23,15 +23,16 @@ display($dri,'1.5.3.2.7.2.9.6.9.4.e164.arpa'); ## example with ENUM domain names
 $dri->end();
 };
 
-if ($@)
+if (! $ok)
 { 
+ my $err=$@;
  print "\n\nAn EXCEPTION happened !\n";
- if (ref($@))
+ if (ref $err)
  {
-  $@->print();
+  $err->print();
  } else
  {
-  print($@);
+  print $err;
  }
 } else
 {
@@ -64,6 +65,6 @@ sub display
  }
  my $rs=$dri->get_info('result_status');
  print 'RESULT STATUS: ';
- $rs->print_full() if defined($rs);
+ $rs->print(1) if defined($rs);
  print "\n\n";
 }

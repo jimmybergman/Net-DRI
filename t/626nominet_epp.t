@@ -1,4 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
@@ -11,27 +14,25 @@ our $E1='<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="urn:i
 our $E2='</epp>';
 our $TRID='<trID><clTRID>ABC-12345</clTRID><svTRID>54322-XYZ</svTRID></trID>';
 
-our $R1;
+our ($R1,$R2);
 sub mysend { my ($transport,$count,$msg)=@_; $R1=$msg->as_string(); return 1; }
-
-our $R2;
 sub myrecv { return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<response>'.r().$TRID.'</response>'.$E2); }
 sub r { my ($c,$m)=@_; return '<result code="'.($c || 1000).'"><msg>'.($m || 'Command completed successfully').'</msg></result>'; }
 
 my $dri=Net::DRI::TrapExceptions->new(10);
 $dri->{trid_factory}=sub { return 'ABC-12345'; };
 $dri->add_registry('Nominet');
-$dri->target('Nominet')->add_current_profile('p1','test=epp',{f_send=>\&mysend,f_recv=>\&myrecv});
+$dri->target('Nominet')->add_current_profile('p1','epp',{f_send=>\&mysend,f_recv=>\&myrecv});
 
 my ($rc,$s,$d,$dh,@c,$co);
 
 # ## Domain commands
 $R2=$E1.'<response>'.r().'<resData><domain:chkData xmlns:domain="http://www.nominet.org.uk/epp/xml/nom-domain-2.0" xsi:schemaLocation="http://www.nominet.org.uk/epp/xml/nom-domain-2.0 nom-domain-2.0.xsd"><domain:cd><domain:name avail="0">example.co.uk</domain:name></domain:cd><domain:cd><domain:name avail="1">example2.co.uk</domain:name></domain:cd></domain:chkData></resData>'.$TRID.'</response>'.$E2;
-$rc=$dri->domain_check_multi('example.co.uk','example2.co.uk');
+$rc=$dri->domain_check('example.co.uk','example2.co.uk');
 is_string($R1,$E1.'<command><check><domain:check xmlns:domain="http://www.nominet.org.uk/epp/xml/nom-domain-2.0" xsi:schemaLocation="http://www.nominet.org.uk/epp/xml/nom-domain-2.0 nom-domain-2.0.xsd"><domain:name>example.co.uk</domain:name><domain:name>example2.co.uk</domain:name></domain:check></check><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_check build');
-is($rc->is_success(),1,'domain_check_multi is_success');
-is($dri->get_info('exist','domain','example.co.uk'),1,'domain_check_multi get_info(exist) 1/2');
-is($dri->get_info('exist','domain','example2.co.uk'),0,'domain_check_multi get_info(exist) 2/2');
+is($rc->is_success(),1,'domain_check multi is_success');
+is($dri->get_info('exist','domain','example.co.uk'),1,'domain_check multi get_info(exist) 1/2');
+is($dri->get_info('exist','domain','example2.co.uk'),0,'domain_check multi get_info(exist) 2/2');
 
 $R2=$E1.'<response>'.r().'<resData><domain:infData xmlns:domain="http://www.nominet.org.uk/epp/xml/nom-domain-2.0" xsi:schemaLocation="http://www.nominet.org.uk/epp/xml/nom-domain-2.0 nom-domain-2.0.xsd"><domain:name>example.co.uk</domain:name><domain:reg-status>Registration request being processed.</domain:reg-status><domain:account><account:infData xmlns:account="http://www.nominet.org.uk/epp/xml/nom-account-1.1" xmlns:contact="http://www.nominet.org.uk/epp/xml/nom-contact-1.1"><account:roid>S123456</account:roid><account:name>Mr R. Strant</account:name><account:trad-name>R. S. Industries</account:trad-name><account:type>STRA</account:type><account:co-no>NI123456</account:co-no><account:opt-out>N</account:opt-out><account:addr type="admin"><account:street>2102 High Street</account:street><account:locality>Carfax</account:locality><account:city>Oxford</account:city><account:county>Oxfordshire</account:county><account:postcode>OX1 1DF</account:postcode><account:country>GB</account:country></account:addr><account:contact type="admin" order="1"><contact:infData><contact:roid>C12345</contact:roid><contact:name>Mr R.Strant</contact:name><contact:phone>01865 123456</contact:phone><contact:fax>01865 123456</contact:fax><contact:email>r.strant@strant.co.uk</contact:email><contact:clID>TEST</contact:clID><contact:crID>domains@isp.com</contact:crID><contact:crDate>1999-04-03T22:00:00.0Z</contact:crDate><contact:upID>domains@isp.com</contact:upID><contact:upDate>1999-12-03T09:00:00.0Z</contact:upDate></contact:infData></account:contact><account:contact type="admin" order="2"><contact:infData><contact:roid>C23456</contact:roid><contact:name>Ms S. Strant</contact:name><contact:phone>01865 123457</contact:phone><contact:fax>01865 123456</contact:fax><contact:email>s.strant@strant.co.uk</contact:email><contact:clID>TEST</contact:clID><contact:crID>domains@isp.com</contact:crID><contact:crDate>1999-04-03T22:00:00.0Z</contact:crDate><contact:upID>domains@isp.com</contact:upID><contact:upDate>1999-12-03T09:00:00.0Z</contact:upDate></contact:infData></account:contact><account:contact type="billing" order="1"><contact:infData><contact:roid>C12347</contact:roid><contact:name>A. Ccountant</contact:name><contact:phone>01865 657893</contact:phone><contact:email>acc@billing.co.uk</contact:email><contact:clID>TEST</contact:clID><contact:crID>domains@isp.com</contact:crID><contact:crDate>1999-04-03T22:00:00.0Z</contact:crDate><contact:upID>domains@isp.com</contact:upID><contact:upDate>1999-12-03T09:00:00.0Z</contact:upDate></contact:infData></account:contact><account:clID>TEST</account:clID><account:crID>TEST</account:crID><account:crDate>1999-04-03T22:00:00.0Z</account:crDate><account:upID>domains@isp.com</account:upID><account:upDate>1999-12-03T09:00:00.0Z</account:upDate></account:infData></domain:account><domain:clID>TEST</domain:clID><domain:crID>TEST</domain:crID><domain:crDate>1999-04-03T22:00:00.0Z</domain:crDate><domain:upID>domains@isp.com</domain:upID><domain:upDate>1999-12-03T09:00:00.0Z</domain:upDate><domain:exDate>2007-12-03T09:00:00.0Z</domain:exDate></domain:infData></resData>'.$TRID.'</response>'.$E2;
 $rc=$dri->domain_info('example.co.uk');
@@ -53,7 +54,7 @@ is($d->org(),'R. S. Industries','domain_info get_info(contact) get(registrant) o
 is($d->type(),'STRA','domain_info get_info(contact) get(registrant) type');
 is($d->co_no(),'NI123456','domain_info get_info(contact) get(registrant) co_no');
 is($d->opt_out(),'N','domain_info get_info(contact) get(registrant) opt_out');
-is_deeply($d->street(),['2102 High Street','Carfax'],'domain_info get_info(contact) get(registrant) street');
+is_deeply(scalar $d->street(),['2102 High Street','Carfax'],'domain_info get_info(contact) get(registrant) street');
 is($d->city(),'Oxford','domain_info get_info(contact) get(registrant) city');
 is($d->sp(),'Oxfordshire','domain_info get_info(contact) get(registrant) sp/county');
 is($d->pc(),'OX1 1DF','domain_info get_info(contact) get(registrant) pc/postcode');
@@ -360,7 +361,7 @@ is($d->org(),'R. S. Industries','account_info get_info(self) get(registrant) org
 is($d->type(),'STRA','account_info get_info(self) get(registrant) type');
 is($d->co_no(),'NI123456','account_info get_info(self) get(registrant) co_no');
 is($d->opt_out(),'N','account_info get_info(self) get(registrant) opt_out');
-is_deeply($d->street(),['2102 High Street','Carfax'],'account_info get_info(self) get(registrant) street');
+is_deeply(scalar $d->street(),['2102 High Street','Carfax'],'account_info get_info(self) get(registrant) street');
 is($d->city(),'Oxford','account_info get_info(self) get(registrant) city');
 is($d->sp(),'Oxfordshire','account_info get_info(self) get(registrant) sp/county');
 is($d->pc(),'OX1 1DF','account_info get_info(self) get(registrant) pc/postcode');
@@ -552,7 +553,7 @@ $co=$dri->get_info('poor_quality_account','message',123456);
 isa_ok($co,'Net::DRI::Data::Contact','message get_info(poor_quality_account)');
 is($co->roid(),'589695','account roid');
 is($co->name(),'E. Example','account name');
-is_deeply($co->street(),['n/a'],'account street');
+is_deeply(scalar $co->street(),['n/a'],'account street');
 is($co->city(),'n/a','account city');
 is($co->pc(),'N1 1NA','account pc');
 is($co->cc(),'GB','account cc');

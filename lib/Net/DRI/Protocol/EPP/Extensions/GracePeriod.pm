@@ -1,6 +1,6 @@
 ## Domain Registry Interface, EPP Grace Period commands (RFC3915)
 ##
-## Copyright (c) 2005,2006,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005,2006,2008-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::GracePeriod;
@@ -22,9 +19,6 @@ use warnings;
 
 use Net::DRI::Util;
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.7 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
-our $NS='urn:ietf:params:xml:ns:rgp-1.0';
 
 =pod
 
@@ -54,7 +48,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005,2006,2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2005,2006,2008-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -81,6 +75,12 @@ sub register_commands
 
 sub capabilities_add { return ('domain_update','rgp',['set']); }
 
+sub setup
+{
+ my ($class,$po,$version)=@_;
+ $po->ns({ 'rgp' => [ 'urn:ietf:params:xml:ns:rgp-1.0','rgp-1.0.xsd' ] });
+}
+
 ####################################################################################################
 ########### Query commands
 
@@ -90,12 +90,13 @@ sub info_parse
  my $mes=$po->message();
  return unless $mes->is_success();
 
- my $infdata=$mes->get_extension($NS,'infData');
+ my $ns=$mes->ns('rgp');
+ my $infdata=$mes->get_extension($ns,'infData');
  return unless defined $infdata;
 
  my $cs=$rinfo->{domain}->{$oname}->{status}; ## a Net::DRI::Protocol::EPP::Core::Status object
 
- foreach my $el ($infdata->getChildrenByTagNameNS($NS,'rgpStatus'))
+ foreach my $el ($infdata->getChildrenByTagNameNS($ns,'rgpStatus'))
  {
   $cs->add($el->getAttribute('s'));
  }
@@ -115,7 +116,7 @@ sub update
  Net::DRI::Exception::usererr_invalid_parameters('RGP op must be request or report') unless ($op=~m/^(?:request|report)$/);
  Net::DRI::Exception::usererr_invalid_parameters('Report data must be included if the operation is a report') unless (($op eq 'request') xor exists $rgp->{report});
 
- my $eid=$mes->command_extension_register('rgp:update',sprintf('xmlns:rgp="%s" xsi:schemaLocation="%s rgp-1.0.xsd"',$NS,$NS));
+ my $eid=$mes->command_extension_register('rgp:update',sprintf('xmlns:rgp="%s" xsi:schemaLocation="%s %s"',$mes->nsattrs('rgp')));
 
  if ($op eq 'request')
  {
@@ -124,10 +125,9 @@ sub update
  {
   my %r=%{$rgp->{report}};
   my $def=$epp->default_parameters();
-  my $data=(Net::DRI::Util::has_key($def,'breaks_rfc3915') && $def->{breaks_rfc3915})? 'Whois' : 'Data'; ## VeriSign does not respect its own RFC
   my @d;
-  push @d,['rgp:pre'.$data,$r{predata}]; ## XML data is possible in the RFC, but not here ?!
-  push @d,['rgp:post'.$data,$r{postdata}]; ## ditto
+  push @d,['rgp:preData',$r{predata}]; ## XML data is possible in the RFC, but not here ?!
+  push @d,['rgp:postData',$r{postdata}]; ## ditto
 
   Net::DRI::Util::check_isa($r{deltime},'DateTime');
   push @d,['rgp:delTime',$r{deltime}->strftime('%Y-%m-%dT%T.%1NZ')];
@@ -147,7 +147,7 @@ sub update_parse
  my $mes=$po->message();
  return unless $mes->is_success();
 
- my $updata=$mes->get_extension($NS,'upData');
+ my $updata=$mes->get_extension($mes->ns('rgp'),'upData');
  return unless defined $updata;
 
  ## We do nothing, since the rgpStatus alone is useless

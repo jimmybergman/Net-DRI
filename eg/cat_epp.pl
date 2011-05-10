@@ -1,21 +1,21 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 #
 # A Net::DRI example
 # See also t/613cat_epp.t
 
+use utf8;
 use strict;
+use warnings;
 
 use Net::DRI;
 
-use DateTime::Duration;
- 
 my $CLID='YOUR TEST CLIENT ID'; ### Change this information
 my $PASS='YOUR PASSWORD'; ### Change this information
 
 my $dri=Net::DRI->new({cache_ttl=>10,logging=>'files'});
 
-eval {
+my $ok=eval {
 ############################################################################################################
 $dri->add_registry('CAT',{clid=>$CLID});
 
@@ -63,7 +63,7 @@ $cs->set($c2,'billing');
 $cs->set($c3,'tech');
 $cs->set($c4,'admin');
 print "Attempting to create domain $dom\n";
-$rc=$dri->domain_create($dom,{pure_create=>1,duration=>DateTime::Duration->new(years =>1),ns=>$nso,contact=>$cs,lang=>'ca',ens=>{auth=>{id=>'FASE3-100000',key=>'0000'},intended_use=>'To test Net::DRI'},auth=>{pw=>'XYZE'}});
+$rc=$dri->domain_create($dom,{pure_create=>1,duration=>$dri->local_object('duration',years => 1),ns=>$nso,contact=>$cs,lang=>'ca',ens=>{auth=>{id=>'FASE3-100000',key=>'0000'},intended_use=>'To test Net::DRI'},auth=>{pw=>'XYZE'}});
 print "Created $dom is_success=".$rc->is_success()."\n";
 
 
@@ -94,7 +94,7 @@ $rc=$dri->domain_update_ns_del($dom,$nso);
 print "ns_del OK=".$rc->is_success()."\n";
 $rc=$dri->domain_info($dom);
 
-my $s=$dri->create_status()->no('update');
+my $s=$dri->local_object('status')->no('update');
 $rc=$dri->domain_update_status_add($dom,$s);
 print "status_add OK=".$rc->is_success()."\n";
 $rc=$dri->domain_info($dom);
@@ -117,15 +117,16 @@ print "Contact4 deleted successfully\n" if $rc->is_success();
 $dri->end();
 };
 
-if ($@)
+if (! $ok)
 { 
+ my $err=$@;
  print "\n\nAn EXCEPTION happened !\n";
- if (ref($@))
+ if (ref $err)
  {
-  $@->print();
+  $err->print();
  } else
  {
-  print($@);
+  print $err;
  }
 } else
 {

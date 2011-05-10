@@ -1,6 +1,6 @@
-## Domain Registry Interface, EPP Host commands (RFC4932)
+## Domain Registry Interface, EPP Host commands (RFC5732)
 ##
-## Copyright (c) 2005,2006,2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,13 +10,11 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Core::Host;
 
+use utf8;
 use strict;
 use warnings;
 
@@ -24,13 +22,11 @@ use Net::DRI::Util;
 use Net::DRI::Exception;
 use Net::DRI::Protocol::EPP::Util;
 
-our $VERSION=do { my @r=(q$Revision: 1.15 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
-
 =pod
 
 =head1 NAME
 
-Net::DRI::Protocol::EPP::Core::Host - EPP Host commands (RFC4932 obsoleting RFC3732) for Net::DRI
+Net::DRI::Protocol::EPP::Core::Host - EPP Host commands (RFC5732 obsoleting RFC4932 and RFC3732) for Net::DRI
 
 =head1 DESCRIPTION
 
@@ -177,7 +173,7 @@ sub info_parse
    $rinfo->{host}->{$oname}->{roid}=$c->textContent();
   } elsif ($name eq 'status')
   {
-   push @s,Net::DRI::Protocol::EPP::Util::parse_status($c);
+   push @s,Net::DRI::Protocol::EPP::Util::parse_node_status($c);
   } elsif ($name eq 'addr')
   {
    my $ip=$c->textContent();
@@ -283,7 +279,7 @@ sub add_ip
 }
 
 ####################################################################################################
-## RFC4932 ง3.3  Offline Review of Requested Actions
+## RFC4932 ยง3.3  Offline Review of Requested Actions
 
 sub pandata_parse
 {

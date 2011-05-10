@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Data::Hosts;
@@ -25,8 +22,6 @@ use base qw(Class::Accessor::Chained::Fast);
 __PACKAGE__->mk_accessors(qw(name loid));
 
 use Net::DRI::Util;
-
-our $VERSION=do { my @r=(q$Revision: 1.18 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 

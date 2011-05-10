@@ -1,14 +1,17 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
 
 use Net::DRI::Protocol::EPP::Connection;
 use Encode ();
 
 use Test::More tests => 5;
 
-can_ok('Net::DRI::Protocol::EPP::Connection',qw(login logout keepalive parse_greeting parse_login parse_logout read_data write_message));
+can_ok('Net::DRI::Protocol::EPP::Connection',qw(keepalive read_data write_message));
 
 TODO: {
-        local $TODO="tests on login() logout() keepalive() parse_greeting() parse_login() parse_logout() read_data() write_message() find_code()";
+        local $TODO="tests on keepalive() read_data() write_message()";
         ok(0);
 }
 
@@ -23,7 +26,7 @@ SKIP: {
 	$msg->command_body([['host:name','ns1.example.com'],['host:name','ns2.example.com'],['host:name','ns3.example.com']]);
 	$msg->cltrid('ABC-12345');
 
-	$s=<<EOF;
+	my $s=<<EOF;
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0"
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::CIRA::Domain;
@@ -22,8 +19,6 @@ use warnings;
 
 use Net::DRI::Util;
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.1 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 ####################################################################################################
 
@@ -94,19 +89,19 @@ sub transfer_request
  Net::DRI::Exception::usererr_insufficient_parameters('Both registrant and admin contacts are required for .CA domain name transfer if contacts are provided') unless ($cs->has_type('registrant') && $cs->has_type('admin'));
  my @c=$cs->get('registrant');
  Net::DRI::Exception::usererr_insufficient_parameters('only one registrant is mandatory in .CA for domain_transfer_start if contacts are provided') unless (@c==1 && Net::DRI::Util::isa_contact($c[0],'Net::DRI::Data::Contact::CIRA') && length $c[0]->srid() && $c[0]->validate(1));
- push @n,['cira:Registrant',$c[0]->srid()]; ## or <cira:registrant> ??
+ push @n,['cira:registrant',$c[0]->srid()];
  @c=$cs->get('admin');
  Net::DRI::Exception::usererr_insufficient_parameters('only one admin contact is mandatory in .CA for domain_transfer_start if contacts are provided') unless (@c==1 && Net::DRI::Util::isa_contact($c[0],'Net::DRI::Data::Contact::CIRA') && length $c[0]->srid() && $c[0]->validate(1));
- push @n,['cira:domainTransferAdmin',$c[0]->srid()]; ## or <cira:contact type="admin"> ??
+ push @n,['cira:contact',{type=>'admin'},$c[0]->srid()];
  @c=$cs->get('tech');
  if (@c)
  {
   Net::DRI::Exception::usererr_insufficient_parameters('only up to 3 tech contacts are possible in .CA for domain_transfer_start') if (scalar(@c)!=scalar(grep { Net::DRI::Util::isa_contact($_,'Net::DRI::Data::Contact::CIRA') && length $_->srid() && $_->validate(1) } @c) || @c>3);
-  push @n,map { ['cira:domainTransferTech',$_->srid()] } @c; ## or <cira:contact type="text"> ??
+  push @n,map { ['cira:contact',{type=>'tech'},$_->srid()] } @c;
  }
 
  my $eid=build_command_extension($mes,$epp,'cira:ciraTransfer');
- $mes->command_extension($eid,\@n);
+ $mes->command_extension($eid,['cira:ciraChg',@n]);
 }
 
 ####################################################################################################

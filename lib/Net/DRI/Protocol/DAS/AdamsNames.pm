@@ -1,7 +1,7 @@
 ## Domain Registry Interface, DAS Protocol for AdamsNames
 ## as specified on http://www.adamsnames.tc/bulk/querying.html
 ##
-## Copyright (c) 2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2009-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -11,9 +11,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::DAS::AdamsNames;
@@ -25,8 +22,6 @@ use base qw(Net::DRI::Protocol);
 
 use Net::DRI::Util;
 use Net::DRI::Protocol::DAS::AdamsNames::Message;
-
-our $VERSION=do { my @r=(q$Revision: 1.1 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -56,7 +51,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2009-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -72,8 +67,8 @@ See the LICENSE file that comes with this distribution for more details.
 
 sub new
 {
- my ($c,$drd,$rp)=@_;
- my $self=$c->SUPER::new();
+ my ($c,$ctx,$rp)=@_;
+ my $self=$c->SUPER::new($ctx);
  $self->name('DAS');
  my $version=Net::DRI::Util::check_equal($rp->{version},['1.0'],'1.0');
  $self->version($version);

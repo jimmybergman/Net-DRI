@@ -1,12 +1,13 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
 #
 # A Net::DRI example for .COOP : creation of contacts, hosts, domains, and deleting domain
 
+use utf8;
 use strict;
+use warnings;
 
 use Net::DRI;
-use DateTime::Duration;
 
 ## Fill these variables : your registrar id, password, and contact prefix
 my $CLID='';
@@ -16,7 +17,7 @@ my $CID_PREFIX=''; ## The registry mandates all contacts ID to start with a spec
 
 my $dri=Net::DRI->new({cache_ttl=>10,logging=>'files'});
 
-eval {
+my $ok=eval {
 ############################################################################################################
 $dri->add_registry('COOP',{clid=>$CLID});
 
@@ -81,7 +82,7 @@ $cs->set($c4,'billing');
 $cs->set($c4,'tech');
 $cs->set($c4,'admin');
 print "Attempting to create domain $dom\n";
-$rc=$dri->domain_create($dom,{pure_create=>1,duration=>DateTime::Duration->new(years =>2),ns=>$nso,contact=>$cs,auth=>{pw=>'whatever'}});
+$rc=$dri->domain_create($dom,{pure_create=>1,duration=>$dri->local_object('duration',years => 2),ns=>$nso,contact=>$cs,auth=>{pw=>'whatever'}});
 print "$dom created successfully:".($rc->is_success()? 'YES' : 'NO')."\n";
 
 $rc=$dri->domain_check($dom);
@@ -105,15 +106,16 @@ print 'Contact4 deleted successfully: '.($rc->is_success()? 'YES' : 'NO')."\n";
 $dri->end();
 };
 
-if ($@)
+if (! $ok)
 { 
+ my $err=$@;
  print "\n\nAn EXCEPTION happened !\n";
- if (ref($@))
+ if (ref $err)
  {
-  $@->print();
+  $err->print();
  } else
  {
-  print($@);
+  print $err;
  }
 } else
 {

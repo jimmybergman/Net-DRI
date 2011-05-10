@@ -1,4 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
@@ -11,24 +14,14 @@ our $E1='<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="urn:i
 our $E2='</epp>';
 our $TRID='<trID><clTRID>ABC-12345</clTRID><svTRID>54322-XYZ</svTRID></trID>';
 
-our $R1;
-sub mysend
-{
- my ($transport,$count,$msg)=@_;
- $R1=$msg->as_string();
- return 1;
-}
-
-our $R2;
-sub myrecv
-{
- return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<response>'.r().$TRID.'</response>'.$E2);
-}
+our ($R1,$R2);
+sub mysend { my ($transport,$count,$msg)=@_; $R1=$msg->as_string(); return 1; }
+sub myrecv { return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<response>'.r().$TRID.'</response>'.$E2); }
 
 my $dri=Net::DRI::TrapExceptions->new(10);
 $dri->{trid_factory}=sub { return 'ABC-12345'; };
 $dri->add_registry('COOP');
-$dri->target('COOP')->add_current_profile('p1','test=epp',{f_send=>\&mysend,f_recv=>\&myrecv});
+$dri->target('COOP')->add_current_profile('p1','epp',{f_send=>\&mysend,f_recv=>\&myrecv});
 
 my $rc;
 my $s;
@@ -58,7 +51,7 @@ is($dri->get_info('state','contact','th1contact1Test'),'verified','domain_create
 
 ## Contact commands
 $R2=$E1.'<response>'.r().'<resData><contact:infData xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>th1domainTest</contact:id><contact:roid>62273C-COOP</contact:roid><contact:status s="ok">ok</contact:status><contact:postalInfo type="loc"><contact:name>Kermit The Frog</contact:name><contact:org>The Muppet Show</contact:org><contact:addr><contact:city>Chicago</contact:city><contact:cc>US</contact:cc></contact:addr></contact:postalInfo><contact:email>k.frog@example.tld</contact:email><contact:clID>TestHarness1</contact:clID><contact:crID>TestHarness1</contact:crID><contact:crDate>2004-10-29T12:29:02.6Z</contact:crDate><contact:authInfo><contact:pw>Match Sticks</contact:pw></contact:authInfo></contact:infData></resData><extension><coop:infData xmlns:coop="http://www.nic.coop/contactCoopExt-1.0"><coop:state code="verified">Verified</coop:state><coop:sponsor>th1Sponsor1</coop:sponsor><coop:sponsor>th1Sponsor2</coop:sponsor></coop:infData></extension>'.$TRID.'</response>'.$E2;
-$co=$dri->local_object('contact')->srid('th1domainTest');
+my $co=$dri->local_object('contact')->srid('th1domainTest');
 $rc=$dri->contact_info($co);
 is($rc->is_success(),1,'contact_info is_success');
 is($dri->get_info('action'),'info','contact_info get_info(action)');

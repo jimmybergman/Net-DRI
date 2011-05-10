@@ -10,44 +10,51 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Util;
 
+use utf8;
 use strict;
 use warnings;
 
 use Net::DRI::Util;
 use Net::DRI::Exception;
 
-our $VERSION=do { my @r=(q$Revision: 1.2 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
-
 ####################################################################################################
 
-sub parse_status
+sub parse_node_status
 {
  my ($node)=@_;
- my %tmp;
- $tmp{name}=$node->getAttribute('s');
- $tmp{lang}=$node->getAttribute('lang') || 'en';
- $tmp{msg}=$node->textContent() || '';
+ my %tmp=( name => $node->getAttribute('s') );
+ ($tmp{lang},$tmp{msg})=parse_node_msg($node);
  return \%tmp;
 }
 
-sub parse_msg
+sub parse_node_msg
 {
  my ($node)=@_; ## eppcom:msgType
- return (($node->getAttribute('lang') || 'en'),$node->textContent());
+ return (($node->getAttribute('lang') || 'en'),$node->textContent() || '');
 }
 
-sub parse_result
+## Try to enhance parsing of common cases
+sub parse_node_value
+{
+ my ($n)=@_;
+ my $t=$n->toString();
+ $t=~s!^<value(?:\s+xmlns:epp=["'][^"']+["'])?>(.+?)</value>$!$1!;
+ $t=~s/^\s+//;
+ $t=~s/\s+$//;
+ $t=~s!^<text>(.+)</text>$!$1!;
+ $t=~s!^<epp:undef\s*/>$!!;
+ return $t;
+}
+
+sub parse_node_result
 {
  my ($node,$ns,$from)=@_;
  $from='eppcom' unless defined $from;
- my ($lang,$msg)=parse_msg($node->getChildrenByTagNameNS($ns,'msg')->get_node(1));
+ my ($lang,$msg)=parse_node_msg($node->getChildrenByTagNameNS($ns,'msg')->get_node(1));
 
  my @i;
  foreach my $el (Net::DRI::Util::xml_list_children($node)) ## <value> or <extValue> nodes, all optional
@@ -58,11 +65,13 @@ sub parse_result
    my @c=Net::DRI::Util::xml_list_children($c); ## we need to use that, instead of directly firstChild/lastChild because we want only element nodes, not whitespaces if there
    my $c1=$c[0]->[1];  ## <value> node
    my $c2=$c[-1]->[1]; ## <reason> node
-   my ($ll,$lt)=parse_msg($c2);
-   push @i,{ from => $from.':extValue', type => 'rawxml', message => $c1->toString(), lang => $ll, reason => $lt };
+   my ($ll,$lt)=parse_node_msg($c2);
+   my $v=parse_node_value($c1);
+   push @i,{ from => $from.':extValue', type => $v=~m/^</ ? 'rawxml' : 'text', message => $v, lang => $ll, reason => $lt };
   } elsif ($name eq 'value')
   {
-   push @i,{ from => $from.':value', type => 'rawxml', message => $c->toString() };
+   my $v=parse_node_value($c);
+   push @i,{ from => $from.':value', type => $v=~m/^</ ? 'rawxml' : 'text', message => $v };
   }
  }
 
@@ -74,15 +83,15 @@ sub parse_result
 sub domain_build_command
 {
  my ($msg,$command,$domain,$domainattr)=@_;
- my @dom=(ref($domain))? @$domain : ($domain);
+ my @dom=ref $domain ? @$domain : ($domain);
  Net::DRI::Exception->die(1,'protocol/EPP',2,'Domain name needed') unless @dom;
  foreach my $d (@dom)
  {
-  Net::DRI::Exception->die(1,'protocol/EPP',2,'Domain name needed') unless defined($d) && $d;
-  Net::DRI::Exception->die(1,'protocol/EPP',10,'Invalid domain name: '.$d) unless Net::DRI::Util::is_hostname($d);
+  Net::DRI::Exception->die(1,'protocol/EPP',2,'Domain name needed') unless defined $d && $d;
+  Net::DRI::Exception->die(1,'protocol/EPP',10,'Invalid domain name: '.$d) unless Net::DRI::Util::xml_is_token($d,1,255);
  }
 
- my $tcommand=(ref($command))? $command->[0] : $command;
+ my $tcommand=ref $command ? $command->[0] : $command;
  $msg->command([$command,'domain:'.$tcommand,sprintf('xmlns:domain="%s" xsi:schemaLocation="%s %s"',$msg->nsattrs('domain'))]);
 
  my @d=map { ['domain:name',$_,$domainattr] } @dom;
@@ -168,7 +177,7 @@ sub build_ns
  return [$xmlns.':ns',@d];
 }
 
-sub parse_ns ## RFC 4931 ง1.1
+sub parse_ns ## RFC 4931 ยง1.1
 {
  my ($po,$node)=@_;
  my $ns=$po->create_local_object('hosts');

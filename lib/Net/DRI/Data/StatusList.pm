@@ -1,6 +1,6 @@
 ## Domain Registry Interface, Handling of statuses list (order is irrelevant) (base class)
 ##
-## Copyright (c) 2005,2006,2007,2008 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005-2008,2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,18 +10,14 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Data::StatusList;
 
 use strict;
+use warnings;
 
 use Net::DRI::Exception;
-
-our $VERSION=do { my @r=(q$Revision: 1.10 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -52,6 +48,10 @@ returns 1 if these statuses are for an object that is pending some action at reg
 =head2 is_linked()
 
 returns 1 if these statuses are for an object that is linked to another one at registry
+
+=head2 is_grace()
+
+returns 1 if these statuses are for an object into some grace period at registry
 
 =head2 can_update()
 
@@ -117,7 +117,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005,2006,2007,2008 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2005-2008,2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -249,14 +249,15 @@ sub no
 ####################################################################################################
 ## Methods that must be defined in subclasses
 
-sub is_active    { Net::DRI::Exception::err_method_not_implemented('is_active in '.ref($_[0])); }
-sub is_published { Net::DRI::Exception::err_method_not_implemented('is_published in '.ref($_[0])); } 
-sub is_pending   { Net::DRI::Exception::err_method_not_implemented('is_pending in '.ref($_[0])); }
-sub is_linked    { Net::DRI::Exception::err_method_not_implemented('is_linked in '.ref($_[0])); }
-sub can_update   { Net::DRI::Exception::err_method_not_implemented('can_update in '.ref($_[0])); }
-sub can_transfer { Net::DRI::Exception::err_method_not_implemented('can_transfer in '.ref($_[0])); }
-sub can_delete   { Net::DRI::Exception::err_method_not_implemented('can_delete in '.ref($_[0])); }
-sub can_renew    { Net::DRI::Exception::err_method_not_implemented('can_renew in '.ref($_[0])); }
+sub is_active    { Net::DRI::Exception::method_not_implemented('is_active',ref $_[0]); }
+sub is_published { Net::DRI::Exception::method_not_implemented('is_published',ref $_[0]); } 
+sub is_pending   { Net::DRI::Exception::method_not_implemented('is_pending',ref $_[0]); }
+sub is_linked    { Net::DRI::Exception::method_not_implemented('is_linked',ref $_[0]); }
+sub is_grace     { Net::DRI::Exception::method_not_implemented('is_grace',ref $_[0]); }
+sub can_update   { Net::DRI::Exception::method_not_implemented('can_update',ref $_[0]); }
+sub can_transfer { Net::DRI::Exception::method_not_implemented('can_transfer',ref $_[0]); }
+sub can_delete   { Net::DRI::Exception::method_not_implemented('can_delete',ref $_[0]); }
+sub can_renew    { Net::DRI::Exception::method_not_implemented('can_renew',ref $_[0]); }
 
 ####################################################################################################
 1;

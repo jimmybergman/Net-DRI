@@ -1,4 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
@@ -18,7 +21,7 @@ my $RESELLERID=''; #'LOGIN';
 
 my $dri=Net::DRI::TrapExceptions->new(10);
 $dri->add_registry('OpenSRS');
-$dri->target('OpenSRS')->add_current_profile('p1','test=Net::DRI::Protocol::OpenSRS::XCP',{f_send=>\&mysend,f_recv=>\&myrecv,client_login=>'LOGIN',client_password=>'PASSWORD',remote_url=>'http://localhost/'});
+$dri->target('OpenSRS')->add_current_profile('p1','xcp',{f_send=>\&mysend,f_recv=>\&myrecv,client_login=>'LOGIN',client_password=>'PASSWORD',remote_url=>'http://localhost/'});
 
 my ($r,$rc,$rd,$ns,$cs);
 

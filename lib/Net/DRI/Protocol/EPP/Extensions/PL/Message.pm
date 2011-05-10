@@ -2,6 +2,7 @@
 ##
 ## Copyright (c) 2008 Tonnerre Lombard <tonnerre.lombard@sygroup.ch>.
 ## Copyright (c) 2008 Thorsten Glaser for Sygroup GmbH
+##           (c) 2010 Patrick Mevzek <netdri@dotandco.com>
 ##                    All rights reserved.
 ##
 ## This file is part of Net::DRI
@@ -12,19 +13,14 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::PL::Message;
 
 use strict;
+use warnings;
 
 use Net::DRI::Exception;
-use DateTime::Format::ISO8601;
-
-our $VERSION=do { my @r=(q$Revision: 1.2 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -57,6 +53,7 @@ Thorsten Glaser
 
 Copyright (c) 2008 Tonnerre Lombard <tonnerre.lombard@sygroup.ch>.
 Copyright (c) 2008 Thorsten Glaser for Sygroup GmbH
+Copyright (c) 2010 Patrick Mevzek <netdri@dotandco.com>
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -101,7 +98,7 @@ sub parse_poll
  my $action;
 
  return unless $mes->is_success();
- return if ($mes->result_code() == 1300);	# no messages in queue
+ return if $mes->result_is('COMMAND_SUCCESSFUL_QUEUE_EMPTY');
  return unless (defined($msgid) && $msgid);
 
  my $mesdata = $mes->node_resdata();

@@ -11,9 +11,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::DRD::SWITCH;
@@ -24,8 +21,6 @@ use warnings;
 use base qw/Net::DRI::DRD/;
 
 use DateTime::Duration;
-
-our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 __PACKAGE__->make_exception_for_unavailable_operations(qw/domain_transfer_accept domain_transfer_refuse domain_renew contact_transfer_stop contact_transfer_query contact_transfer_accept contact_transfer_refuse/);
 

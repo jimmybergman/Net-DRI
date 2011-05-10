@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::AFNIC::Status;
@@ -20,8 +17,6 @@ package Net::DRI::Protocol::EPP::Extensions::AFNIC::Status;
 use base qw/Net::DRI::Protocol::EPP::Core::Status/;
 
 use strict;
-
-our $VERSION=do { my @r=(q$Revision: 1.1 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 

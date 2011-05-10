@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::ARNES;
@@ -21,8 +18,6 @@ use strict;
 
 use Net::DRI::Data::Contact::ARNES;
 use base qw/Net::DRI::Protocol::EPP/;
-
-our $VERSION=do { my @r=(q$Revision: 1.2 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 

@@ -10,20 +10,17 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::E164Validation;
 
+use utf8;
 use strict;
 use warnings;
 
 use Net::DRI::Util;
 use Net::DRI::Exception;
 
-our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 our $NS='urn:ietf:params:xml:ns:e164val-1.0';
 our @VALIDATION_MODULES=qw/RFC5076/; ## modules to handle validation information, override this variable to use other validation modules
 
@@ -88,7 +85,7 @@ sub register_commands
 sub capabilities_add { return ('domain_update','e164_validation_information',['add','del','set']); }
 
 our %VAL;
-sub load_validation_modules ## ง4.4 ง4.5
+sub load_validation_modules ## ยง4.4 ยง4.5
 {
  foreach my $mod (@VALIDATION_MODULES)
  {
@@ -139,7 +136,7 @@ sub as_array
 ####################################################################################################
 ########### Query commands
 
-sub info_parse ## ง5.1.2
+sub info_parse ## ยง5.1.2
 {
  my ($po,$otype,$oaction,$oname,$rinfo)=@_;
  my $mes=$po->message();
@@ -166,25 +163,25 @@ sub info_parse ## ง5.1.2
 ####################################################################################################
 ############ Transform commands
 
-sub create ## ง5.2.1
+sub create ## ยง5.2.1
 {
  my ($epp,$domain,$rd)=@_;
  add_validation_information($epp,$domain,$rd,'create','e164val:add');
 }
 
-sub renew ## ง5.2.3
+sub renew ## ยง5.2.3
 {
  my ($epp,$domain,$rd)=@_;
  add_validation_information($epp,$domain,$rd,'renew','e164val:add');
 }
 
-sub transfer_request ## ง5.2.4
+sub transfer_request ## ยง5.2.4
 {
  my ($epp,$domain,$rd)=@_;
  add_validation_information($epp,$domain,$rd,'transfer','e164val:add');
 }
 
-sub update ## ง5.2.5
+sub update ## ยง5.2.5
 {
  my ($epp,$domain,$todo)=@_;
  my $mes=$epp->message();

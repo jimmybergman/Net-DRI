@@ -1,6 +1,6 @@
 ## Domain Registry Interface, OpenSRS XCP Message
 ##
-## Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2008-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::OpenSRS::XCP::Message;
@@ -28,8 +25,6 @@ use Net::DRI::Util;
 
 use base qw(Class::Accessor::Chained::Fast Net::DRI::Protocol::Message);
 __PACKAGE__->mk_accessors(qw(version client_auth command command_attributes response_attributes response_code response_text response_is_success));
-
-our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -59,7 +54,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2008-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -119,11 +114,9 @@ our %CODES=( 200 => 1000,
 sub result_status
 {
  my $self=shift;
- return Net::DRI::Protocol::ResultStatus->new_success('COMMAND_SUCCESSFUL',$self->response_text()) if ($self->response_is_success());
-
+ return Net::DRI::Protocol::ResultStatus->new_success($self->response_text()) if $self->response_is_success();
  my $code=$self->response_code();
- my $eppcode=(!defined($code) || !exists($CODES{$code}))? 'GENERIC_ERROR' : $CODES{$code};
-
+ my $eppcode=(defined $code && exists $CODES{$code})? $CODES{$code} : 'COMMAND_FAILED';
  return Net::DRI::Protocol::ResultStatus->new('opensrs_xcp',$code,$eppcode,$self->response_is_success(),$self->response_text(),'en');
 }
 

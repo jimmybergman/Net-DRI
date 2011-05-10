@@ -1,4 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
@@ -19,7 +22,7 @@ sub r { my ($c,$m)=@_;  return '<result code="'.($c || 1000).'"><msg>'.($m || 'C
 my $dri=Net::DRI::TrapExceptions->new(10);
 $dri->{trid_factory}=sub { return 'ABC-12345'; };
 $dri->add_registry('BR');
-$dri->target('BR')->add_current_profile('p1','test=Net::DRI::Protocol::EPP::Extensions::BR',{f_send=>\&mysend,f_recv=>\&myrecv});
+$dri->target('BR')->add_current_profile('p1','epp',{f_send=>\&mysend,f_recv=>\&myrecv});
 print $@->as_string() if $@;
 
 my ($rc,$s,$d,$dh,@c,$co);
@@ -27,23 +30,23 @@ my ($rc,$s,$d,$dh,@c,$co);
 ## Domain commands
 
 $R2=$E1.'<response>'.r().'<resData><domain:chkData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:cd><domain:name avail="0">e-xample.net.br</domain:name><domain:reason>In use</domain:reason></domain:cd><domain:cd><domain:name avail="0">example.org.br</domain:name></domain:cd><domain:cd><domain:name avail="1">example.com.br</domain:name></domain:cd><domain:cd><domain:name avail="1">example.ind.br</domain:name></domain:cd></domain:chkData></resData><extension><brdomain:chkData xmlns:brdomain="urn:ietf:params:xml:ns:brdomain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:brdomain-1.0 brdomain-1.0.xsd"><brdomain:cd><brdomain:name>e-xample.net.br</brdomain:name><brdomain:equivalentName>example.net.br</brdomain:equivalentName><brdomain:organization>043.828.151/0001-45</brdomain:organization></brdomain:cd><brdomain:cd><brdomain:name>example.org.br</brdomain:name><brdomain:organization>043.828.151/0001-45</brdomain:organization></brdomain:cd><brdomain:cd hasConcurrent="1" inReleaseProcess="0"><brdomain:name>example.com.br</brdomain:name><brdomain:ticketNumber>123456</brdomain:ticketNumber></brdomain:cd><brdomain:cd hasConcurrent="0" inReleaseProcess="1"><brdomain:name>example.ind.br</brdomain:name></brdomain:cd></brdomain:chkData></extension>'.$TRID.'</response>'.$E2;
-$rc=$dri->domain_check_multi('e-xample.net.br','example.org.br','example.com.br','example.ind.br',{orgid => '005.506.560/0001-36'});
+$rc=$dri->domain_check('e-xample.net.br','example.org.br','example.com.br','example.ind.br',{orgid => '005.506.560/0001-36'});
 is_string($R1,$E1.'<command><check><domain:check xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>e-xample.net.br</domain:name><domain:name>example.org.br</domain:name><domain:name>example.com.br</domain:name><domain:name>example.ind.br</domain:name></domain:check></check><extension><brdomain:check xmlns:brdomain="urn:ietf:params:xml:ns:brdomain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:brdomain-1.0 brdomain-1.0.xsd"><brdomain:organization>005.506.560/0001-36</brdomain:organization></brdomain:check></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_check build');
-is($rc->is_success(),1,'domain_check_multi is_success');
-is($dri->get_info('exist','domain','e-xample.net.br'),1,'domain_check_multi get_info(exist) 1/4');
-is($dri->get_info('exist','domain','example.org.br'),1,'domain_check_multi get_info(exist) 2/4');
-is($dri->get_info('exist','domain','example.com.br'),0,'domain_check_multi get_info(exist) 3/4');
-is($dri->get_info('exist','domain','example.ind.br'),0,'domain_check_multi get_info(exist) 4/4');
+is($rc->is_success(),1,'domain_check multi is_success');
+is($dri->get_info('exist','domain','e-xample.net.br'),1,'domain_check multi get_info(exist) 1/4');
+is($dri->get_info('exist','domain','example.org.br'),1,'domain_check multi get_info(exist) 2/4');
+is($dri->get_info('exist','domain','example.com.br'),0,'domain_check multi get_info(exist) 3/4');
+is($dri->get_info('exist','domain','example.ind.br'),0,'domain_check multi get_info(exist) 4/4');
 
 
-is($dri->get_info('equivalent_name','domain','e-xample.net.br'),'example.net.br','domain_check_multi get_info(equivalent_name)');
-is($dri->get_info('orgid','domain','e-xample.net.br'),'043.828.151/0001-45','domain_check_multi get_info(orgid) 1');
-is($dri->get_info('orgid','domain','example.org.br'),'043.828.151/0001-45','domain_check_multi get_info(orgid) 2');
-is($dri->get_info('has_concurrent','domain','example.com.br'),1,'domain_check_multi get_info(has_concurrent) 1');
-is($dri->get_info('in_release_process','domain','example.com.br'),0,'domain_check_multi get_info(in_release_process) 1');
-is_deeply($dri->get_info('ticket','domain','example.com.br'),[123456],'domain_check_multi get_info(ticket)');
-is($dri->get_info('has_concurrent','domain','example.ind.br'),0,'domain_check_multi get_info(has_concurrent) 2');
-is($dri->get_info('in_release_process','domain','example.ind.br'),1,'domain_check_multi get_info(in_release_process) 2');
+is($dri->get_info('equivalent_name','domain','e-xample.net.br'),'example.net.br','domain_check multi get_info(equivalent_name)');
+is($dri->get_info('orgid','domain','e-xample.net.br'),'043.828.151/0001-45','domain_check multi get_info(orgid) 1');
+is($dri->get_info('orgid','domain','example.org.br'),'043.828.151/0001-45','domain_check multi get_info(orgid) 2');
+is($dri->get_info('has_concurrent','domain','example.com.br'),1,'domain_check multi get_info(has_concurrent) 1');
+is($dri->get_info('in_release_process','domain','example.com.br'),0,'domain_check multi get_info(in_release_process) 1');
+is_deeply($dri->get_info('ticket','domain','example.com.br'),[123456],'domain_check multi get_info(ticket)');
+is($dri->get_info('has_concurrent','domain','example.ind.br'),0,'domain_check multi get_info(has_concurrent) 2');
+is($dri->get_info('in_release_process','domain','example.ind.br'),1,'domain_check multi get_info(in_release_process) 2');
 
 $R2=$E1.'<response>'.r().'<resData><domain:infData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example.com.br</domain:name><domain:roid>EXAMPLE1-REP</domain:roid><domain:status s="pendingCreate"/><domain:contact type="admin">fan</domain:contact><domain:contact type="tech">fan</domain:contact><domain:contact type="billing">fan</domain:contact><domain:ns><domain:hostAttr><domain:hostName>ns1.example.com.br</domain:hostName><domain:hostAddr ip="v4">192.0.2.1</domain:hostAddr></domain:hostAttr><domain:hostAttr><domain:hostName>ns1.example.net.br</domain:hostName></domain:hostAttr></domain:ns><domain:clID>ClientX</domain:clID><domain:crID>ClientX</domain:crID><domain:crDate>2006-01-30T22:00:00.0Z</domain:crDate><domain:upID>ClientX</domain:upID><domain:upDate>2006-01-31T09:00:00.0Z</domain:upDate></domain:infData></resData><extension><brdomain:infData xmlns:brdomain="urn:ietf:params:xml:ns:brdomain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:brdomain-1.0 brdomain-1.0.xsd"><brdomain:ticketNumber>123456</brdomain:ticketNumber><brdomain:organization>005.506.560/0001-36</brdomain:organization><brdomain:releaseProcessFlags flag1="1"/><brdomain:pending><brdomain:dns status="queryTimeOut"><brdomain:hostName>ns1.example.com.br</brdomain:hostName><brdomain:limit>2006-02-13T22:00:00.0Z</brdomain:limit></brdomain:dns><brdomain:doc status="notReceived"><brdomain:docType>CNPJ</brdomain:docType><brdomain:limit>2006-03-01T22:00:00.0Z</brdomain:limit><brdomain:description lang="pt">Cadastro Nacional da Pessoa Juridica</brdomain:description></brdomain:doc><brdomain:releaseProc status="waiting"><brdomain:limit>2006-02-01T22:00:00.0Z</brdomain:limit></brdomain:releaseProc></brdomain:pending><brdomain:ticketNumberConc>123451</brdomain:ticketNumberConc><brdomain:ticketNumberConc>123455</brdomain:ticketNumberConc></brdomain:infData></extension>'.$TRID.'</response>'.$E2;
 $rc=$dri->domain_info('example.com.br',{ticket => 123456});
@@ -70,7 +73,7 @@ is($dri->get_info('auto_renew'),1,'domain_info 2 get_info(auto_renew)');
 
 $R2=$E1.'<response>'.r().'<resData><domain:creData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example.com.br</domain:name><domain:crDate>2006-01-30T22:00:00.0Z</domain:crDate></domain:creData></resData><extension><brdomain:creData xmlns:brdomain="urn:ietf:params:xml:ns:brdomain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:brdomain-1.0 brdomain-1.0.xsd"><brdomain:ticketNumber>123456</brdomain:ticketNumber><brdomain:pending><brdomain:dns status="queryTimeOut"><brdomain:hostName>ns1.example.com.br</brdomain:hostName><brdomain:limit>2006-02-13T22:00:00.0Z</brdomain:limit></brdomain:dns><brdomain:doc status="notReceived"><brdomain:docType>CNPJ</brdomain:docType><brdomain:limit>2006-03-01T22:00:00.0Z</brdomain:limit><brdomain:description lang="pt">Cadastro Nacional da Pessoa Juridica</brdomain:description></brdomain:doc></brdomain:pending><brdomain:ticketNumberConc>123451</brdomain:ticketNumberConc><brdomain:ticketNumberConc>123455</brdomain:ticketNumberConc></brdomain:creData></extension>'.$TRID.'</response>'.$E2;
 
-$cs=$dri->local_object('contactset');
+my $cs=$dri->local_object('contactset');
 $co=$dri->local_object('contact')->srid('fan');
 $cs->set($co,'admin');
 $cs->set($co,'tech');

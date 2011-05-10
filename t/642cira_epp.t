@@ -1,4 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
@@ -21,8 +24,7 @@ sub r { my ($c,$m)=@_;  return '<result code="'.($c || 1000).'"><msg>'.($m || 'C
 my $dri=Net::DRI::TrapExceptions->new(10);
 $dri->{trid_factory}=sub { return 'ABC-12345'; };
 $dri->add_registry('CIRA');
-$dri->target('CIRA')->add_current_profile('p1','test=Net::DRI::Protocol::EPP::Extensions::CIRA',{f_send=>\&mysend,f_recv=>\&myrecv});
-print $@->as_string() if $@;
+$dri->target('CIRA')->add_current_profile('p1','epp',{f_send=>\&mysend,f_recv=>\&myrecv});
 
 my ($rc,$co,$h,$toc);
 
@@ -103,15 +105,16 @@ $cs->add($dri->local_object('contact')->srid('transferrant'),'registrant');
 $cs->add($dri->local_object('contact')->srid('transferadmin'),'admin');
 $cs->add($dri->local_object('contact')->srid('transfertech1'),'tech');
 $rc=$dri->domain_transfer_start('onetech.ca',{auth=>{pw=>'password'},contact=>$cs});
-is_string($R1,$E1.'<command><transfer op="request"><domain:transfer xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>onetech.ca</domain:name><domain:authInfo><domain:pw>password</domain:pw></domain:authInfo></domain:transfer></transfer><extension><cira:ciraTransfer xmlns:cira="urn:ietf:params:xml:ns:cira-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:cira-1.0 cira-1.0.xsd"><cira:Registrant>transferrant</cira:Registrant><cira:domainTransferAdmin>transferadmin</cira:domainTransferAdmin><cira:domainTransferTech>transfertech1</cira:domainTransferTech></cira:ciraTransfer></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_transfer_request build');
+is_string($R1,$E1.'<command><transfer op="request"><domain:transfer xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>onetech.ca</domain:name><domain:authInfo><domain:pw>password</domain:pw></domain:authInfo></domain:transfer></transfer><extension><cira:ciraTransfer xmlns:cira="urn:ietf:params:xml:ns:cira-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:cira-1.0 cira-1.0.xsd"><cira:ciraChg><cira:registrant>transferrant</cira:registrant><cira:contact type="admin">transferadmin</cira:contact><cira:contact type="tech">transfertech1</cira:contact></cira:ciraChg></cira:ciraTransfer></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_transfer_request build');
 
 
 ####################################################################################################
 ## Agreement
 
+## Currently the registry expects a non conforming EPP frame with an <extension> inside <command>
 $R2=$E1.'<response>'.r().'<extension><cira:ciraInfo xmlns:cira="urn:ietf:params:xml:ns:cira-1.0"><cira:language>en</cira:language><cira:ciraAgreementVersion>2.0</cira:ciraAgreementVersion><cira:ciraAgreement>REGISTRANT AGREEMENT...complete agreement here</cira:ciraAgreement></cira:ciraInfo></extension>'.$TRID.'</response>'.$E2;
 $rc=$dri->agreement_get('en');
-is_string($R1,$E1.'<extension><cira:ciraInfo xmlns:cira="urn:ietf:params:xml:ns:cira-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:cira-1.0 cira-1.0.xsd"><cira:action>get CIRA latest agreement</cira:action><cira:language>en</cira:language></cira:ciraInfo></extension>'.$E2,'agreement_get build');
+is_string($R1,$E1.'<command><extension><cira:ciraInfo xmlns:cira="urn:ietf:params:xml:ns:cira-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:cira-1.0 cira-1.0.xsd"><cira:action>get CIRA latest agreement</cira:action><cira:language>en</cira:language></cira:ciraInfo></extension></command>'.$E2,'agreement_get build');
 is($rc->get_data('lang'),'en','agreement_get get_data(lang)');
 is($rc->get_data('version'),'2.0','agreement_get get_data(version)');
 is($rc->get_data('content'),'REGISTRANT AGREEMENT...complete agreement here','agreement_get get_data(content)');

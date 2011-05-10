@@ -2,6 +2,7 @@
 ##
 ## Copyright (c) 2007,2008,2009 HEXONET Support GmbH, http://www.hexonet.com,
 ##                    Alexander Biehl <info@hexonet.com>.
+##           (c) 2010 Patrick Mevzek <netdri@dotandco.com>
 ##                    All rights reserved.
 ##
 ## This file is part of Net::DRI
@@ -12,9 +13,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::DRD::NU;
@@ -25,8 +23,6 @@ use warnings;
 use base qw/Net::DRI::DRD/;
 
 use DateTime::Duration;
-
-our $VERSION=do { my @r=(q$Revision: 1.6 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -58,6 +54,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 Copyright (c) 2007,2008,2009 HEXONET Support GmbH, E<lt>http://www.hexonet.comE<gt>,
 Alexander Biehl <info@hexonet.com>.
+(c) 2010 Patrick Mevzek <netdri@dotandco.com>
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify

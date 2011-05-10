@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::VeriSign::PollLowBalance;
@@ -20,8 +17,6 @@ package Net::DRI::Protocol::EPP::Extensions::VeriSign::PollLowBalance;
 use strict;
 
 use Net::DRI::Util;
-
-our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 

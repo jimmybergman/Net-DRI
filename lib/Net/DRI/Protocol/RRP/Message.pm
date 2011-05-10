@@ -1,6 +1,6 @@
 ## Domain Registry Interface, RRP Message
 ##
-## Copyright (c) 2005,2006,2007,2008 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005-2008,2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,22 +10,18 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::RRP::Message;
 
 use strict;
+use warnings;
 
 use Net::DRI::Exception;
 use Net::DRI::Protocol::ResultStatus;
 
 use base qw(Class::Accessor::Chained::Fast Net::DRI::Protocol::Message);
 __PACKAGE__->mk_accessors(qw(version errcode errmsg command));
-
-our $VERSION=do { my @r=(q$Revision: 1.16 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -55,7 +51,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005,2006,2007,2008 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2005-2008,2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -117,7 +113,7 @@ sub result_status
 sub _eppcode
 {
  my $code=shift;
- return (defined($code) && exists($CODES{$code}))? $CODES{$code} : 'GENERIC_ERROR';
+ return (defined $code && exists $CODES{$code})? $CODES{$code} : 'COMMAND_FAILED';
 }
 
 sub as_string

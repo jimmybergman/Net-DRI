@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 #########################################################################################
 
 package Net::DRI::Data::Raw;
@@ -25,8 +22,6 @@ use Net::DRI::Exception;
 
 use base qw(Class::Accessor::Fast);
 __PACKAGE__->mk_ro_accessors(qw(type data hint));
-
-our $VERSION=do { my @r=(q$Revision: 1.11 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -121,7 +116,7 @@ sub as_string
  }
  if ($self->type()==5)
  {
-  Net::DRI::Exception::err_method_not_implemented('as_string in '.ref($data)) unless $data->can('as_string');
+  Net::DRI::Exception::method_not_implemented('as_string',ref $data) unless $data->can('as_string');
   return $data->as_string();
  }
  if ($self->type()==6)

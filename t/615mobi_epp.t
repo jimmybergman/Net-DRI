@@ -1,4 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use strict;
+use warnings;
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
@@ -12,24 +15,14 @@ our $E1='<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="urn:i
 our $E2='</epp>';
 our $TRID='<trID><clTRID>ABC-12345</clTRID><svTRID>54322-XYZ</svTRID></trID>';
 
-our $R1;
-sub mysend
-{
- my ($transport,$count,$msg)=@_;
- $R1=$msg->as_string();
- return 1;
-}
+our ($R1,$R2);
+sub mysend { my ($transport,$count,$msg)=@_; $R1=$msg->as_string(); return 1; } 
+sub myrecv { return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<response>'.r().$TRID.'</response>'.$E2); }
 
-our $R2;
-sub myrecv
-{
- return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<response>'.r().$TRID.'</response>'.$E2);
-}
-
-my $dri=Net::DRI->new(10);
+my $dri=Net::DRI::TrapExceptions->new(10);
 $dri->{trid_factory}=sub { return 'ABC-12345'; };
 $dri->add_registry('MOBI');
-$dri->target('MOBI')->add_current_profile('p1','test=epp',{f_send=>\&mysend,f_recv=>\&myrecv});
+$dri->target('MOBI')->add_current_profile('p1','epp',{f_send=>\&mysend,f_recv=>\&myrecv});
 
 my ($rc,$s,$d,$dh,@c,$co);
 
@@ -49,7 +42,7 @@ is_string($R1,$E1.'<command><create><domain:create xmlns:domain="urn:ietf:params
 
 
 $R2='';
-$toc=$dri->local_object('changes');
+my $toc=$dri->local_object('changes');
 $toc->add('ns',$dri->local_object('hosts')->set('ns2.example.com'));
 $cs=$dri->local_object('contactset');
 $cs->set($dri->local_object('contact')->srid('mak21'),'tech');

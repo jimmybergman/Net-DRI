@@ -1,6 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
-use Test::More tests => 320;
+use strict;
+use warnings;
+
+use Test::More tests => 332;
 
 BEGIN {
 use_ok('Net::DRI');
@@ -72,6 +75,7 @@ use_ok('Net::DRI::DRD::IT');
 use_ok('Net::DRI::DRD::IRegistry');
 use_ok('Net::DRI::DRD::CIRA');
 use_ok('Net::DRI::DRD::GL');
+use_ok('Net::DRI::DRD::ISPAPI');
 use_ok('Net::DRI::Data::Raw');
 use_ok('Net::DRI::Data::Hosts');
 use_ok('Net::DRI::Data::Changes');
@@ -133,6 +137,7 @@ use_ok('Net::DRI::Protocol::EPP::Extensions::GracePeriod');
 use_ok('Net::DRI::Protocol::EPP::Extensions::E164');
 use_ok('Net::DRI::Protocol::EPP::Extensions::SecDNS');
 use_ok('Net::DRI::Protocol::EPP::Extensions::NSgroup');
+use_ok('Net::DRI::Protocol::EPP::Extensions::Keygroup');
 use_ok('Net::DRI::Protocol::EPP::Extensions::EURid');
 use_ok('Net::DRI::Protocol::EPP::Extensions::EURid::Sunrise');
 use_ok('Net::DRI::Protocol::EPP::Extensions::EURid::Domain');
@@ -140,9 +145,9 @@ use_ok('Net::DRI::Protocol::EPP::Extensions::EURid::Contact');
 use_ok('Net::DRI::Protocol::EPP::Extensions::EURid::Message');
 use_ok('Net::DRI::Protocol::EPP::Extensions::EURid::Registrar');
 use_ok('Net::DRI::Protocol::EPP::Extensions::EURid::Notifications');
+use_ok('Net::DRI::Protocol::EPP::Extensions::EURid::IDN');
 use_ok('Net::DRI::Protocol::EPP::Extensions::SE');
 use_ok('Net::DRI::Protocol::EPP::Extensions::SE::Extensions');
-use_ok('Net::DRI::Protocol::EPP::Extensions::SE::Message');
 use_ok('Net::DRI::Protocol::EPP::Extensions::PL');
 use_ok('Net::DRI::Protocol::EPP::Extensions::PL::Domain');
 use_ok('Net::DRI::Protocol::EPP::Extensions::PL::Contact');
@@ -157,6 +162,9 @@ use_ok('Net::DRI::Protocol::EPP::Extensions::VeriSign::NameStore');
 use_ok('Net::DRI::Protocol::EPP::Extensions::VeriSign::PollLowBalance');
 use_ok('Net::DRI::Protocol::EPP::Extensions::VeriSign::PollRGP');
 use_ok('Net::DRI::Protocol::EPP::Extensions::VeriSign::JobsContact');
+use_ok('Net::DRI::Protocol::EPP::Extensions::VeriSign::WhoWas');
+use_ok('Net::DRI::Protocol::EPP::Extensions::VeriSign::PremiumDomain');
+use_ok('Net::DRI::Protocol::EPP::Extensions::VeriSign::Suggestion');
 use_ok('Net::DRI::Protocol::EPP::Extensions::AT::Result');
 use_ok('Net::DRI::Protocol::EPP::Extensions::AT::IOptions');
 use_ok('Net::DRI::Protocol::EPP::Extensions::AT::Message');
@@ -191,7 +199,7 @@ use_ok('Net::DRI::Protocol::EPP::Extensions::CentralNic::WebForwarding');
 use_ok('Net::DRI::Protocol::EPP::Extensions::CentralNic::Release');
 use_ok('Net::DRI::Protocol::EPP::Extensions::ASIA');
 use_ok('Net::DRI::Protocol::EPP::Extensions::ASIA::CED');
-use_ok('Net::DRI::Protocol::EPP::Extensions::ASIA::IPR');
+use_ok('Net::DRI::Protocol::EPP::Extensions::ASIA::Domain');
 use_ok('Net::DRI::Protocol::EPP::Extensions::AU');
 use_ok('Net::DRI::Protocol::EPP::Extensions::AU::Domain');
 use_ok('Net::DRI::Protocol::EPP::Extensions::E164Validation');
@@ -199,6 +207,10 @@ use_ok('Net::DRI::Protocol::EPP::Extensions::E164Validation::RFC5076');
 use_ok('Net::DRI::Protocol::EPP::Extensions::Afilias');
 use_ok('Net::DRI::Protocol::EPP::Extensions::Afilias::IDNLanguage');
 use_ok('Net::DRI::Protocol::EPP::Extensions::Afilias::Restore');
+use_ok('Net::DRI::Protocol::EPP::Extensions::Afilias::IPR');
+use_ok('Net::DRI::Protocol::EPP::Extensions::Afilias::MaintainerUrl');
+use_ok('Net::DRI::Protocol::EPP::Extensions::Afilias::Trademark');
+use_ok('Net::DRI::Protocol::EPP::Extensions::Afilias::Message');
 use_ok('Net::DRI::Protocol::EPP::Extensions::NAME');
 use_ok('Net::DRI::Protocol::EPP::Extensions::NAME::EmailFwd');
 use_ok('Net::DRI::Protocol::EPP::Extensions::Nominet');
@@ -253,6 +265,9 @@ use_ok('Net::DRI::Protocol::EPP::Extensions::CIRA::Notifications');
 use_ok('Net::DRI::Protocol::EPP::Extensions::CIRA::Domain');
 use_ok('Net::DRI::Protocol::EPP::Extensions::CIRA::Contact');
 use_ok('Net::DRI::Protocol::EPP::Extensions::CIRA::Agreement');
+use_ok('Net::DRI::Protocol::EPP::Extensions::ME');
+use_ok('Net::DRI::Protocol::EPP::Extensions::ISPAPI');
+use_ok('Net::DRI::Protocol::EPP::Extensions::ISPAPI::KeyValue');
 use_ok('Net::DRI::Protocol::DAS');
 use_ok('Net::DRI::Protocol::DAS::Message');
 use_ok('Net::DRI::Protocol::DAS::Connection');

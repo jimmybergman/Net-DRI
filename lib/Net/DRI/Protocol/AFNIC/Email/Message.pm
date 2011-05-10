@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 #########################################################################################
 
 package Net::DRI::Protocol::AFNIC::Email::Message;
@@ -27,8 +24,6 @@ use MIME::Entity ();
 
 use Net::DRI::Protocol::ResultStatus;
 use Net::DRI::Util;
-
-our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -128,7 +123,7 @@ sub as_mime
 
  ## Subject : ClientID + Name of operation attempted + TRID
  $m->head->replace('Subject',sprintf('%s %s [%s]',$self->client_auth()->{id},$self->{generated_for},$self->trid()));
- $m->head->replace('X-Mailer',sprintf('Net::DRI %s/%s via %s',$Net::DRI::VERSION,$VERSION,$m->head->get('X-Mailer')));
+ $m->head->replace('X-Mailer',sprintf('Net::DRI/%s via %s',$Net::DRI::VERSION,$m->head->get('X-Mailer')));
  return $m;
 }
 

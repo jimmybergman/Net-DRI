@@ -1,4 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+
+use encoding "iso-8859-15";
+
+use strict;
+use warnings;
 
 use Net::DRI;
 use Net::DRI::Data::Raw;
@@ -12,24 +17,14 @@ our $E1='<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="urn:i
 our $E2='</epp>';
 our $TRID='<trID><clTRID>ABC-12345</clTRID><svTRID>54322-XYZ</svTRID></trID>';
 
-our $R1;
-sub mysend
-{
- my ($transport,$count,$msg)=@_;
- $R1=substr(Net::DRI::Protocol::EPP::Connection->write_message(undef,$msg),4);
- return 1;
-}
-
-our $R2;
-sub myrecv
-{
- return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<response>'.r().$TRID.'</response>'.$E2);
-}
+our ($R1,$R2);
+sub mysend { my ($transport,$count,$msg)=@_; $R1=substr(Net::DRI::Protocol::EPP::Connection->write_message(undef,$msg),4); return 1; }
+sub myrecv { return Net::DRI::Data::Raw->new_from_string($R2? $R2 : $E1.'<response>'.r().$TRID.'</response>'.$E2); }
 
 my $dri=Net::DRI->new(10);
 $dri->{trid_factory}=sub { return 'ABC-12345'; };
 $dri->add_registry('LU');
-$dri->target('LU')->add_current_profile('p1','test=epp',{f_send=>\&mysend,f_recv=>\&myrecv});
+$dri->target('LU')->add_current_profile('p1','epp',{f_send=>\&mysend,f_recv=>\&myrecv});
 
 my $rc;
 my $s;
@@ -61,7 +56,7 @@ is_deeply($dri->get_info('extra','message',1),{'field'=>'some extra information'
 
 $R2=$E1.'<response>'.r().'<resData><contact:infData xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>H0008</contact:id><contact:roid>H3-DNSLU</contact:roid><contact:status s="ok"/><contact:status s="linked"/><contact:postalInfo type="loc"><contact:name>Fondation RESTENA</contact:name><contact:addr><contact:street>6, rue Coudenhove -Kalergi</contact:street><contact:city>Luxembourg</contact:city><contact:pc>1359</contact:pc><contact:cc>LU</contact:cc></contact:addr></contact:postalInfo><contact:email>dummy@dns.lu</contact:email><contact:clID>restena-id</contact:clID><contact:crID>restena-id</contact:crID><contact:crDate>2005-10-05T07:37:10Z</contact:crDate><contact:upID>restena-id</contact:upID><contact:upDate>2005-11-17T12:59:11Z</contact:upDate></contact:infData></resData><extension><dnslu:ext xmlns:dnslu="http://www.dns.lu/xml/epp/dnslu-1.0" xmlns:xsi="http://www.w3.org/200/10/XMLSchema-instance" xsi:schemaLocation="http://www.dns.lu/xml/epp/dnslu-1.0.xsd"><dnslu:resData><dnslu:infData><dnslu:contact><dnslu:type>holder_org</dnslu:type><dnslu:disclose><dnslu:name flag="1"/><dnslu:addr flag="0"/></dnslu:disclose></dnslu:contact></dnslu:infData></dnslu:resData></dnslu:ext></extension>'.$TRID.'</response>'.$E2; 
 
-$co=$dri->local_object('contact')->srid('H0008');
+my $co=$dri->local_object('contact')->srid('H0008');
 $rc=$dri->contact_info($co);
 is($rc->is_success(),1,'contact_info is_success');
 is($dri->get_info('action'),'info','contact_info get_info(action)');
@@ -104,7 +99,7 @@ is_string($R1,$E1.'<command><create><contact:create xmlns:contact="urn:ietf:para
 
 $R2='';
 $co=$dri->local_object('contact')->srid('H100');
-$toc=$dri->local_object('changes');
+my $toc=$dri->local_object('changes');
 my $co2=$dri->local_object('contact');
 $co2->name('Gilles Massen');
 $co2->street(['Building A','Department X','rue de Luxembourg 10']);
@@ -140,7 +135,7 @@ is_string($R1,$E1.'<command><create><domain:create xmlns:domain="urn:ietf:params
 
 
 $R2='';
-my $toc=$dri->local_object('changes');
+$toc=$dri->local_object('changes');
 $cs=$dri->local_object('contactset');
 $cs->set($dri->local_object('contact')->srid('C100'),'admin');
 $cs->set($dri->local_object('contact')->srid('C100'),'tech');

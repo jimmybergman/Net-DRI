@@ -1,6 +1,6 @@
 ## Domain Registry Interface, virtual superclass for all DRD modules
 ##
-## Copyright (c) 2005-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005-2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::DRD;
@@ -24,12 +21,12 @@ use base qw/Net::DRI::BaseClass/;
 __PACKAGE__->make_exception_if_not_implemented(qw/name tlds object_types periods profile_types transport_protocol_default/); ## methods that should be in subclasses
 
 use DateTime;
+use DateTime::Duration;
 
 use Net::DRI::Exception;
 use Net::DRI::Util;
 use Net::DRI::DRD::ICANN;
-
-our $VERSION=do { my @r=(q$Revision: 1.33 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
+use Net::DRI::Data::Raw;
 
 =pod
 
@@ -95,6 +92,11 @@ sub new
 {
  my ($class,@r)=@_;
  my $self={ info => defined $r[0] ? $r[0] : {} };
+ if (exists $self->{info}->{clid})
+ {
+  $self->{info}->{client_id}=$self->{info}->{clid};
+  delete $self->{info}->{clid};
+ }
  bless($self,$class);
  return $self;
 }
@@ -102,9 +104,9 @@ sub new
 sub info
 {
  my ($self,$ndr,$key)=@_;
- $key=$ndr unless (defined($ndr) && $ndr && (ref($ndr) eq 'Net::DRI::Registry'));
- return unless defined($self->{info});
- return unless (defined($key) && exists($self->{info}->{$key}));
+ $key=$ndr unless (defined $ndr && $ndr && (ref $ndr  eq 'Net::DRI::Registry'));
+ return unless defined $self->{info};
+ return unless defined $key && exists $self->{info}->{$key};
  return $self->{info}->{$key};
 }
 
@@ -127,19 +129,23 @@ sub _verify_name_rules
  {
   my $dots=$rules->{check_name_dots};
   if (! defined $dots) { $dots=$self->dots(); }
-  my $r=$self->check_name($domain,$dots);
-  if ($r) { return $r; }
+  my $r=$self->check_name($domain,$dots,exists $rules->{check_name_unicode} ? $rules->{check_name_unicode} : 0);
+  if (length $r) { return $r; }
  }
 
  if (exists $rules->{check_name_no_dots} && $rules->{check_name_no_dots})
  {
   my $r=$self->check_name($domain);
-  if ($r) { return $r; }
+  if (length $r) { return $r; }
  }
 
  if (exists $rules->{my_tld} && $rules->{my_tld} && ! $self->is_my_tld($domain)) { return 'NAME_NOT_IN_TLD'; }
  if (exists $rules->{my_tld_not_strict} && $rules->{my_tld_not_strict} && ! $self->is_my_tld($domain,0)) { return 'NAME_NOT_IN_TLD'; }
- if (exists $rules->{icann_reserved} && $rules->{icann_reserved} && Net::DRI::DRD::ICANN::is_reserved_name($domain,$op)) { return 'NAME_RESERVED_PER_ICANN_RULES'; }
+ if (exists $rules->{icann_reserved} && $rules->{icann_reserved})
+ {
+  my $ri=Net::DRI::DRD::ICANN::is_reserved_name($domain,$op);
+  return $ri if length $ri;
+ }
 
  my @d=split(/\./,$domain);
  if (exists $rules->{min_length} && $rules->{min_length} && length($d[0]) < $rules->{min_length}) { return 'NAME_TOO_SHORT'; }
@@ -185,7 +191,7 @@ sub has_object
 sub registry_can
 {
  my ($self,$ndr,$what)=@_;
- return ($self->UNIVERSAL::can($what) && ! grep { $what eq $_ } $self->unavailable_operations())? 1 : 0;
+ return (eval { $self->can($what); } && ! grep { $what eq $_ } $self->unavailable_operations())? 1 : 0;
 }
 
 ## It would be probably more useful to know the list of available ones !
@@ -224,13 +230,13 @@ sub verify_name_host
 
 sub check_name
 {
- my ($self,$ndr,$data,$dots)=@_;
- ($data,$dots)=($ndr,$data) unless (defined($ndr) && $ndr && (ref($ndr) eq 'Net::DRI::Registry'));
+ my ($self,$ndr,$data,$dots,$unicode)=@_;
+ ($data,$dots,$unicode)=($ndr,$data,$dots) unless (defined($ndr) && $ndr && (ref($ndr) eq 'Net::DRI::Registry'));
 
  return 'UNDEFINED_NAME' unless defined $data;
- return 'ZERO_LENGTH_NAME' unless length $data;
  return 'NON_SCALAR_NAME' unless !ref($data);
- return 'INVALID_HOSTNAME' unless Net::DRI::Util::is_hostname($data);
+ return 'ZERO_LENGTH_NAME' unless length $data;
+ return 'INVALID_HOSTNAME' unless Net::DRI::Util::is_hostname($data,$unicode);
  if (defined($dots) && $data!~m/\.e164\.arpa$/)
  {
   my @d=split(/\./,$data);
@@ -244,7 +250,6 @@ sub check_name
 sub verify_duration_create
 {
  my ($self,$ndr,$duration,$domain)=@_;
- ($duration,$domain)=($ndr,$duration) unless (defined($ndr) && $ndr && (ref($ndr) eq 'Net::DRI::Registry'));
 
  my @d=$self->periods();
  return 1 unless @d;
@@ -255,7 +260,6 @@ sub verify_duration_create
 sub verify_duration_renew
 {
  my ($self,$ndr,$duration,$domain,$curexp)=@_;
- ($duration,$domain,$curexp)=($ndr,$duration,$domain) unless (defined($ndr) && $ndr && (ref($ndr) eq 'Net::DRI::Registry'));
 
  my @d=$self->periods();
  if (defined($duration) && @d)
@@ -269,7 +273,7 @@ sub verify_duration_renew
   }
   return 1 unless $ok;
 
-  if (defined($curexp) && UNIVERSAL::isa($curexp,'DateTime'))
+  if (defined $curexp && Net::DRI::Util::is_class($curexp,'DateTime'))
   {
    my $maxdelta=$d[-1];
    my $newexp=$curexp+$duration; ## New expiration
@@ -285,9 +289,25 @@ sub verify_duration_renew
 sub verify_duration_transfer
 {
  my ($self,$ndr,$duration,$domain,$op)=@_;
- ($duration,$domain,$op)=($ndr,$duration,$domain) unless (defined($ndr) && $ndr && (ref($ndr) eq 'Net::DRI::Registry'));
 
  return 0; ## everything ok
+}
+
+## A common case; we can not start a transfer, if domain name has already been transfered less than 15 days ago.
+sub _verify_duration_transfer_15days
+{
+ my ($self,$ndr,$duration,$domain,$op)=@_;
+
+ return 0 unless ($op eq 'start'); ## we are not interested by other cases, they are always OK
+ my $rc=$self->domain_info($ndr,$domain,{hosts=>'none'});
+ return 1 unless ($rc->is_success());
+ my $trdate=$ndr->get_info('trDate');
+ return 0 unless ($trdate && $trdate->isa('DateTime'));
+
+ my $now=DateTime->now(time_zone => $trdate->time_zone()->name());
+ my $cmp=DateTime->compare($now,$trdate+DateTime::Duration->new(days => 15));
+ return ($cmp == 1)? 0 : 1; ## we must have : now > transferdate + 15days
+ ## we return 0 if OK, anything else if not
 }
 
 ####################################################################################################
@@ -303,13 +323,13 @@ sub enforce_host_name_constraints
 {
  my ($self,$ndr,$dh,$checktld)=@_;
  my $err=$self->verify_name_host($ndr,$dh,$checktld);
- Net::DRI::Exception->die(0,'DRD',2,'Invalid host name (error '.$err.'): '.((UNIVERSAL::isa($dh,'Net::DRI::Data::Hosts'))? $dh->get_names(1) : (defined $dh? $dh : '?'))) if length $err;
+ Net::DRI::Exception->die(0,'DRD',2,'Invalid host name (error '.$err.'): '.((Net::DRI::Util::is_class($dh,'Net::DRI::Data::Hosts'))? $dh->get_names(1) : (defined $dh? $dh : '?'))) if length $err;
 }
 
 sub err_invalid_contact
 {
  my ($self,$c)=@_;
- Net::DRI::Exception->die(0,'DRD',6,'Invalid contact: '.((defined($c) && $c && UNIVERSAL::can($c,'srid'))? $c->srid() : '?'));
+ Net::DRI::Exception->die(0,'DRD',6,'Invalid contact (should be a Contact object with a srid value): '.((defined $c && $c && eval { $c->can('srid'); } )? $c->srid() : '?'));
 }
 
 ####################################################################################################
@@ -319,199 +339,239 @@ sub err_invalid_contact
 sub domain_create
 {
  my ($self,$ndr,$domain,$rd)=@_;
- $self->enforce_domain_name_constraints($ndr,$domain,'create');
- my %rd=(defined($rd) && (ref($rd) eq 'HASH'))? %$rd : ();
- my $pure=(exists($rd{pure_create}) && $rd{pure_create})? 1 : 0;
- delete($rd{pure_create});
- my ($rc,$rcl);
+ my @rs;
 
- if (!$pure)
+ $self->enforce_domain_name_constraints($ndr,$domain,'create');
+ $rd=Net::DRI::Util::create_params('domain_create',$rd);
+ my $pure=(Net::DRI::Util::has_key($rd,'pure_create') && $rd->{pure_create})? 1 : 0;
+ delete $rd->{pure_create};
+
+ if (! $pure)
  {
-  $rcl=$self->domain_check($ndr,$domain,$rd);
-  return $rcl unless ($rcl->is_success() && $rcl->get_data('domain',$domain,'exist')==0);
-  $rc=$rcl;
+  my $rs=$self->domain_check($ndr,$domain,$rd);
+  push @rs,$rs;
+  return Net::DRI::Util::link_rs(@rs) unless ($rs->is_success() && $rs->local_get_data('domain',$domain,'exist')==0);
  }
 
  my $nsin=$ndr->local_object('hosts');
  my $nsout=$ndr->local_object('hosts');
- Net::DRI::Util::check_isa($rd{ns},'Net::DRI::Data::Hosts') if (exists($rd{ns})); ## test needed in both cases
+ Net::DRI::Util::check_isa($rd->{ns},'Net::DRI::Data::Hosts') if Net::DRI::Util::has_key($rd,'ns'); ## test needed in both cases
 
  ## If not pure domain creation, separate nameservers (inside & outside of domain) and then create outside nameservers if needed
- if (!$pure && exists($rd{ns}) && $self->has_object('ns'))
+ if (! $pure && exists $rd->{ns} && $self->has_object('ns'))
  {
-  foreach (1..$rd{ns}->count())
+  foreach my $i (1..$rd->{ns}->count())
   {
-   my @a=$rd{ns}->get_details($_);
+   my @a=$rd->{ns}->get_details($i);
    if ($a[0]=~m/^(.+\.)?${domain}$/i)
    {
     $nsin->add(@a);
    } else
    {
-    my $ns=$ndr->local_object('hosts')->set(@a);
+    my $ns=$ndr->local_object('hosts')->set(\@a);
     my $e=$self->host_exist($ndr,$ns);
     unless (defined $e && $e==1)
     {
-     $rcl=$self->host_create($ndr,$ns);
-     if (defined $rc) { $rc->_add_last($rcl); } else { $rc=$rcl; }
-     return $rc unless $rcl->is_success();
+     my $rs=$self->host_create($ndr,$ns);
+     push @rs,$rs;
+     return Net::DRI::Util::link_rs(@rs) unless $rs->is_success();
     }
     $nsout->add(@a);
    }
   }
-  $rd{ns}=$nsout;
+  $rd->{ns}=$nsout;
  }
 
  ## If not pure domain creation, and if contacts are used make sure they exist as objects in the registry if needed
- if (!$pure && exists($rd{contact}) && Net::DRI::Util::isa_contactset($rd{contact}) && $self->has_object('contact'))
+ if (! $pure && exists $rd->{contact} && Net::DRI::Util::isa_contactset($rd->{contact}) && $self->has_object('contact'))
  {
   my %cd;
-  foreach my $t ($rd{contact}->types())
+  foreach my $t ($rd->{contact}->types())
   {
-   foreach my $co ($rd{contact}->get($t))
+   foreach my $co ($rd->{contact}->get($t))
    {
-    next if exists($cd{$co->srid()});
+    next if exists $cd{$co->srid()};
     my $e=$self->contact_exist($ndr,$co);
     unless (defined $e && $e==1)
     {
-     $rcl=$self->contact_create($ndr,$co);
-     if (defined $rc) { $rc->_add_last($rcl); } else { $rc=$rcl; }
-     return $rc unless $rcl->is_success();
+     my $rs=$self->contact_create($ndr,$co);
+     push @rs,$rs;
+     return Net::DRI::Util::link_rs(@rs) unless $rs->is_success();
     }
     $cd{$co->srid()}=1;
    }
   }
  }
 
- Net::DRI::Exception->die(0,'DRD',3,'Invalid duration') if (exists($rd{duration}) && defined($rd{duration}) && ((ref($rd{duration}) ne 'DateTime::Duration') || $self->verify_duration_create($rd{duration},$domain)));
- $rcl=$ndr->process('domain','create',[$domain,\%rd]);
- return $rcl if $pure; ## pure domain creation we do not bother with other stuff and we stop here
- ## From now on, we are sure $rc is defined
- $rc->_add_last($rcl);
- return $rc unless $rcl->is_success();
+ Net::DRI::Exception->die(0,'DRD',3,'Invalid duration') if (Net::DRI::Util::has_key($rd,'duration') && ((ref $rd->{duration} ne 'DateTime::Duration') || $self->verify_duration_create($ndr,$rd->{duration},$domain)));
+ my $rs=$ndr->process('domain','create',[$domain,$rd]);
+ return $rs if $pure; ## pure domain creation we do not bother with other stuff and we stop here
+ ## From now on, we are sure $rs is defined
+ push @rs,$rs;
+ return Net::DRI::Util::link_rs(@rs) unless $rs->is_success();
 
  ## Create inside nameservers and add them to the domain
  unless ($nsin->is_empty())
  {
-  foreach (1..$nsin->count())
+  foreach my $i (1..$nsin->count())
   {
-   my $ns=$ndr->local_object('hosts')->set($nsin->get_details($_));
-   $rcl=$self->host_create($ndr,$ns);
-   $rc->_add_last($rcl);
-   return $rc unless $rcl->is_success();
+   my @a=$nsin->get_details($i);
+   my $ns=$ndr->local_object('hosts')->set(\@a);
+   my $rs=$self->host_create($ndr,$ns);
+   push @rs,$rs;
+   return Net::DRI::Util::link_rs(@rs) unless $rs->is_success();
   }
 
-  $rcl=$ndr->protocol_capable('domain_update','ns','add')? $self->domain_update_ns_add($ndr,$domain,$nsin) : $self->domain_update_ns_set($ndr,$domain,$nsin);
-  $rc->_add_last($rcl);
-  return $rc unless $rcl->is_success();
+  my $rs=$ndr->protocol_capable('domain_update','ns','add')? $self->domain_update_ns_add($ndr,$domain,$nsin) : $self->domain_update_ns_set($ndr,$domain,$nsin);
+  push @rs,$rs;
+  return Net::DRI::Util::link_rs(@rs) unless $rs->is_success();
  }
 
  ## Add status to domain, if provided
- if (exists($rd{status}))
+ if (Net::DRI::Util::has_key($rd,'status'))
  {
-  $rcl=$ndr->protocol_capable('domain_update','status','add')? $self->domain_update_status_add($ndr,$domain,$rd{status}) : $self->domain_update_status_set($ndr,$domain,$rd{status});
-  $rc->_add_last($rcl);
-  return $rc unless $rcl->is_success();
+  my $rs=$ndr->protocol_capable('domain_update','status','add')? $self->domain_update_status_add($ndr,$domain,$rd->{status}) : $self->domain_update_status_set($ndr,$domain,$rd->{status});
+  push @rs,$rs;
+  return Net::DRI::Util::link_rs(@rs) unless $rs->is_success();
  }
 
  ## Do a final info to populate the local cache
  if ($ndr->protocol()->has_action('domain','info'))
  {
-  $rcl=$self->domain_info($ndr,$domain);
-  $rc->_add_last($rcl);
+  my $rs=$self->domain_info($ndr,$domain);
+  push @rs,$rs;
  }
 
- return $rc;
+ return Net::DRI::Util::link_rs(@rs);
 }
 
 sub domain_delete
 {
  my ($self,$ndr,$domain,$rd)=@_;
  $self->enforce_domain_name_constraints($ndr,$domain,'delete');
- my %rd=(defined($rd) && (ref($rd) eq 'HASH'))? %$rd : ();
- my $rc;
+ $rd=Net::DRI::Util::create_params('domain_delete',$rd);
+ my $pure=(Net::DRI::Util::has_key($rd,'pure_delete') && $rd->{pure_delete})? 1 : 0;
+ delete $rd->{pure_delete};
 
- if ((! exists($rd{pure_delete})) || $rd{pure_delete}==0)
+ my (@rs,$rs);
+
+ ## This will make sure we get rid of in-bailiwick nameservers in some way, otherwise in their presence the domain delete would fail
+ if (! $pure)
  {
-  $rc=$self->domain_info($ndr,$domain);
-  return $rc unless $rc->is_success();
+  $rs=$self->domain_info($ndr,$domain);
+  push @rs,$rs;
+  return Net::DRI::Util::link_rs(@rs) unless $rs->is_success();
 
-  ## This will make sure we remove in-bailiwick nameservers, otherwise the final delete would fail
+  ## First remove all nameservers attached to domain name in case some of them are subordinates of the domain itself
   my $ns=$ndr->get_info('ns');
-  if (defined($ns) && !$ns->is_empty())
+  if (defined $ns && !$ns->is_empty())
   {
-   my $rcn=$self->domain_update_ns_del($ndr,$domain,$ns);
-   $rc->_add_last($rcn);
-   return $rc unless $rc->is_success();
+   $rs=$self->domain_update_ns_del($ndr,$domain,$ns);
+   push @rs,$rs;
+   return Net::DRI::Util::link_rs(@rs) unless $rs->is_success();
+  }
+
+  ## Now try to delete all subordinate hosts, or else (deletion will fail if hosts are used as nameservers for other domain names at registry) rename them somewhere if possible
+  $ns=$ndr->get_info('subordinate_hosts');
+  if (defined $ns && !$ns->is_empty() && $self->has_object('ns'))
+  {
+   my $base=$rd->{subordinate_rename};
+   foreach my $nsname ($ns->get_names())
+   {
+    $rs=$self->host_delete($ndr,$nsname);
+    push @rs,$rs;
+    return Net::DRI::Util::link_rs(@rs) unless ($rs->is_success() || ($rs->is('OBJECT_ASSOCIATION_PROHIBITS_OPERATION') && defined $base));
+    if (! $rs->is_success())
+    {
+     $rs=$self->host_update_name_set($ndr,$nsname.'.'.$base);
+     push @rs,$rs;
+     return Net::DRI::Util::link_rs(@rs) unless $rs->is_success();
+    }
+   }
   }
  }
- delete($rd{pure_delete});
 
- my $rcn=$ndr->process('domain','delete',[$domain,\%rd]);
- if (defined $rc)
- {
-  $rc->_add_last($rcn);
- } else
- {
-  $rc=$rcn;
- }
- return $rc;
+ $rs=$ndr->process('domain','delete',[$domain,$rd]);
+ push @rs,$rs;
+ return Net::DRI::Util::link_rs(@rs);
 }
 
 sub domain_info
 {
  my ($self,$ndr,$domain,$rd)=@_;
  $self->enforce_domain_name_constraints($ndr,$domain,'info');
-
  my $rc=$ndr->try_restore_from_cache('domain',$domain,'info');
- if (! defined $rc) { $rc=$ndr->process('domain','info',[$domain,$rd]); }
+ if (! defined $rc)
+ {
+  $rd=Net::DRI::Util::create_params('domain_info',$rd);
+  $rc=$ndr->process('domain','info',[$domain,$rd]);
+ }
  return $rc;
 }
 
 sub domain_check
 {
- my ($self,$ndr,$domain,$rd)=@_;
- $self->enforce_domain_name_constraints($ndr,$domain,'check');
-
- my $rc=$ndr->try_restore_from_cache('domain',$domain,'check');
- if (! defined $rc) { $rc=$ndr->process('domain','check',[$domain,$rd]); }
- return $rc;
-}
-
-sub domain_check_multi
-{
- my ($self,$ndr,@r)=@_;
- my $rd;
- $rd=pop(@r) if ($r[-1] && (ref($r[-1]) eq 'HASH'));
- my $rc;
- my @d;
- foreach my $domain (@r)
+ my ($self,$ndr,@p)=@_;
+ my (@names,$rd);
+ foreach my $p (@p)
  {
-  $self->enforce_domain_name_constraints($ndr,$domain,'check');
-  $rc=$ndr->try_restore_from_cache('domain',$domain,'check');
-  if (! defined $rc) { push @d,$domain; }
- }
-
- if (@d)
- {
-  if ($ndr->protocol()->has_action('domain','check_multi'))
+  if (defined $p && ref $p eq 'HASH')
   {
-   $rc=$ndr->process('domain','check_multi',[\@d,$rd]);
+   Net::DRI::Exception::usererr_invalid_parameters('Only one optional ref hash with extra parameters is allowed in domain_check') if defined $rd;
+   $rd=Net::DRI::Util::create_params('domain_check',$p);
+   next;
+  }
+  $self->enforce_domain_name_constraints($ndr,$p,'check');
+  push @names,$p;
+ }
+ Net::DRI::Exception::usererr_insufficient_parameters('domain_check needs at least one domain name to check') unless @names;
+ $rd={} unless defined $rd;
+
+ my (@rs,@todo);
+ my (%seendom,%seenrc);
+ foreach my $domain (@names)
+ {
+  next if exists $seendom{$domain};
+  $seendom{$domain}=1;
+  my $rs=$ndr->try_restore_from_cache('domain',$domain,'check');
+  if (! defined $rs)
+  {
+   push @todo,$domain;
   } else
   {
-   foreach my $domain (@d)
-   {
-    $rc=$ndr->process('domain','check',[$domain,$rd]);
-   }
+   push @rs,$rs unless exists $seenrc{''.$rs}; ## Some ResultStatus may relate to multiple domain names (this is why we are doing this anyway !), so make sure not to use the same ResultStatus multiple times
+   $seenrc{''.$rs}=1;
   }
  }
- return $rc; ## this is the result status of last call, maybe we should chain them using ResultStatus->next() ?
+
+ return Net::DRI::Util::link_rs(@rs) unless @todo;
+
+ if (@todo > 1 && $ndr->protocol()->has_action('domain','check_multi'))
+ {
+  my $l=$self->info('check_limit');
+  if (! defined $l)
+  {
+   $ndr->log_output('notice','core','No check_limit specified in driver, assuming 10 for domain_check action. Please report if you know the correct value');
+   $l=10;
+  }
+  while (@todo)
+  {
+   my @lt=splice(@todo,0,$l);
+   push @rs,$ndr->process('domain','check_multi',[\@lt,$rd]);
+  }
+ } else ## either one domain only, or more than one but no check_multi available at protocol level
+ {
+  push @rs,map { $ndr->process('domain','check',[$_,$rd]); } @todo;
+ }
+
+ return Net::DRI::Util::link_rs(@rs);
 }
 
 sub domain_exist ## 1/0/undef
 {
  my ($self,$ndr,$domain,$rd)=@_;
 
- my $rc=$ndr->domain_check($domain,$rd);
+ my $rc=$ndr->domain_check($domain,defined $rd ? $rd : ());
  return unless $rc->is_success();
  return $ndr->get_info('exist');
 }
@@ -520,6 +580,7 @@ sub domain_update
 {
  my ($self,$ndr,$domain,$tochange,$rd)=@_;
  $self->enforce_domain_name_constraints($ndr,$domain,'update');
+ $rd=Net::DRI::Util::create_params('domain_update',$rd);
  Net::DRI::Util::check_isa($tochange,'Net::DRI::Data::Changes');
  Net::DRI::Exception->new(0,'DRD',4,'Registry does not handle contacts') if ($tochange->all_defined('contact') && ! $self->has_object('contact'));
 
@@ -606,29 +667,17 @@ sub domain_update_contact
  {
   return $self->domain_update($ndr,$domain,$ndr->local_object('changes')->set('contact',$cadd),$rd);
  }
-} 
+}
 
 sub domain_renew
 {
- my ($self,$ndr,$domain,$rd,@e)=@_; ## Previous API : ($self,$ndr,$domain,$duration,$curexp,$deletedate,$rd)
- if (@e)
- {
-  my ($duration,$curexp,$deletedate,$rd2)=($rd,@e);
-  $rd2={} unless (defined($rd2) && (ref($rd2) eq 'HASH'));
-  $rd2->{duration}=$duration if (defined($duration));
-  $rd2->{current_expiration}=$curexp if (defined($curexp));
-  ## deletedate should never have been there, a bug probably
-  $rd=$rd2;
- } elsif (defined($rd) && (ref($rd) ne 'HASH'))
- {
-  $rd={duration => $rd};
- }
+ my ($self,$ndr,$domain,$rd)=@_;
 
  $self->enforce_domain_name_constraints($ndr,$domain,'renew');
-
- Net::DRI::Util::check_isa($rd->{duration},'DateTime::Duration') if defined($rd->{duration});
- Net::DRI::Util::check_isa($rd->{current_expiration},'DateTime') if defined($rd->{current_expiration});
- Net::DRI::Exception->die(0,'DRD',3,'Invalid duration') if $self->verify_duration_renew($rd->{duration},$domain,$rd->{current_expiration});
+ $rd=Net::DRI::Util::create_params('domain_renew',$rd);
+ Net::DRI::Util::check_isa($rd->{duration},'DateTime::Duration') if Net::DRI::Util::has_key($rd,'duration');
+ Net::DRI::Util::check_isa($rd->{current_expiration},'DateTime') if Net::DRI::Util::has_key($rd,'current_expiration');
+ Net::DRI::Exception->die(0,'DRD',3,'Invalid duration') if $self->verify_duration_renew($ndr,$rd->{duration},$domain,$rd->{current_expiration});
 
  return $ndr->process('domain','renew',[$domain,$rd]);
 }
@@ -636,10 +685,11 @@ sub domain_renew
 sub domain_transfer
 {
  my ($self,$ndr,$domain,$op,$rd)=@_;
- $self->enforce_domain_name_constraints($ndr,$domain,'transfer');
- Net::DRI::Exception::usererr_invalid_parameters('Transfer operation must be start,stop,accept,refuse or query') unless ($op=~m/^(?:start|stop|query|accept|refuse)$/);
 
- Net::DRI::Exception->die(0,'DRD',3,'Invalid duration') if $self->verify_duration_transfer($ndr,(defined($rd) && (ref($rd) eq 'HASH') && exists($rd->{duration}))? $rd->{duration} : undef,$domain,$op);
+ $self->enforce_domain_name_constraints($ndr,$domain,'transfer');
+ $rd=Net::DRI::Util::create_params('domain_transfer',$rd);
+ Net::DRI::Exception::usererr_invalid_parameters('Transfer operation must be start,stop,accept,refuse or query') unless ($op=~m/^(?:start|stop|query|accept|refuse)$/);
+ Net::DRI::Exception->die(0,'DRD',3,'Invalid duration') if Net::DRI::Util::has_key($rd,'duration') && $self->verify_duration_transfer($ndr,$rd->{duration},$domain,$op);
 
  my $rc;
  if ($op eq 'start')
@@ -653,7 +703,6 @@ sub domain_transfer
   $rc=$ndr->process('domain','transfer_query',[$domain,$rd]);
  } else ## accept/refuse
  {
-  $rd={} unless (defined($rd) && (ref($rd) eq 'HASH'));
   $rd->{approve}=($op eq 'accept')? 1 : 0;
   $rc=$ndr->process('domain','transfer_answer',[$domain,$rd]);
  }
@@ -692,7 +741,7 @@ sub domain_status_allows
 
  return 0 unless ($what=~m/^(?:delete|update|transfer|renew)$/);
  my $s=$self->domain_current_status($ndr,$domain,$rd);
- return 0 unless (defined($s));
+ return 0 unless defined $s;
 
  return $s->can_delete()   if ($what eq 'delete');
  return $s->can_update()   if ($what eq 'update');
@@ -714,15 +763,12 @@ sub domain_current_status
 sub domain_is_mine
 {
  my ($self,$ndr,$domain,$rd)=@_;
- my $clid=$self->info('clid');
- return 0 unless defined($clid);
- my $id;
- eval
- {
-  my $rc=$self->domain_info($ndr,$domain,$rd);
-  $id=$ndr->get_info('clID') if ($rc->is_success());
- };
- return 0 unless (!$@ && defined($id));
+ my $clid=$self->info('client_id');
+ return unless defined $clid;
+ my $rc=$self->domain_info($ndr,$domain,$rd);
+ return unless $rc->is_success();
+ my $id=$ndr->get_info('clID');
+ return unless defined $id;
  return ($clid=~m/^${id}$/)? 1 : 0;
 }
 
@@ -733,7 +779,8 @@ sub domain_is_mine
 sub host_create
 {
  my ($self,$ndr,$dh,$rh)=@_;
- my $name=(UNIVERSAL::isa($dh,'Net::DRI::Data::Hosts'))? $dh->get_details(1) : $dh;
+ $rh=Net::DRI::Util::create_params('host_create',$rh);
+ my $name=Net::DRI::Util::isa_hosts('$dh')? $dh->get_details(1) : $dh;
  $self->enforce_host_name_constraints($ndr,$name,0);
 
  my $rc=$ndr->process('host','create',[$dh,$rh]);
@@ -743,7 +790,8 @@ sub host_create
 sub host_delete
 {
  my ($self,$ndr,$dh,$rh)=@_;
- my $name=(UNIVERSAL::isa($dh,'Net::DRI::Data::Hosts'))? $dh->get_details(1) : $dh;
+ $rh=Net::DRI::Util::create_params('host_delete',$rh);
+ my $name=Net::DRI::Util::isa_hosts('$dh')? $dh->get_details(1) : $dh;
  $self->enforce_host_name_constraints($ndr,$name);
 
  my $rc=$ndr->process('host','delete',[$dh,$rh]);
@@ -753,7 +801,8 @@ sub host_delete
 sub host_info
 {
  my ($self,$ndr,$dh,$rh)=@_;
- my $name=(UNIVERSAL::isa($dh,'Net::DRI::Data::Hosts'))? $dh->get_details(1) : $dh;
+ $rh=Net::DRI::Util::create_params('host_info',$rh);
+ my $name=Net::DRI::Util::isa_hosts('$dh')? $dh->get_details(1) : $dh;
  $self->enforce_host_name_constraints($ndr,$name);
 
  my $rc=$ndr->try_restore_from_cache('host',$name,'info');
@@ -765,51 +814,67 @@ sub host_info
 
 sub host_check
 {
- my ($self,$ndr,$dh,$rh)=@_;
- my $name=UNIVERSAL::isa($dh,'Net::DRI::Data::Hosts')? $dh->get_details(1) : $dh;
- $self->enforce_host_name_constraints($ndr,$name);
-
- my $rc=$ndr->try_restore_from_cache('host',$name,'check');
- if (! defined $rc) { $rc=$ndr->process('host','check',[$dh,$rh]); }
- return $rc;
-}
-
-sub host_check_multi
-{
- my $self=shift;
- my $ndr=shift;
-
- my $rh;
- $rh=pop(@_) if ($_[-1] && (ref($_[-1]) eq 'HASH'));
- my ($rc,@h);
- foreach my $host (map {UNIVERSAL::isa($_,'Net::DRI::Data::Hosts')? $_->get_names() : $_ } @_)
+ my ($self,$ndr,@p)=@_;
+ my (@names,$rd);
+ foreach my $p (map { defined && Net::DRI::Util::isa_hosts($_,1) ? $_->get_names() : $_ } @p)
  {
-  $self->enforce_host_name_constraints($ndr,$host);
-  $rc=$ndr->try_restore_from_cache('host',$host,'check');
-  if (! defined $rc) { push @h,$host; }
- }
-
- if (@h)
- {
-  if ($ndr->protocol()->has_action('host','check_multi'))
+  if (defined $p && ref $p eq 'HASH')
   {
-   $rc=$ndr->process('host','check_multi',[\@h,$rh]);
+   Net::DRI::Exception::usererr_invalid_parameters('Only one optional ref hash with extra parameters is allowed in host_check') if defined $rd;
+   $rd=Net::DRI::Util::create_params('host_check',$p);
+   next;
+  }
+  $self->enforce_host_name_constraints($ndr,$p);
+  push @names,$p;
+ }
+ Net::DRI::Exception::usererr_insufficient_parameters('host_check needs at least one domain name to check') unless @names;
+ $rd={} unless defined $rd;
+
+ my (@rs,@todo);
+ my (%seenhost,%seenrc);
+ foreach my $host (@names)
+ {
+  next if exists $seenhost{$host};
+  $seenhost{$host}=1;
+  my $rs=$ndr->try_restore_from_cache('host',$host,'check');
+  if (! defined $rs)
+  {
+   push @todo,$host;
   } else
   {
-   foreach my $host (@h)
-   {
-    $rc=$ndr->process('host','check',[$host,$rh]);
-   }
+   push @rs,$rs unless exists $seenrc{''.$rs}; ## Some ResultStatus may relate to multiple host names (this is why we are doing this anyway !), so make sure not to use the same ResultStatus multiple times
+   $seenrc{''.$rs}=1;
   }
  }
- return $rc; ## see comment in domain_check_multi
+
+ return Net::DRI::Util::link_rs(@rs) unless @todo;
+
+ if (@todo > 1 && $ndr->protocol()->has_action('host','check_multi'))
+ {
+  my $l=$self->info('check_limit');
+  if (! defined $l)
+  {
+   $ndr->log_output('notice','core','No check_limit specified in driver, assuming 10 for host_check action. Please report if you know the correct value');
+   $l=10;
+  }
+  while (@todo)
+  {
+   my @lt=splice(@todo,0,$l);
+   push @rs,$ndr->process('host','check_multi',[\@lt,$rd]);
+  }
+ } else ## either one domain only, or more than one but no check_multi available at protocol level
+ {
+  push @rs,map { $ndr->process('host','check',[$_,$rd]); } @todo;
+ }
+
+ return Net::DRI::Util::link_rs(@rs);
 }
 
 sub host_exist ## 1/0/undef
 {
  my ($self,$ndr,$dh,$rh)=@_;
 
- my $rc=$ndr->host_check($dh,$rh);
+ my $rc=$ndr->host_check($dh,defined $rh ? $rh : ());
  return unless $rc->is_success();
  return $ndr->get_info('exist');
 }
@@ -817,7 +882,8 @@ sub host_exist ## 1/0/undef
 sub host_update
 {
  my ($self,$ndr,$dh,$tochange,$rh)=@_;
- my $name=(UNIVERSAL::isa($dh,'Net::DRI::Data::Hosts'))? $dh->get_details(1) : $dh;
+ $rh=Net::DRI::Util::create_params('host_update',$rh);
+ my $name=Net::DRI::Util::isa_hosts('$dh')? $dh->get_details(1) : $dh;
  $self->enforce_host_name_constraints($ndr,$name);
  Net::DRI::Util::check_isa($tochange,'Net::DRI::Data::Changes');
 
@@ -888,7 +954,7 @@ sub host_update_status
 sub host_update_name_set
 {
  my ($self,$ndr,$dh,$newname,$rh)=@_;
- $newname=$newname->get_names(1) if ($newname && UNIVERSAL::isa($newname,'Net::DRI::Data::Hosts'));
+ $newname=$newname->get_names(1) if ($newname && Net::DRI::Util::is_class($newname,'Net::DRI::Data::Hosts'));
  $self->enforce_host_name_constraints($ndr,$newname);
  return $self->host_update($ndr,$dh,$ndr->local_object('changes')->set('name',$newname),$rh);
 }
@@ -906,15 +972,12 @@ sub host_current_status
 sub host_is_mine
 {
  my ($self,$ndr,$dh,$rh)=@_;
- my $clid=$self->info('clid');
- return 0 unless defined($clid);
- my $id;
- eval
- {
-  my $rc=$self->host_info($ndr,$dh,$rh);
-  $id=$ndr->get_info('clID') if ($rc->is_success());
- };
- return 0 unless (!$@ && defined($id));
+ my $clid=$self->info('client_id');
+ return unless defined $clid;
+ my $rc=$self->host_info($ndr,$dh,$rh);
+ return unless $rc->is_success();
+ my $id=$ndr->get_info('clID');
+ return unless defined $id;
  return ($clid=~m/^${id}$/)? 1 : 0;
 }
 
@@ -926,6 +989,7 @@ sub contact_create
 {
  my ($self,$ndr,$contact,$ep)=@_;
  $self->err_invalid_contact($contact) unless Net::DRI::Util::isa_contact($contact);
+ $ep=Net::DRI::Util::create_params('contact_create',$ep);
  $contact->init('create',$ndr) if $contact->can('init');
  $contact->validate(); ## will trigger an Exception if validation not ok
  my $rc=$ndr->process('contact','create',[$contact,$ep]);
@@ -936,6 +1000,7 @@ sub contact_delete
 {
  my ($self,$ndr,$contact,$ep)=@_;
  $self->err_invalid_contact($contact) unless (Net::DRI::Util::isa_contact($contact) && $contact->srid());
+ $ep=Net::DRI::Util::create_params('contact_delete',$ep);
  my $rc=$ndr->process('contact','delete',[$contact,$ep]);
  return $rc;
 }
@@ -944,7 +1009,7 @@ sub contact_info
 {
  my ($self,$ndr,$contact,$ep)=@_;
  $self->err_invalid_contact($contact) unless (Net::DRI::Util::isa_contact($contact) && $contact->srid());
-
+ $ep=Net::DRI::Util::create_params('contact_info',$ep);
  my $rc=$ndr->try_restore_from_cache('contact',$contact->srid(),'info');
  if (! defined $rc) { $rc=$ndr->process('contact','info',[$contact,$ep]); }
  return $rc;
@@ -952,41 +1017,60 @@ sub contact_info
 
 sub contact_check
 {
- my ($self,$ndr,$contact,$ep)=@_;
- $self->err_invalid_contact($contact) unless (Net::DRI::Util::isa_contact($contact) && $contact->srid());
-
- my $rc=$ndr->try_restore_from_cache('contact',$contact->srid(),'check');
- if (! defined $rc) { $rc=$ndr->process('contact','check',[$contact,$ep]); }
- return $rc;
-}
-
-sub contact_check_multi
-{
- my ($self,$ndr,@r)=@_;
- my $ep;
- $ep=pop(@r) if ($r[-1] && (ref($r[-1]) eq 'HASH'));
- my ($rc,@c);
- foreach my $contact (@r)
+ my ($self,$ndr,@p)=@_;
+ my (@names,$rd);
+ foreach my $p (@p)
  {
-  $self->err_invalid_contact($contact) unless (Net::DRI::Util::isa_contact($contact) && $contact->srid());
-  $rc=$ndr->try_restore_from_cache('contact',$contact->srid(),'check');
-  if (! defined $rc) { push @c,$contact; }
- }
-
- if (@c)
- {
-  if ($ndr->protocol()->has_action('contact','check_multi'))
+  if (defined $p && ref $p eq 'HASH')
   {
-   $rc=$ndr->process('contact','check_multi',[\@c,$ep]);
+   Net::DRI::Exception::usererr_invalid_parameters('Only one optional ref hash with extra parameters is allowed in contact_check') if defined $rd;
+   $rd=Net::DRI::Util::create_params('contact_check',$p);
+   next;
+  }
+  $self->err_invalid_contact($p) unless (Net::DRI::Util::isa_contact($p) && length $p->srid());
+  push @names,$p;
+ }
+ Net::DRI::Exception::usererr_insufficient_parameters('contact_check needs at least one domain name to check') unless @names;
+ $rd={} unless defined $rd;
+
+ my (@rs,@todo);
+ my (%seencon,%seenrc);
+ foreach my $contact (@names)
+ {
+  next if exists $seencon{$contact};
+  $seencon{$contact}=1;
+  my $rs=$ndr->try_restore_from_cache('contact',$contact->srid(),'check');
+  if (! defined $rs)
+  {
+   push @todo,$contact;
   } else
   {
-   foreach my $c (@c)
-   {
-    $rc=$ndr->process('contact','check',[$c,$ep]);
-   }
+   push @rs,$rs unless exists $seenrc{''.$rs}; ## Some ResultStatus may relate to multiple contact names (this is why we are doing this anyway !), so make sure not to use the same ResultStatus multiple times
+   $seenrc{''.$rs}=1;
   }
  }
- return $rc; ## see comment in domain_check_multi
+
+ return Net::DRI::Util::link_rs(@rs) unless @todo;
+
+ if (@todo > 1 && $ndr->protocol()->has_action('contact','check_multi'))
+ {
+  my $l=$self->info('check_limit');
+  if (! defined $l)
+  {
+   $ndr->log_output('notice','core','No check_limit specified in driver, assuming 10 for contact_check action. Please report if you know the correct value');
+   $l=10;
+  }
+  while (@todo)
+  {
+   my @lt=splice(@todo,0,$l);
+   push @rs,$ndr->process('contact','check_multi',[\@lt,$rd]);
+  }
+ } else ## either one domain only, or more than one but no check_multi available at protocol level
+ {
+  push @rs,map { $ndr->process('contact','check',[$_,$rd]); } @todo;
+ }
+
+ return Net::DRI::Util::link_rs(@rs);
 }
 
 sub contact_exist ## 1/0/undef
@@ -994,7 +1078,7 @@ sub contact_exist ## 1/0/undef
  my ($self,$ndr,$contact,$ep)=@_;
  $self->err_invalid_contact($contact) unless (Net::DRI::Util::isa_contact($contact) && $contact->srid());
 
- my $rc=$ndr->contact_check($contact,$ep);
+ my $rc=$ndr->contact_check($contact,defined $ep ? $ep : ());
  return unless $rc->is_success();
  return $ndr->get_info('exist');
 }
@@ -1004,6 +1088,7 @@ sub contact_update
  my ($self,$ndr,$contact,$tochange,$ep)=@_;
  $self->err_invalid_contact($contact) unless (Net::DRI::Util::isa_contact($contact) && $contact->srid());
  Net::DRI::Util::check_isa($tochange,'Net::DRI::Data::Changes');
+ $ep=Net::DRI::Util::create_params('contact_update',$ep);
 
  my $fp=$ndr->protocol->nameversion();
  foreach my $t ($tochange->types())
@@ -1051,6 +1136,7 @@ sub contact_transfer
  my ($self,$ndr,$contact,$op,$ep)=@_;
  $self->err_invalid_contact($contact) unless (Net::DRI::Util::isa_contact($contact) && $contact->srid());
  Net::DRI::Exception::usererr_invalid_parameters('Transfer operation must be start,stop,accept,refuse or query') unless ($op=~m/^(?:start|stop|query|accept|refuse)$/);
+ $ep=Net::DRI::Util::create_params('contact_transfer',$ep);
 
  my $rc;
  if ($op eq 'start')
@@ -1064,7 +1150,8 @@ sub contact_transfer
   $rc=$ndr->process('contact','transfer_query',[$contact,$ep]);
  } else ## accept/refuse
  {
-  $rc=$ndr->process('contact','transfer_answer',[$contact,($op eq 'accept')? 1 : 0,$ep]);
+  $ep->{approve}=($op eq 'accept')? 1 : 0;
+  $rc=$ndr->process('contact','transfer_answer',[$contact,$ep]);
  }
 
  return $rc;
@@ -1089,15 +1176,12 @@ sub contact_current_status
 sub contact_is_mine
 {
  my ($self,$ndr,$contact,$ep)=@_;
- my $clid=$self->info('clid');
- return 0 unless defined($clid);
- my $id;
- eval
- {
-  my $rc=$self->contact_info($ndr,$contact,$ep);
-  $id=$ndr->get_info('clID') if ($rc->is_success());
- };
- return 0 unless (!$@ && defined($id));
+ my $clid=$self->info('client_id');
+ return unless defined $clid;
+ my $rc=$self->contact_info($ndr,$contact,$ep);
+ return unless $rc->is_success();
+ my $id=$ndr->get_info('clID');
+ return unless defined $id;
  return ($clid=~m/^${id}$/)? 1 : 0;
 }
 
@@ -1135,6 +1219,183 @@ sub message_count
  return unless $rc->is_success();
  $count=$ndr->get_info('count','message','info');
  return (defined($count) && $count)? $count : 0;
+}
+
+####################################################################################################
+## Extensions commands used by at least 2 DRDs so factorized here
+## TODO: for now, this is kind of contradictory with make_exception_for_unavailable_operations()
+##       this whole part would need to be redefined, see TODO file
+####################################################################################################
+
+## For AFNIC ARNES (subclassed) BE EURid LU
+sub domain_trade_start
+{
+ my ($self,$ndr,$domain,$rd)=@_;
+ $self->enforce_domain_name_constraints($ndr,$domain,'trade');
+ return $ndr->process('domain','trade_request',[$domain,$rd]);
+}
+
+## For AFNIC LU
+sub domain_trade_query
+{
+ my ($self,$ndr,$domain,$rd)=@_;
+ $self->enforce_domain_name_constraints($ndr,$domain,'trade');
+ return $ndr->process('domain','trade_query',[$domain,$rd]);
+}
+
+## For AFNIC EURid LU
+sub domain_trade_stop
+{
+ my ($self,$ndr,$domain,$rd)=@_;
+ $self->enforce_domain_name_constraints($ndr,$domain,'trade');
+ return $ndr->process('domain','trade_cancel',[$domain,$rd]);
+}
+
+## Used by AT & NO but not with same EPP command name => impossible to factorize here
+##sub domain_withdraw
+##sub domain_transfer_execute
+
+## For BE EURid SIDN (subclassed)
+sub domain_undelete
+{
+ my ($self,$ndr,$domain,$rd)=@_;
+ $self->enforce_domain_name_constraints($ndr,$domain,'undelete');
+ return $ndr->process('domain','undelete',[$domain,$rd]);
+}
+
+## For BE EUrid
+sub domain_reactivate
+{
+ my ($self,$ndr,$domain,$rd)=@_;
+ $self->enforce_domain_name_constraints($ndr,$domain,'reactivate');
+ return $ndr->process('domain','reactivate',[$domain,$rd]);
+}
+
+## For BE EURid
+## (no _stop in BE ?)
+sub domain_transfer_quarantine
+{
+ my ($self,$ndr,$domain,$op,$rd)=@_;
+ $self->enforce_domain_name_constraints($ndr,$domain,'transfer_quarantine');
+ Net::DRI::Exception::usererr_invalid_parameters('Transfer from quarantine operation must be start or stop') unless ($op=~m/^(?:start|stop)$/);
+
+ my $rc;
+ if ($op eq 'start')
+ {
+  $rc=$ndr->process('domain','transferq_request',[$domain,$rd]);
+ } elsif ($op eq 'stop')
+ {
+  $rc=$ndr->process('domain','transferq_cancel',[$domain,$rd]);
+ }
+ return $rc;
+}
+
+sub domain_transfer_quarantine_start { my ($self,$ndr,$domain,$rd)=@_; return $self->domain_transfer_quarantine($ndr,$domain,'start',$rd); }
+sub domain_transfer_quarantine_stop  { my ($self,$ndr,$domain,$rd)=@_; return $self->domain_transfer_quarantine($ndr,$domain,'stop',$rd); }
+
+## nsgroup_* + keygroup_* 
+## For BE EUrid
+sub nsgroup_create
+{
+ my ($self,$ndr,$nsg)=@_;
+ Net::DRI::Exception::usererr_insufficient_parameters('nsgroup_create needs an hosts object') unless defined Net::DRI::Util::isa_nsgroup($nsg);
+ return $ndr->process('nsgroup','create',[$nsg]);
+}
+
+sub nsgroup_delete
+{
+ my ($self,$ndr,$nsg)=@_;
+ Net::DRI::Exception::usererr_insufficient_parameters('nsgroup_delete needs an hosts object') unless defined Net::DRI::Util::isa_nsgroup($nsg);
+ return $ndr->process('nsgroup','delete',[$nsg]);
+}
+
+sub nsgroup_check
+{
+ my ($self,$ndr,@nsg)=@_;
+ Net::DRI::Exception::usererr_insufficient_parameters('nsgroup_check needs at least an hosts object') unless grep { defined Net::DRI::Util::isa_nsgroup($_) } @nsg;
+ return $ndr->process('nsgroup','check',[@nsg]);
+}
+
+sub nsgroup_info
+{
+ my ($self,$ndr,$nsg)=@_;
+ Net::DRI::Exception::usererr_insufficient_parameters('nsgroup_info needs an hosts object') unless defined Net::DRI::Util::isa_nsgroup($nsg);
+ return $ndr->process('nsgroup','info',[$nsg]);
+}
+
+sub nsgroup_update
+{
+ my ($self,$ndr,$nsg,$tochange)=@_;
+ Net::DRI::Exception::usererr_insufficient_parameters('nsgroup_update needs an hosts object') unless defined Net::DRI::Util::isa_nsgroup($nsg);
+ Net::DRI::Util::check_isa($tochange,'Net::DRI::Data::Changes');
+ return $ndr->process('nsgroup','update',[$nsg,$tochange]);
+}
+
+sub keygroup_create
+{
+ my ($self,$ndr,$kg,$rd)=@_;
+ Net::DRI::Exception::usererr_insufficient_parameters('keygroup_create needs a keygroup name') unless defined $kg;
+ return $ndr->process('keygroup','create',[$kg,$rd]);
+}
+
+sub keygroup_delete
+{
+ my ($self,$ndr,$kg,$rd)=@_;
+ Net::DRI::Exception::usererr_insufficient_parameters('keygroup_delete needs a keygroup name') unless defined $kg;
+ return $ndr->process('keygroup','delete',[$kg,$rd]);
+}
+
+sub keygroup_check
+{
+ my ($self,$ndr,@kgs)=@_;
+ my $rd=(@kgs && ref $kgs[-1] eq 'HASH')? pop(@kgs) : {};
+ Net::DRI::Exception::usererr_insufficient_parameters('keygroup_check needs at least a keygroup name') unless grep { defined } @kgs;
+ return $ndr->process('keygroup','check',[\@kgs,$rd]);
+}
+
+sub keygroup_info
+{
+ my ($self,$ndr,$kg,$rd)=@_;
+ Net::DRI::Exception::usererr_insufficient_parameters('keygroup_info needs a keygroup name') unless defined $kg;
+ return $ndr->process('keygroup','info',[$kg,$rd]);
+}
+
+sub keygroup_update
+{
+ my ($self,$ndr,$kg,$tochange,$rd)=@_;
+ Net::DRI::Exception::usererr_insufficient_parameters('keygroup_update needs a keygroup name') unless defined $kg;
+ Net::DRI::Util::check_isa($tochange,'Net::DRI::Data::Changes');
+ return $ndr->process('keygroup','update',[$kg,$tochange,$rd]);
+}
+
+
+# For BookMyName Gandi OVH
+
+sub account_list_domains
+{
+ my ($self,$ndr)=@_;
+ my $rc=$ndr->try_restore_from_cache('account','domains','list');
+ if (! defined $rc) { $rc=$ndr->process('account','list_domains'); }
+ return $rc;
+}
+
+####################################################################################################
+# Misc
+####################################################################################################
+
+sub raw_command
+{
+ my ($self,$ndr,$cmd)=@_;
+
+ my ($po,$to)=$ndr->protocol_transport();
+ my $trid=$ndr->generate_trid();
+ my $ctx={trid => $trid, otype => 'raw', oaction => 'command', phase => 'active' };
+ my $count=1;
+
+ my $tosend=Net::DRI::Data::Raw->new_from_string($cmd);
+ $to->send($ctx,$tosend,$count,[]);
+ my $res=$to->receive($ctx,$count);
+ return $res->as_string();
 }
 
 ####################################################################################################

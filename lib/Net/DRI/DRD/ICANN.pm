@@ -1,6 +1,6 @@
 ## Domain Registry Interface, ICANN policy on reserved names
 ##
-## Copyright (c) 2005-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005-2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,56 +10,54 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::DRD::ICANN;
 
+use utf8;
 use strict;
 use warnings;
 
-our $VERSION=do { my @r=(q$Revision: 1.14 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
-
 ## See http://www.icann.org/registries/rsep/submitted_app.html for changes
-our %ALLOW1=map { $_ => 1 } qw/mobi coop biz pro cat/; ## Pending ICANN review: travel (#2009003) info
-our %ALLOW2=map { $_ => 1 } qw/mobi coop name jobs biz pro cat/; ## Pending ICANN review: travel (#2009003) info
+our %ALLOW1=map { $_ => 1 } qw/mobi coop biz pro cat info travel tel/; ## Pending ICANN review: (none)
+our %ALLOW2=map { $_ => 1 } qw/mobi coop name jobs biz pro cat info travel tel/; ## Pending ICANN review: (none)
 
-## See http://www.icann.org/tlds/agreements/verisign/registry-agmt-appk-net-org-16apr01.htm & same
-## Updated to http://www.icann.org/tlds/agreements/tel/appendix-6-07apr06.htm
+## See http://www.icann.org/en/registries/agreements.htm
 sub is_reserved_name
 {
  my ($domain,$op)=@_;
+
+ return '' if (defined $op && $op ne 'create');
+
  my @d=split(/\./,lc($domain));
 
  ## Tests at all levels
  foreach my $d (@d)
  {
-  ## §A (ICANN+IANA reserved)
-  return 1 if ($d=~m/^(?:aso|dnso|gnso|icann|internic|ccnso|pso|afrinic|apnic|arin|example|gtld-servers|iab|iana|iana-servers|iesg|ietf|irtf|istf|lacnic|latnic|rfc-editor|ripe|root-servers)$/o);
+  ## Â§A (ICANN+IANA reserved)
+  return 'NAME_RESERVED_PER_ICANN_RULE_A' if ($d=~m/^(?:aso|gnso|icann|internic|ccnso|afrinic|apnic|arin|example|gtld-servers|iab|iana|iana-servers|iesg|ietf|irtf|istf|lacnic|latnic|rfc-editor|ripe|root-servers)$/o);
 
-  ## §C (tagged domain names)
-  return 1 if (length($d)>3 && (substr($d,2,2) eq '--') && ($d!~/^xn--/));
+  ## Â§C (tagged domain names)
+  return 'NAME_RESERVED_PER_ICANN_RULE_C' if (length($d)>3 && (substr($d,2,2) eq '--') && ($d!~/^xn--/));
  }
 
- if ($op eq 'create')
+ ## Â§B.1 (additional second level)
+ return 'NAME_RESERVED_PER_ICANN_RULE_B1' if (length($d[-2])==1 && ! exists($ALLOW1{$d[-1]}));
+
+ ## Â§B.2
+ return 'NAME_RESERVED_PER_ICANN_RULE_B2' if (length($d[-2])==2 && ! exists($ALLOW2{$d[-1]}));
+
+ ## Â§D (reserved for Registry operations)
+ return 'NAME_RESERVED_PER_ICANN_RULE_D' if ($d[-2]=~m/^(?:nic|whois|www)$/o);
+
+ ## .NAME specific rules
+ if ($d[-1] eq 'name')
  {
-  ## §B.1 (additional second level)
-  return 1 if (length($d[-2])==1 && ! exists($ALLOW1{$d[-2]}));
-  ## §B.2
-  return 1 if (length($d[-2])==2 && ! exists($ALLOW2{$d[-2]}));
+  return 'NAME_RESERVED_PER_ICANN_RULE_NAME_B3' if $d[-2]=~m/^[\d-]+$/; ## Under ICANN review (#201010)
+  return 'NAME_RESERVED_PER_ICANN_RULE_NAME_J'  if (@d==2 && $d[-2]=~m/-(?:familie|family|perhe|famille|parivaar|keluarga|famiglia|angkan|rodzina|familia|mischpoche|umdeni)$/);
  }
- ## §B.3
- ## Restriction lifted in newer gTLD
- unless ($d[0]=~m/^(?:travel|mobi|cat|tel)$/o)
- {
-  return 1 if ($d[-2]=~m/^(?:aero|arpa|biz|com|coop|edu|gov|info|int|mil|museum|name|net|org|pro)$/o);
- }
- ## §D (reserved for Registry operations)
- return 1 if ($d[-2]=~m/^(?:nic|whois|www)$/o);
 
- return 0;
+ return '';
 }
 
 ####################################################################################################
@@ -72,10 +70,6 @@ __END__
 =head1 NAME
 
 Net::DRI::DRD::ICANN - ICANN policies for Net::DRI
-
-=head1 VERSION
-
-This documentation refers to Net::DRI::DRD::ICANN version 1.14
 
 =head1 SYNOPSIS
 
@@ -100,7 +94,9 @@ None.
 
 =item is_reserved_name()
 
-returns 1 if the name passed violates some ICANN policy on domain name, 0 otherwise.
+returns a string if the name passed violates some ICANN policy on domain name
+(the string being the ICANN rule name that was violated), 
+and an empty string otherwise (meaning success).
 
 =back
 
@@ -145,7 +141,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2005-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+Copyright (c) 2005-2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

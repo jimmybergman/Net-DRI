@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::CAT::DefensiveRegistration;
@@ -23,8 +20,6 @@ use warnings;
 use Net::DRI::Util;
 use Net::DRI::Exception;
 use Net::DRI::Protocol::EPP::Util;
-
-our $VERSION=do { my @r=(q$Revision: 1.10 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -267,7 +262,7 @@ sub info_parse
    $rinfo->{defreg}->{$oname}->{pattern}=$c->textContent();
   } elsif ($name eq 'status')
   {
-   push @s,Net::DRI::Protocol::EPP::Util::parse_status($c);
+   push @s,Net::DRI::Protocol::EPP::Util::parse_node_status($c);
   } elsif ($name eq 'registrant')
   {
    $cs->set($po->create_local_object('contact')->srid($c->textContent()),'registrant');
@@ -361,7 +356,7 @@ sub renew
  my $period=(defined($rd) && (ref($rd) eq 'HASH') && exists($rd->{duration}))? $rd->{duration} : undef;
  my $curexp=(defined($rd) && (ref($rd) eq 'HASH') && exists($rd->{current_expiration}))? $rd->{current_expiration} : undef;
  Net::DRI::Exception::usererr_insufficient_parameters('current expiration year') unless defined($curexp);
- $curexp=$curexp->set_time_zone('UTC')->strftime('%Y-%m-%d') if (ref($curexp) && UNIVERSAL::isa($curexp,'DateTime'));
+ $curexp=$curexp->set_time_zone('UTC')->strftime('%Y-%m-%d') if (ref $curexp && Net::DRI::Util::is_class($curexp,'DateTime'));
  Net::DRI::Exception::usererr_invalid_parameters('current expiration year must be YYYY-MM-DD') unless $curexp=~m/^\d{4}-\d{2}-\d{2}$/;
 
  my @d=build_command($epp,'renew',$id);

@@ -1,6 +1,6 @@
 ## Domain Registry Interface, IRIS XCP Connection handling
 ##
-## Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2008-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,14 +10,13 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::IRIS::XCP;
 
+use utf8;
 use strict;
+use warnings;
 
 use XML::LibXML ();
 
@@ -26,8 +25,6 @@ use Net::DRI::Exception;
 use Net::DRI::Data::Raw;
 use Net::DRI::Protocol::ResultStatus;
 use Net::DRI::Protocol::IRIS::Core;
-
-our $VERSION=do { my @r=(q$Revision: 1.2 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -88,7 +85,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2008-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -102,14 +99,14 @@ See the LICENSE file that comes with this distribution for more details.
 
 ####################################################################################################
 
-sub parse_greeting ## ง4.2
+sub parse_greeting ## ยง4.2
 {
  my $dr=shift;
  ## TODO: really parse something ?
  return Net::DRI::Protocol::ResultStatus->new_success('COMMAND_SUCCESSFUL','Greeting OK','en');
 }
 
-sub read_data # ง4
+sub read_data # ยง4
 {
  my ($class,$to,$sock)=@_;
 
@@ -133,7 +130,7 @@ sub read_data # ง4
    die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_SYNTAX_ERROR','Extra SASL data returned by server, currently not handled','en'));
   } elsif ($chunktype==4+0+1) ## as=authentication success
   {
-   ## We do not parse anything. If so needed, see ง6 of RFC4991, and Core::parse_authentication
+   ## We do not parse anything. If so needed, see ยง6 of RFC4991, and Core::parse_authentication
    next;
   } elsif ($chunktype==4+2+0) ## af=authentication failure
   {
@@ -150,14 +147,14 @@ sub read_data # ง4
 
   last if $lastchunk==1;
  }
- die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_FAILED','Last chunk has not DC=1','en')) unless $datacomplete==1; ## TODO: does that happen IRL ?
+ die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_FAILED','Last chunk does not have DC=1','en')) unless $datacomplete==1; ## TODO: does that happen IRL ?
  $m=Net::DRI::Util::decode_utf8($m); ## do it only once at end, when all chunks of application data were joined together again
 
  die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_SYNTAX_ERROR',$m? 'Got unexpected reply message: '.$m : '<empty message from server>','en')) unless ($m=~m!</(?:\S+:)?response>\s*$!s); ## we do not handle other things than plain responses (see Message)
  return Net::DRI::Data::Raw->new_from_xmlstring($m);
 }
 
-sub write_message ## ง5
+sub write_message ## ยง5
 {
  my ($self,$to,$msg)=@_;
 
@@ -176,7 +173,7 @@ sub keepalive
 
 ####################################################################################################
 
-sub parse_block_header ## ง5
+sub parse_block_header ## ยง5
 {
  my $d=shift; ## one-octet
  die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_FAILED_CLOSING','Unable to read 1 byte block header','en')) unless $d;
@@ -189,7 +186,7 @@ sub parse_block_header ## ง5
  return $keepopen;
 }
 
-sub parse_chunk_header ## ง6
+sub parse_chunk_header ## ยง6
 {
  my $d=shift; ## one-octet
  die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_FAILED_CLOSING','Unable to read 1 byte chunk header','en')) unless $d;
@@ -204,7 +201,7 @@ sub parse_chunk_header ## ง6
  return ($lc,$dc,$ct);
 }
 
-sub parse_chunk ## ง6
+sub parse_chunk ## ยง6
 {
  my $sock=shift;
  my $data;

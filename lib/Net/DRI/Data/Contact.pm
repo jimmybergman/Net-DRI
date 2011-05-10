@@ -10,13 +10,11 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 #########################################################################################
 
 package Net::DRI::Data::Contact;
 
+use utf8;
 use strict;
 use warnings;
 
@@ -30,8 +28,6 @@ use Net::DRI::Util;
 
 use Email::Valid;
 use Encode (); ## we need here direct use of Encode, not through Net::DRI::Util::encode_* as we need the default substitution for unknown data
-
-our $VERSION=do { my @r=(q$Revision: 1.14 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -54,12 +50,14 @@ EPP allows a localized form (content is in unrestricted UTF-8) and international
 (content MUST be represented in a subset of UTF-8 that can be represented 
 in the 7-bit US-ASCII character set). Not all registries support both forms.
 
-When setting values, you pass one element if both forms are equal or two elements
-as a list (first the localized form, then the internationalized one).
+When setting values, you pass wo elements as a list (first the localized form, 
+then the internationalized one), or only one element that will be taken as the localized form.
 When getting values, in list context you get back both values, in scalar context you get
 back the first one, that is the localized form.
 
 You can also use methods int2loc() and loc2int() to create one version from the other.
+These 2 methods may be used automatically inside Net::DRI as needed, depending on what
+the registry expects and the operation conducted (like a contact create).
 
 =head1 METHODS
 
@@ -202,18 +200,25 @@ sub attributes
 sub get
 {
  my ($self,$what)=@_;
- return unless defined($what) && $what && exists($self->{$what});
+ return unless defined $what && $what && exists $self->{$what};
  my $d=$self->{$what};
  return $d unless ($what=~m/^(name|org|street|city|sp|pc|cc)$/);
- if ($what eq 'street') ## special case because it is always a ref array
+
+ ## Special case for street because it is always a ref array, but a complicate one, we have either
+ ## [ X, Y, Z ] (with Y and/or Z optional)
+ ## [ undef, [ X, Y, Z ] ]
+ ## [ [ X, Y, Z ] , undef ]
+ ## [ [ X, Y, Z ], [ XX, YY, ZZ ] ]
+ ## [ undef, undef ]
+ if ($what eq 'street')
  {
-  return $d if !ref($d); ## should not happen, since it is either a ref array of up to 3 elements, or a ref array of two such ref arrays
-  return $d if !ref($d->[0]);
+  Net::DRI::Exception::usererr_invalid_parameters('Invalid street information, should be one or two ref arrays of up to 3 elements each') unless ref $d eq 'ARRAY';
+  return wantarray ? ($d, undef) : $d unless 2==grep { ! defined $_ || ref $_ eq 'ARRAY' } @$d;
  } else
  {
-  return $d if !ref($d);
+  return $d unless ref $d eq 'ARRAY';
  }
- return wantarray()? @$d : $d->[0];
+ return wantarray ? @$d : $d->[0];
 }
 
 sub loc2int
@@ -222,12 +227,17 @@ sub loc2int
  foreach my $f (qw/name org city sp pc cc/)
  {
   my @c=$self->$f();
-  $c[1]=defined($c[0])? Encode::encode('ascii',$c[0],0) : undef;
+  $c[1]=defined $c[0] ? Encode::encode('ascii',$c[0],0) : undef;
   $self->$f(@c);
  }
  my @c=$self->street();
- $c[1]=[ map { defined($_)? Encode::encode('ascii',$_,0) : undef } defined($c[0])? @{$c[0]} : () ];
- $c[0]=[] unless defined $c[0];
+ if (defined $c[0])
+ {
+  $c[1]=[ map { defined $_ ? Encode::encode('ascii',$_,0) : undef } @{$c[0]} ];
+ } else
+ {
+  $c[1]=$c[0]=[];
+ }
  $self->street(@c);
  return $self;
 }
@@ -251,11 +261,11 @@ sub _has
  my ($self,$pos)=@_;
  my @d=map { ($self->$_())[$pos] } qw/name org city sp pc cc/;
  my $s=($self->street())[$pos];
- push @d,@$s if (defined($s) && ref($s));
+ push @d,@$s if defined $s && ref $s eq 'ARRAY';
  return (grep { defined } @d)? 1 : 0;
 }
 
-sub validate ## See RFC4933,ง4
+sub validate ## See RFC4933,ยง4
 {
  my ($self,$change)=@_;
  $change||=0;
@@ -275,7 +285,7 @@ sub validate ## See RFC4933,ง4
  my @rs=($self->street());
  foreach my $i (0,1)
  {
-  next unless $rs[$i];
+  next unless defined $rs[$i];
   push @errs,'street' if ((ref($rs[$i]) ne 'ARRAY') || (@{$rs[$i]} > 3) || (grep { !Net::DRI::Util::xml_is_normalizedstring($_,undef,255) } @{$rs[$i]}));
  }
 

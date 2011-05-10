@@ -1,28 +1,32 @@
 --- #YAML:1.0
-name:                Net-DRI
-version:             0.96
-abstract:            Interface to Domain Name Registries/Registrars/Resellers
-license:             gpl
-author:              
+name:               Net-DRI
+version:            0.96_01
+abstract:           Interface to Domain Name Registries/Registrars/Resellers
+author:
     - Patrick Mevzek <netdri@dotandco.com>
-generated_by:        ExtUtils::MakeMaker version 6.42
-distribution_type:   module
-requires:     
-    Carp:                          0
-    Class::Accessor:               0
-    Class::Accessor::Chained:      0
-    DateTime:                      0
-    DateTime::Duration:            0
-    DateTime::Format::ISO8601:     0.06
-    DateTime::Format::Strptime:    0
-    DateTime::TimeZone:            0
-    Email::Valid:                  0
-    IO::Socket::INET:              0
-    IO::Socket::SSL:               0.90
-    Test::More:                    0
-    Time::HiRes:                   0
-    UNIVERSAL::require:            0
-    XML::LibXML:                   1.61
+license:            gpl
+distribution_type:  module
+configure_requires:
+    ExtUtils::MakeMaker:  0
+build_requires:
+    ExtUtils::MakeMaker:  0
+requires:
+    Class::Accessor:      0
+    Class::Accessor::Chained:  0
+    DateTime:             0
+    DateTime::Duration:   0
+    DateTime::Format::ISO8601:  0.06
+    DateTime::Format::Strptime:  0
+    DateTime::TimeZone:   0
+    Email::Valid:         0
+    IO::Socket::SSL:      0.90
+    UNIVERSAL::require:   0
+    XML::LibXML:          1.61
+no_index:
+    directory:
+        - t
+        - inc
+generated_by:       ExtUtils::MakeMaker version 6.55_02
 meta-spec:
-    url:     http://module-build.sourceforge.net/META-spec-v1.3.html
-    version: 1.3
+    url:      http://module-build.sourceforge.net/META-spec-v1.4.html
+    version:  1.4

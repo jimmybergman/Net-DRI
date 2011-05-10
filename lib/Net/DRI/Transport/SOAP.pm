@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 #########################################################################################
 
 package Net::DRI::Transport::SOAP;
@@ -25,8 +22,6 @@ use base qw(Net::DRI::Transport);
 use Net::DRI::Exception;
 
 use SOAP::Lite;
-
-our $VERSION=do { my @r=(q$Revision: 1.6 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -115,7 +110,7 @@ sub new
  $self->has_state(0);
  $self->is_sync(1);
  $self->name('soap');
- $self->version($VERSION);
+ $self->version('0.1');
 
  my %t;
 
@@ -131,7 +126,7 @@ sub new
  {
   my $go=$service->service($v);
   my $t=$go->transport();
-  $t->agent(sprintf('Net::DRI/%s Net::DRI::Transport::SOAP/%s',$Net::DRI::VERSION,$VERSION).$t->agent());
+  $t->agent(sprintf('Net::DRI/%s',$Net::DRI::VERSION).$t->agent());
   if ($self->timeout())
   {
    $t->proxy($opts{proxy_url},timeout => $self->timeout());

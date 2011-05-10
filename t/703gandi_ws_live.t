@@ -15,7 +15,8 @@ my $dri=Net::DRI->new(10);
 $dri->add_registry('Gandi');
 $dri->target('Gandi')->add_current_profile('p1','ws',{client_login=>$ENV{TEST_GANDI_WS_LIVE_CLIENTID},client_password=>$ENV{TEST_GANDI_WS_LIVE_CLIENTPASS}});
 
-eval {
+my $ok=eval 
+{
  my $rc=$dri->account_list_domains();
  diag('Got session ID '.$dri->transport()->session_data()->{id});
  is($rc->is_success(),1,'account_list_domains() is_success') or diag(sprintf('Code=%s Native_Code=%d Message=%s',$rc->code(),$rc->native_code(),$rc->message()));
@@ -29,8 +30,10 @@ eval {
  is($rc->is_success(),1,'domain_info() is_success') or diag(sprintf('Code=%s Native_Code=%d Message=%s',$rc->code(),$rc->native_code(),$rc->message()));
  my @i=$dri->get_info_keys();
  diag('Successfully got information about: '.join(' ',@i));
+
+ $dri->end();
 };
 
-diag('Caught unexpected exception: '.(ref($@)? $@->as_string() : $@)) if $@;
+diag('Caught unexpected exception: '.(ref($@)? $@->as_string() : $@)) if ! $ok;
 
 exit 0;

@@ -1,6 +1,6 @@
 ## Domain Registry Interface, .MOBI EPP extensions
 ##
-## Copyright (c) 2006,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2006,2008,2009,2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,18 +10,14 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::MOBI;
 
 use strict;
+use warnings;
 
 use base qw/Net::DRI::Protocol::EPP/;
-
-our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -51,7 +47,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2006,2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2006,2008,2009,2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -68,12 +64,13 @@ See the LICENSE file that comes with this distribution for more details.
 sub setup
 {
  my ($self,$rp)=@_;
- $self->ns({mobi => ['urn:afilias:params:xml:ns:ext:mobi-1.0','mobi-1.0.xsd']});
+ $self->ns({mobi      => ['urn:afilias:params:xml:ns:ext:mobi-1.0','mobi-1.0.xsd'],
+            trademark => ['urn:afilias:params:xml:ns:ext:mobi-trademark-1.0','mobi-trademark-1.0.xsd']});
  $self->capabilities('domain_update','maintainer_url',['set']);
  return;
 }
 
-sub default_extensions { return qw/MOBI::Domain/; }
+sub default_extensions { return qw/MOBI::Domain Afilias::Trademark/; }
 
 ####################################################################################################
 1;

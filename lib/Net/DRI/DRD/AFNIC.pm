@@ -1,6 +1,6 @@
 ## Domain Registry Interface, AFNIC Registry Driver for .FR/.RE
 ##
-## Copyright (c) 2005,2006,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2005-2006,2008-2011 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::DRD::AFNIC;
@@ -25,9 +22,7 @@ use base qw/Net::DRI::DRD/;
 use DateTime::Duration;
 use Net::DRI::Util;
 
-our $VERSION=do { my @r=(q$Revision: 1.9 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
-
-__PACKAGE__->make_exception_for_unavailable_operations(qw/host_update host_current_status host_check host_check_multi host_exist host_delete host_create host_info contact_delete contact_check/);
+__PACKAGE__->make_exception_for_unavailable_operations(qw/host_update host_current_status host_check host_exist host_delete host_create host_info contact_delete contact_check/);
 
 =pod
 
@@ -39,11 +34,7 @@ Net::DRI::DRD::AFNIC - AFNIC (.FR/.RE) Registry Driver for Net::DRI
 
 Please see the README file for details.
 
-=head2 CURRENT LIMITATIONS
-
-Only domain_check (through AFNIC web services) and domain_create (by email) are currently provided.
-All operations are available through EPP, but this protocol is not currently in production
-at the registry.
+This driver enables email, web services and EPP operations with AFNIC.
 
 =head1 SUPPORT
 
@@ -63,7 +54,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2005,2006,2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2005-2006,2008-2011 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -83,6 +74,7 @@ sub new
  my $self=$class->SUPER::new(@_);
  $self->{info}->{host_as_attr}=1;
  $self->{info}->{contact_i18n}=1; ## LOC only
+ $self->{info}->{check_limit}=7;
  bless($self,$class);
  return $self;
 }
@@ -100,6 +92,8 @@ sub transport_protocol_default
  return ('Net::DRI::Transport::SMTP',{},'Net::DRI::Protocol::AFNIC::Email',{})                                             if $type eq 'email';
  return ('Net::DRI::Transport::SOAP',{},'Net::DRI::Protocol::AFNIC::WS',{})                                                if $type eq 'ws';
  return ('Net::DRI::Transport::Socket',{remote_host => 'epp.test.nic.fr'},'Net::DRI::Protocol::EPP::Extensions::AFNIC',{}) if $type eq 'epp';
+ #return ('Net::DRI::Transport::Socket',{find_remote_server => ['fr.','DCHK1:iris.lwz']},'Net::DRI::Protocol::IRIS',{version=>'1.0',authority=>'fr'}) if $type eq 'dchk';
+ return ('Net::DRI::Transport::Socket',{remote_host=>'das.nic.fr',remote_port=>715},'Net::DRI::Protocol::IRIS',{version=>'1.0',authority=>'fr',request_deflate=>1}) if $type eq 'dchk';
  return;
 }
 
@@ -129,35 +123,12 @@ sub domain_create
  return $self->domain_update_ns_add($ndr,$domain,$ns); ## Finally update domain to add nameservers
 }
 
-sub domain_trade_start
-{
- my ($self,$ndr,$domain,$rd)=@_;
- $self->enforce_domain_name_constraints($ndr,$domain,'trade');
- return $ndr->process('domain','trade_request',[$domain,$rd]);
-}
-
-sub domain_trade_query
-{
- my ($self,$ndr,$domain)=@_;
- $self->enforce_domain_name_constraints($ndr,$domain,'trade');
- return $ndr->process('domain','trade_query',[$domain]);
-}
-
-sub domain_trade_stop
-{
- my ($self,$ndr,$domain)=@_;
- $self->enforce_domain_name_constraints($ndr,$domain,'trade');
- return $ndr->process('domain','trade_cancel',[$domain]);
-}
-
 sub domain_recover_start
 {
  my ($self,$ndr,$domain,$rd)=@_;
  $self->enforce_domain_name_constraints($ndr,$domain,'recover');
  return $ndr->process('domain','recover_request',[$domain,$rd]);
 }
-
-## domain_check_multi : max 7 !
 
 ####################################################################################################
 1;

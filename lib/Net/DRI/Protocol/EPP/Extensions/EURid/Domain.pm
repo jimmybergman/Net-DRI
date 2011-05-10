@@ -11,9 +11,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::EURid::Domain;
@@ -24,8 +21,6 @@ use warnings;
 use Net::DRI::Util;
 use Net::DRI::Exception;
 use Net::DRI::Protocol::EPP::Util;
-
-our $VERSION=do { my @r=(q$Revision: 1.15 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -106,8 +101,11 @@ sub create
  my ($epp,$domain,$rd)=@_;
  my $mes=$epp->message();
 
- return unless Net::DRI::Util::has_key($rd,'nsgroup');
- my @n=add_nsgroup($rd->{nsgroup});
+ my @n;
+ push @n,add_nsgroup($rd->{nsgroup})        if Net::DRI::Util::has_key($rd,'nsgroup');
+ push @n,['eurid:keygroup',$rd->{keygroup}] if Net::DRI::Util::has_key($rd,'keygroup') && Net::DRI::Util::xml_is_token($rd->{keygroup},1,100);
+
+ return unless @n;
 
  my $eid=build_command_extension($mes,$epp,'eurid:ext');
  $mes->command_extension($eid,['eurid:create',['eurid:domain',@n]]);
@@ -139,6 +137,8 @@ sub info
 {
  my ($epp,$domain,$rd)=@_;
  my $mes=$epp->message();
+ my $eid=build_command_extension($mes,$epp,'eurid:ext');
+ $mes->command_extension($eid,['eurid:info',['eurid:domain',{version=>'2.0'}]]);
 }
 
 sub info_parse
@@ -161,6 +161,9 @@ sub info_parse
  }
 
  $rinfo->{domain}->{$oname}->{nsgroup}=\@c;
+
+ my $tmp=Net::DRI::Util::xml_child_content($infdata,$ns,'keygroup');
+ $rinfo->{domain}->{$oname}->{keygroup}=$tmp if defined $tmp;
 
  my $cs=$rinfo->{domain}->{$oname}->{status};
  foreach my $s (qw/onhold quarantined/) ## onhold here has nothing to do with EPP client|serverHold, unfortunately
@@ -224,6 +227,8 @@ sub check
 {
  my ($epp,$domain,$rd)=@_;
  my $mes=$epp->message();
+ my $eid=build_command_extension($mes,$epp,'eurid:ext');
+ $mes->command_extension($eid,['eurid:check',['eurid:domain',{version=>'2.0'}]]);
 }
 
 sub check_parse
@@ -282,8 +287,15 @@ sub transfer_request
  my $mes=$epp->message();
  my @n=(['eurid:domain',add_transfer($epp,$mes,$domain,$rd)]);
  push @n,['eurid:ownerAuthCode',$rd->{owner_auth_code}] if (Net::DRI::Util::has_key($rd,'owner_auth_code') && $rd->{owner_auth_code}=~m/^\d{15}$/);
+
  my $eid=build_command_extension($mes,$epp,'eurid:ext');
  $mes->command_extension($eid,['eurid:transfer',@n]);
+
+ if ($epp->has_module('Net::DRI::Protocol::EPP::Extensions::SecDNS'))
+ {
+  my $ref=$epp->find_action_in_class('Net::DRI::Protocol::EPP::Extensions::SecDNS','domain','create');
+  $ref->($epp,$domain,$rd) if defined $ref && ref $ref;
+ }
 }
 
 sub transfer_cancel
@@ -332,6 +344,7 @@ sub add_transfer
  }
 
  push @n,add_nsgroup($rd->{nsgroup}) if Net::DRI::Util::has_key($rd,'nsgroup');
+ push @n,['eurid:keygroup',$rd->{keygroup}] if Net::DRI::Util::has_key($rd,'keygroup') && Net::DRI::Util::xml_is_token($rd->{keygroup},1,100);
  return @n;
 }
 
@@ -395,6 +408,12 @@ sub trade_request
  my @n=add_transfer($epp,$mes,$domain,$rd);
  my $eid=build_command_extension($mes,$epp,'eurid:ext');
  $mes->command_extension($eid,['eurid:trade',['eurid:domain',@n]]);
+
+ if ($epp->has_module('Net::DRI::Protocol::EPP::Extensions::SecDNS'))
+ {
+  my $ref=$epp->find_action_in_class('Net::DRI::Protocol::EPP::Extensions::SecDNS','domain','create');
+  $ref->($epp,$domain,$rd) if defined $ref && ref $ref;
+ }
 }
 
 sub trade_cancel

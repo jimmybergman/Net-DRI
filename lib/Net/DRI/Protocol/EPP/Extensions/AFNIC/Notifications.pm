@@ -1,6 +1,6 @@
 ## Domain Registry Interface, AFNIC EPP Notifications
 ##
-## Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2008-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,17 +10,12 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::AFNIC::Notifications;
 
 use strict;
 use warnings;
-
-our $VERSION=do { my @r=(q$Revision: 1.4 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 use Net::DRI::Util;
 use Net::DRI::Protocol::EPP::Util;
@@ -53,7 +48,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2008-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -162,7 +157,7 @@ sub parse_identification
   my $oname=lc(Net::DRI::Util::xml_child_content($c,$ns,'name'));
   $rinfo->{domain}->{$oname}->{action}='review_identification';
   $rinfo->{domain}->{$oname}->{exist}=1;
-  $rinfo->{domain}->{$oname}->{status}=$po->create_local_object('status')->add(Net::DRI::Protocol::EPP::Util::parse_status(Net::DRI::Util::xml_traverse($c,$ns,'status')));
+  $rinfo->{domain}->{$oname}->{status}=$po->create_local_object('status')->add(Net::DRI::Protocol::EPP::Util::parse_node_status(Net::DRI::Util::xml_traverse($c,$ns,'status')));
   $rinfo->{domain}->{$oname}->{contact}=$po->create_local_object('contactset')->set($po->create_local_object('contact')->srid(Net::DRI::Util::xml_child_content($c,$ns,'registrant')),'registrant');
   return;
  }

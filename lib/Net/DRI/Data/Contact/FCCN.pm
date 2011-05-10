@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Data::Contact::FCCN;
@@ -21,8 +18,6 @@ use strict;
 use base qw/Net::DRI::Data::Contact/;
 use Net::DRI::Exception;
 use Net::DRI::Util;
-
-our $VERSION=do { my @r=(q$Revision: 1.2 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 __PACKAGE__->register_attributes(qw(type identification mobile));
 

@@ -12,9 +12,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::NO::Contact;
@@ -25,8 +22,6 @@ use warnings;
 use Net::DRI::Util;
 use Net::DRI::Protocol::EPP::Util;
 use Net::DRI::Protocol::EPP::Extensions::NO::Host;
-
-our $VERSION = do { my @r = ( q$Revision: 1.3 $ =~ /\d+/gmx ); sprintf( "%d" . ".%02d" x $#r, @r ); };
 
 =pod
 

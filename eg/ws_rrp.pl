@@ -1,15 +1,13 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use strict;
+use warnings;
 
 use Net::DRI;
-use Net::DRI::Data::Hosts;
-
-use DateTime::Duration;
 
 my $dri=Net::DRI->new(10);
 
-eval {
+my $ok=eval {
 ############################################################################################################
 $dri->add_registry('WS',{tz=>'America/Los_Angeles'});
 
@@ -19,7 +17,7 @@ my $rc=$dri->target('WS')->add_current_profile('profile1','rrp',{defer=>0,sockty
 my $dom='toto-'.time().'.ws';
 $rc=$dri->domain_check($dom);
 print "$dom does not exist\n" unless $dri->get_info('exist');
-$rc=$dri->domain_create($dom,{pure_create=>1,duration=>DateTime::Duration->new(years =>5)});
+$rc=$dri->domain_create($dom,{pure_create=>1,duration=>$dri->local_object('duration',years => 5)});
 print "$dom created\n" if $rc->is_success();
 $rc=$dri->domain_check($dom);
 print "$dom does exist now\n" if $dri->get_info('exist');
@@ -27,7 +25,7 @@ $rc=$dri->domain_info($dom);
 print "domain_info OK\n" if $rc->is_success();
 
 my $ns='ns.titi-'.time().'.fr';
-my $nso=Net::DRI::Data::Hosts->new($ns);
+my $nso=$dri->local_object('hosts')->add($ns);
 print "NS=$ns\n";
 my $e=$dri->host_exist($ns);
 print "Host exist\n" if ($e==1);
@@ -49,7 +47,7 @@ $rc=$dri->domain_info($dom);
 $rc=$dri->host_delete($nso);
 print "host_delete OK\n";
 
-my $s=$dri->create_status()->no('update');
+my $s=$dri->local_object('status')->no('update');
 $rc=$dri->domain_update_status_add($dom,$s);
 print "status_add OK\n" if $rc->is_success();
 $rc=$dri->domain_info($dom);
@@ -60,17 +58,20 @@ $rc=$dri->domain_info($dom);
 
 $rc=$dri->domain_delete($dom,{pure_delete => 1});
 print "domain_delete OK\n" if $rc->is_success();
+
+$dri->end();
 };
 
-if ($@)
+if (! $ok)
 { 
+ my $err=$@;
  print "\n\nAN ERROR happened !!!\n";
- if (ref($@))
+ if (ref $err)
  {
-  $@->print();
+  $err->print();
  } else
  {
-  print($@);
+  print $err;
  }
 } else
 {

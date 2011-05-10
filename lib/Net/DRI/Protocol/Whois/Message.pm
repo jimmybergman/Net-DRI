@@ -1,6 +1,6 @@
 ## Domain Registry Interface, Whois Message
 ##
-## Copyright (c) 2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
+## Copyright (c) 2007-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::Whois::Message;
@@ -26,8 +23,6 @@ use Net::DRI::Util;
 
 use base qw(Class::Accessor::Chained::Fast Net::DRI::Protocol::Message);
 __PACKAGE__->mk_accessors(qw(version errcode errmsg errlang command cltrid response response_raw));
-
-our $VERSION=do { my @r=(q$Revision: 1.5 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
@@ -57,7 +52,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007,2008,2009 Patrick Mevzek <netdri@dotandco.com>.
+Copyright (c) 2007-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -92,7 +87,7 @@ sub result_status
  my %C=( 0 => 1500, ## Command successful + connection closed
        );
  my $c=$self->errcode();
- my $rs=Net::DRI::Protocol::ResultStatus->new('whois',$c,exists($C{$c})? $C{$c} : $Net::DRI::Protocol::ResultStatus::EPP_CODES{GENERIC_ERROR},$self->is_success(),$self->errmsg(),$self->errlang(),undef);
+ my $rs=Net::DRI::Protocol::ResultStatus->new('whois',$c,exists($C{$c})? $C{$c} : 'COMMAND_FAILED',$self->is_success(),$self->errmsg(),$self->errlang(),undef);
  $rs->_set_trid([ $self->cltrid(),undef ]);
  return $rs;
 }

@@ -1,10 +1,13 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use strict;
+use warnings;
+
+use encoding "iso-8859-15";
 
 use Net::DRI::Data::Contact;
 
-use Test::More tests => 13;
+use Test::More tests => 17;
 
 can_ok('Net::DRI::Data::Contact',qw/new id validate name org street city sp pc cc email voice fax loid roid srid auth disclose/);
 
@@ -23,15 +26,22 @@ is(scalar($s->name()),'Test1','Scalar access (double set)');
 is_deeply(\@d,['Test1','Test2'],'List access (double set)');
 
 
-$s->street(['A1','A2']);
-is_deeply(scalar($s->street()),['A1','A2'],'street() Scalar access (simple set)');
-@d=$s->street();
-is_deeply(\@d,[['A1','A2']],'street() List access (simple set)');
+my @S1=qw/A1 A2 A3/;
+my @S2=qw/B1 B2 B3/;
 
-$s->street(['A1','A2'],['B1','B2']);
-is_deeply(scalar($s->street()),['A1','A2'],'street() Scalar access (double set)');
-@d=$s->street();
-is_deeply(\@d,[['A1','A2'],['B1','B2']],'street() List access (double set)');
+$s=Net::DRI::Data::Contact->new();
+$s->street(\@S1);
+is_deeply(scalar($s->street()),\@S1,'street() Scalar access (simple set)');
+is_deeply([$s->street()],[\@S1,undef],'street() List access (simple set)');
+is($s->has_loc(),1,'street() has_loc (simple set)');
+is($s->has_int(),0,'street() has_int (simple set)');
+
+$s=Net::DRI::Data::Contact->new();
+$s->street(\@S1,\@S2);
+is_deeply(scalar($s->street()),\@S1,'street() Scalar access (double set)');
+is_deeply([$s->street()],[\@S1,\@S2],'street() List access (double set)');
+is($s->has_loc(),1,'street() has_loc (double set)');
+is($s->has_int(),1,'street() has_int (double set)');
 
 
 $s=Net::DRI::Data::Contact->new();

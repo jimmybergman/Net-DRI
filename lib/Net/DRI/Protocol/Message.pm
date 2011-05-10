@@ -10,9 +10,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 #########################################################################################
 
 package Net::DRI::Protocol::Message;
@@ -22,8 +19,6 @@ use strict;
 use base qw/Net::DRI::BaseClass/;
 
 __PACKAGE__->make_exception_if_not_implemented(qw/new is_success result_status parse version as_string/);
-
-our $VERSION=do { my @r=(q$Revision: 1.7 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 

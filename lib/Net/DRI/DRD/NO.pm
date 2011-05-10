@@ -12,9 +12,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 #########################################################################################
 
 package Net::DRI::DRD::NO;
@@ -27,8 +24,6 @@ use base qw/Net::DRI::DRD/;
 use DateTime::Duration;
 use Net::DRI::Util;
 use Net::DRI::Exception;
-
-our $VERSION = do { my @r = ( q$Revision: 1.5 $ =~ /\d+/gxm ); sprintf( "%d" . ".%02d" x $#r, @r ); };
 
 # let contact check support be decided by the server policy
 __PACKAGE__->make_exception_for_unavailable_operations(qw/domain_transfer_accept domain_transfer_refuse contact_transfer_stop contact_transfer_query contact_transfer_accept contact_transfer_refuse/);
@@ -96,7 +91,7 @@ sub profile_types { return qw/epp/; }
 
 sub transport_protocol_default {
     my ($self,$type)=@_;
-    
+
     return ('Net::DRI::Transport::Socket',{},'Net::DRI::Protocol::EPP::Extensions::NO',{}) if $type eq 'epp';
 # suppress until whois is supported
 #return ('Net::DRI::Transport::Socket',{remote_host=>'whois.norid.no'},'Net::DRI::Protocol::Whois',{}) if $type eq 'whois';
@@ -116,7 +111,7 @@ in 'check_name'.
 
 However, we do not subclass the 'is_my_tld' as .AT has done,
 but we then have to call it in a non-strict mode to allow for
-domain names with multiple lables.
+domain names with multiple labels.
 
 The combination should then allow multiple labels and also
 to use CC-codes in lables, like 'se.vgs.no'
@@ -133,10 +128,6 @@ sub verify_name_domain
 
 sub verify_duration_renew {
     my ( $self, $ndr, $duration, $domain, $curexp ) = @_;
-    ( $duration, $domain, $curexp ) = ( $ndr, $duration, $domain )
-        unless ( defined($ndr)
-        && $ndr
-        && ( ref($ndr) eq 'Net::DRI::Registry' ) );
 
     if ( defined($duration) ) {
         my ( $y, $m ) = $duration->in_units( 'years', 'months' );
@@ -145,9 +136,6 @@ sub verify_duration_renew {
         unless ( ( $y == 1 && $m == 0 )
             || ( $y == 0 && ( $m >= 1 && $m <= 12 ) ) )
         {
-            Net::DRI::Exception::usererr_invalid_parameters(
-                'Invalid duration for renew/transfer_execute, must be 1..12 months'
-            );
             return 1;    # if exception is removed, return an error
         }
     }
@@ -167,7 +155,7 @@ sub domain_withdraw {
     my ( $self, $ndr, $domain, $rd ) = @_;
     $self->enforce_domain_name_constraints($ndr,$domain,'withdraw');
 
-    $rd = {} unless ( defined($rd) && ( ref($rd) eq 'HASH' ) );
+    $rd=Net::DRI::Util::create_params('domain_withdraw',$rd);
     $rd->{transactionname} = 'withdraw';
 
     my $rc = $ndr->process( 'domain', 'withdraw', [ $domain, $rd ] );
@@ -179,7 +167,7 @@ sub domain_transfer_execute
  my ($self,$ndr,$domain,$rd)=@_;
  $self->enforce_domain_name_constraints($ndr,$domain,'transfer_execute');
 
- $rd={} unless (defined($rd) && (ref($rd) eq 'HASH'));
+ $rd=Net::DRI::Util::create_params('domain_transfer_execute',$rd);
  $rd->{transactionname} = 'transfer_execute';
 
  my $rc=$ndr->process('domain','transfer_execute',[$domain,$rd]);
@@ -192,10 +180,7 @@ sub host_update {
     my ( $self, $ndr, $dh, $tochange, $rh ) = @_;
     my $fp = $ndr->protocol->nameversion();
 
-    my $name
-        = ( UNIVERSAL::isa( $dh, 'Net::DRI::Data::Hosts' ) )
-        ? $dh->get_details(1)
-        : $dh;
+    my $name=Net::DRI::Util::is_class($dh,'Net::DRI::Data::Hosts') ? $dh->get_details(1) : $dh;
     $self->enforce_host_name_constraints($ndr,$name);
     Net::DRI::Util::check_isa( $tochange, 'Net::DRI::Data::Changes' );
 

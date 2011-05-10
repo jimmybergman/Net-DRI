@@ -1,6 +1,7 @@
 ## Domain Registry Interface, EPP NameStore Extension for Verisign
 ##
 ## Copyright (c) 2006,2008,2009 Rony Meyer <perl@spot-light.ch>. All rights reserved.
+##                         2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -10,9 +11,6 @@
 ## (at your option) any later version.
 ##
 ## See the LICENSE file that comes with this distribution for more details.
-#
-# 
-#
 ####################################################################################################
 
 package Net::DRI::Protocol::EPP::Extensions::VeriSign::NameStore;
@@ -23,7 +21,6 @@ use warnings;
 use Net::DRI::Util;
 use Net::DRI::Exception;
 
-our $VERSION=do { my @r=(q$Revision: 1.7 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 our $NS='http://www.verisign-grs.com/epp/namestoreExt-1.1';
 
 =pod
@@ -55,7 +52,8 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2006,2008 Rony Meyer <perl@spot-light.ch>.
+Copyright (c) 2006,2008,2009 Rony Meyer <perl@spot-light.ch>.
+          (c) 2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -76,41 +74,41 @@ sub register_commands
  my %tmpDomain = (
            check  =>           [ \&add_namestore_ext, \&parse ],
            check_multi  =>     [ \&add_namestore_ext, \&parse ],
-           info   =>           [ \&add_namestore_ext, \&parse_error ],
-           transfer_query  =>  [ \&add_namestore_ext, \&parse_error ],
-           create =>           [ \&add_namestore_ext, \&parse_error ],
-           delete =>           [ \&add_namestore_ext, \&parse_error ],
-           renew =>            [ \&add_namestore_ext, \&parse_error ],
-           transfer_request => [ \&add_namestore_ext, \&parse_error ],
-           transfer_cancel  => [ \&add_namestore_ext, \&parse_error ],
-           transfer_answer  => [ \&add_namestore_ext, \&parse_error ],
-           update =>           [ \&add_namestore_ext, \&parse_error ],
+           info   =>           [ \&add_namestore_ext, undef ],
+           transfer_query  =>  [ \&add_namestore_ext, undef ],
+           create =>           [ \&add_namestore_ext, undef ],
+           delete =>           [ \&add_namestore_ext, undef ],
+           renew =>            [ \&add_namestore_ext, undef ],
+           transfer_request => [ \&add_namestore_ext, undef ],
+           transfer_cancel  => [ \&add_namestore_ext, undef ],
+           transfer_answer  => [ \&add_namestore_ext, undef ],
+           update =>           [ \&add_namestore_ext, undef ],
          );
 
  # host functions
  my %tmpHost = (
-           create       => [ \&add_namestore_ext, \&parse_error ],
+           create       => [ \&add_namestore_ext, undef ],
            check        => [ \&add_namestore_ext, \&parse ],
            check_multi  => [ \&add_namestore_ext, \&parse ],
-           info         => [ \&add_namestore_ext, \&parse_error ],
-           delete       => [ \&add_namestore_ext, \&parse_error ],
-           update       => [ \&add_namestore_ext, \&parse_error ],
+           info         => [ \&add_namestore_ext, undef ],
+           delete       => [ \&add_namestore_ext, undef ],
+           update       => [ \&add_namestore_ext, undef ],
          );
 
  # contact functions
  my %tmpContact = (
-           create       => [ \&add_namestore_ext, \&parse_error ],
+           create       => [ \&add_namestore_ext, undef ],
            check        => [ \&add_namestore_ext, \&parse ],
            check_multi  => [ \&add_namestore_ext, \&parse ],
-           info         => [ \&add_namestore_ext, \&parse_error ],
-           delete       => [ \&add_namestore_ext, \&parse_error ],
-           update       => [ \&add_namestore_ext, \&parse_error ],
+           info         => [ \&add_namestore_ext, undef ],
+           delete       => [ \&add_namestore_ext, undef ],
+           update       => [ \&add_namestore_ext, undef ],
          );
 
- 
  return { 'domain' => \%tmpDomain,
           'host'   => \%tmpHost,
           'contact'=> \%tmpContact,
+          'message' => { result => [ undef, \&parse_error ] },
         };
 }
 
@@ -156,7 +154,6 @@ sub parse
 {
  my ($po,$otype,$oaction,$oname,$rinfo)=@_;
  my $mes=$po->message();
- parse_error($po,$otype,$oaction,$oname,$rinfo);
  return unless $mes->is_success();
 
  my $infdata=$mes->get_extension($NS,'namestoreExt');
@@ -164,7 +161,7 @@ sub parse
  my $c=$infdata->getChildrenByTagNameNS($NS,'subProduct');
  return unless $c;
 
- $rinfo->{$otype}->{$oname}->{subproductid}=$c->shift()->getFirstChild()->getData();
+ $rinfo->{$otype}->{$oname}->{subproductid}=$c->get_node(1)->textContent();
 }
 
 sub parse_error
@@ -173,13 +170,13 @@ sub parse_error
  my $mes=$po->message();
 
  ## Parse namestoreExt in case of errors
- return unless $mes->result_code() == 2306;
+ return unless $mes->result_is('PARAMETER_VALUE_POLICY_ERROR') || $mes->result_is('COMMAND_SYNTAX_ERROR');
 
  my $data=$mes->get_extension($NS,'nsExtErrData');
- return unless $data;
- $data=$data->shift()->getChildrenByTagNameNS($NS,'msg');
- return unless $data;
- $data=$data->shift();
+ return unless defined $data;
+ $data=$data->getChildrenByTagNameNS($NS,'msg');
+ return unless defined $data && $data->size();
+ $data=$data->get_node(1);
 
  ## We add it to the latest status extra_info seen.
  $mes->add_to_extra_info({from => 'verisign:namestoreExt', type => 'text', message => $data->textContent(), code => $data->getAttribute('code')});
