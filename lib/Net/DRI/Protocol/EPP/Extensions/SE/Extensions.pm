@@ -100,7 +100,7 @@ sub capabilities_add {
 sub find_node
 {
  my ($mes,$nstag,$nodename)=@_;
- my $node=$mes->resdata();
+ my $node=$mes->node_resdata();
  my $ns=$mes->ns($nstag);
  $ns=$nstag unless defined $ns && $ns;
  my @tmp=$node->getElementsByTagNameNS($ns,$nodename);
