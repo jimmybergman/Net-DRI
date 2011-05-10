@@ -183,7 +183,7 @@ sub login
  $tmp=Net::DRI::Util::has_key($rdata,'version') ? $rdata->{version} : $sdata->{version};
  Net::DRI::Exception::usererr_insufficient_parameters('version') unless defined $tmp;
  $tmp=$tmp->[0] if ref $tmp eq 'ARRAY';
- Net::DRI::Exception::usererr_invalid_parameters('version') unless ($tmp=~m/^[1-9]+\.[0-9]+$/);
+ Net::DRI::Exception::usererr_invalid_parameters('version') unless ($tmp=~m/^([1-9]+\.[0-9]+)|([a-z+])+$/);
  push @o,['version',$tmp];
 
  $tmp=Net::DRI::Util::has_key($rdata,'lang') ? $rdata->{lang} : $sdata->{lang};
