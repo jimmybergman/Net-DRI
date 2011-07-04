@@ -178,7 +178,7 @@ sub update
  my @chg;
  push @chg,['domain:registrant',$chg->srid()] if Net::DRI::Util::isa_contact($chg,'Net::DRI::Data::Contact::PL');
  $chg=$todo->set('auth');
- push @chg,Net::DRI::Protocol::EPP::Util::domain_build_authinfo($chg) if ($chg && ref($chg));
+ push @chg,Net::DRI::Protocol::EPP::Util::domain_build_authinfo($epp,$chg,1) if ($chg && (ref $chg eq 'HASH') && exists $chg->{pw});
  push @d,['domain:chg',@chg] if @chg;
  $mes->command_body(\@d);
 }

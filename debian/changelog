@@ -1,5 +1,6 @@
-libnet-dri-perl (0.96-14atomia) unstable; urgency=low
+libnet-dri-perl (0.96-15atomia) unstable; urgency=low
 
+  * Fix .PL authinfo setting
   * Fix .PL support and add ping() for HTTP transport (since .PL has session timeout)
   * Add host support and transfer lock support to XCP/OpenSRS protocol driver.
   * Add domain_name_suggest to XCP/OpenSRS protocol driver.
