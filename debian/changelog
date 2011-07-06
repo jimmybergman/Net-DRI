@@ -1,5 +1,6 @@
-libnet-dri-perl (0.96-15atomia) unstable; urgency=low
+libnet-dri-perl (0.96-16atomia) unstable; urgency=low
 
+  * Allow .PL transfer_query and transfer_cancel
   * Fix .PL authinfo setting
   * Fix .PL support and add ping() for HTTP transport (since .PL has session timeout)
   * Add host support and transfer lock support to XCP/OpenSRS protocol driver.
