@@ -1,5 +1,8 @@
-libnet-dri-perl (0.96-16atomia) unstable; urgency=low
+libnet-dri-perl (0.96-18atomia) unstable; urgency=low
 
+  * Make sure that find_code in Net::DRI::Protocol::EPP::Connection handles
+    lang='en-US', needed for PIR OT&E
+  * Make VNDS driver able to pass OT&E test for the second transfer + add DNSSEC support
   * Allow .PL transfer_query and transfer_cancel
   * Fix .PL authinfo setting
   * Fix .PL support and add ping() for HTTP transport (since .PL has session timeout)

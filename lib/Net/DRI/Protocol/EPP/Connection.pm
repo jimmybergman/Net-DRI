@@ -199,7 +199,7 @@ sub find_code
  return () unless ($a=~m!</epp>!);
  return (1000,'Greeting OK','en')  if ($a=~m!<greeting>!);
  my ($code,$msg,$lang);
- return () unless (($code,$lang,$msg)=($a=~m!<response>\s*<result\s+code=["'](\d+)["']>\s*<msg(?:\s+lang=["'](\S\S)["']\s*)?>\s*(.+?)\s*</msg>\s*<(?:value|extValue|/result)>!));
+ return () unless (($code,$lang,$msg)=($a=~m!<response>\s*<result\s+code=["'](\d+)["']>\s*<msg(?:\s+lang=["'](\S\S(?:-\S\S))["']\s*)?>\s*(.+?)\s*</msg>\s*<(?:value|extValue|/result)>!));
  return (0+$code,$msg,defined $lang && length $lang ? $lang : 'en');
 }
 
