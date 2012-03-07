@@ -1138,4 +1138,33 @@ sub message_count
 }
 
 ####################################################################################################
+
+sub raw_command
+{
+ my ($self,$ndr,$command,$command_body,$extension_data)=@_;
+
+ my $rc=$ndr->process('session','raw',[$command,$command_body,$extension_data]);
+ return $rc;
+}
+
+sub change_password
+{
+ my ($self,$ndr,$id,$pass,$newpass,$ep)=@_;
+
+ my $epp_version = defined($ndr->transport->transport_data()->{"protocol_data"}) ? $ndr->transport->transport_data()->{"protocol_data"}->{"version"} : "1.0";
+ $epp_version = "1.0" unless defined($epp_version);
+
+ my $rc=$ndr->process('session','logout',[]);
+ return $rc unless $rc->is_success();
+ if ($rc->code() == 1500) {
+  $ndr->transport->transport_data()->{"client_newpassword"} = $newpass;
+  $rc=$ndr->process('session','noop',[]);
+ } else {
+  $rc=$ndr->process('session','login',[$id,$pass,$newpass,{ version => $epp_version, lang => "en" }]);
+ }
+
+ $ndr->transport->transport_data()->{"client_password"} = $newpass if $rc->is_success();
+ return $rc;
+}
+
 1;

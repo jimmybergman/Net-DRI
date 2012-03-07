@@ -73,6 +73,7 @@ sub register_commands
            logout  => [ \&logout ],
            login   => [ \&login ],
            connect => [ \&hello, \&parse_greeting ],
+           raw => [ \&raw ],
          );
 
  return { 'session' => \%tmp };
@@ -83,6 +84,22 @@ sub hello ## should trigger a greeting from server, allowed at any time
  my ($epp)=@_;
  my $mes=$epp->message();
  $mes->command(['hello']);
+}
+
+sub raw 
+{
+	my ($epp,$command,$command_body,$extension_data)=@_;
+	my $mes=$epp->message();
+	$mes->command_body($command_body);
+	$mes->command($command);
+
+	if (defined($extension_data) && ref($extension_data) eq "ARRAY") {
+		EXT: foreach my $extension (@$extension_data) {
+			next EXT unless defined($extension) && ref($extension) eq "HASH" && defined($extension->{"register"}) && defined($extension->{"data"});
+			my $eid = $mes->command_extension_register(@{$extension->{"register"}});
+			$mes->command_extension($eid, $extension->{"data"});
+		}
+	}
 }
 
 sub parse_greeting

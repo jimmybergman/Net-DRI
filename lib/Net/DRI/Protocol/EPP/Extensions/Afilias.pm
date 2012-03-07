@@ -66,7 +66,7 @@ See the LICENSE file that comes with this distribution for more details.
 
 ####################################################################################################
 
-sub default_extensions { return qw/Afilias::IDNLanguage Afilias::Restore GracePeriod/; }
+sub default_extensions { return qw/Afilias::IDNLanguage Afilias::Restore GracePeriod SecDNS11/; }
 
 ####################################################################################################
 1;
