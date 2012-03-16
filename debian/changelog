@@ -1,5 +1,6 @@
-libnet-dri-perl (0.96-19atomia) unstable; urgency=low
+libnet-dri-perl (0.96-20atomia) unstable; urgency=low
 
+  * Add waw to list of allowed tlds
   * Add secdns to the Afilias EPP extension
   * Add raw_command and change_password
   * Make sure that find_code in Net::DRI::Protocol::EPP::Connection handles
