@@ -1,5 +1,8 @@
-libnet-dri-perl (0.96-20atomia) unstable; urgency=low
+libnet-dri-perl (0.96-21atomia) unstable; urgency=low
 
+  * Make qDate parsing more forgiving against invalid formats like on .NU
+  * Make sure that renew of OpenSRS domains where "registration expiration
+    date" isn't set works.
   * Add waw to list of allowed tlds
   * Add secdns to the Afilias EPP extension
   * Add raw_command and change_password

@@ -496,7 +496,7 @@ sub renew_parse
  }
  my ($k,$v)=('registration expiration date', 'exDate');
  $ra->{$k}=~s/\s+/T/; ## with a little effort we become ISO8601
- $rinfo->{domain}->{$oname}->{$v}=$xcp->parse_iso8601($ra->{$k});
+ $rinfo->{domain}->{$oname}->{$v}=$xcp->parse_iso8601($ra->{$k}) if defined($ra->{$k});
 }
 
 sub transfer_request

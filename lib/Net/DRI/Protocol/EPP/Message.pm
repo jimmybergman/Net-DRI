@@ -295,7 +295,9 @@ sub parse
   {
    my %d=( id => $id );
    $self->msg_id($id);
-   $d{qdate}=DateTime::Format::ISO8601->new()->parse_datetime(Net::DRI::Util::xml_child_content($msgq,$NS,'qDate'));
+   eval {
+     $d{qdate}=DateTime::Format::ISO8601->new()->parse_datetime(Net::DRI::Util::xml_child_content($msgq,$NS,'qDate'));
+   };
    my $msgc=$msgq->getChildrenByTagNameNS($NS,'msg')->get_node(1);
    $d{lang}=$msgc->getAttribute('lang') || 'en';
 
