@@ -1,4 +1,4 @@
-## Domain Registry Interface, NASK (.PL) EPP extensions (draft-zygmuntowicz-epp-pltld-03)
+## Domain Registry Interface, .BIZ EPP extensions
 ##
 ## Copyright (c) 2006,2008,2009 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
@@ -15,21 +15,19 @@
 #
 ####################################################################################################
 
-package Net::DRI::Protocol::EPP::Extensions::PL;
+package Net::DRI::Protocol::EPP::Extensions::BIZ;
 
 use strict;
 
 use base qw/Net::DRI::Protocol::EPP/;
 
-use Net::DRI::Data::Contact::PL;
-
-our $VERSION=do { my @r=(q$Revision: 1.4 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
+our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 =pod
 
 =head1 NAME
 
-Net::DRI::Protocol::EPP::Extensions::PL - .PL EPP extensions (draft-zygmuntowicz-epp-pltld-03) for Net::DRI
+Net::DRI::Protocol::EPP::Extensions::BIZ - .MOBI EPP extensions for Net::DRI
 
 =head1 DESCRIPTION
 
@@ -67,19 +65,7 @@ See the LICENSE file that comes with this distribution for more details.
 
 ####################################################################################################
 
-sub setup
-{
- my ($self,$rp)=@_;
- $self->ns({ pl_domain  => ['http://www.dns.pl/NASK-EPP/extdom-1.0','extdom-1.0.xsd'],
-             pl_contact => ['http://www.dns.pl/NASK-EPP/extcon-1.0','extcon-1.0.xsd'],
-            # future     => ['http://www.dns.pl/NASK-EPP/future-1.0','future-1.0.xsd'], ## TODO
-          });
- $self->capabilities('host_update','name',undef); ## No change of hostnames
- $self->factories('contact',sub { return Net::DRI::Data::Contact::PL->new(); });
- return;
-}
-
-sub default_extensions { return qw/PL::Domain PL::Contact PL::Message SecDNS11/; } ## TODO: PL::Future
+sub default_extensions { return qw/GracePeriod SecDNS/; }
 
 ####################################################################################################
 1;

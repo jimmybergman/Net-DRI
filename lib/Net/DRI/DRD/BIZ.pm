@@ -91,8 +91,8 @@ sub transport_protocol_default
 {
  my ($self,$type)=@_;
 
- return ('Net::DRI::Transport::Socket',{},'Net::DRI::Protocol::EPP',{})                               if $type eq 'epp';
- return ('Net::DRI::Transport::Socket',{remote_host=>'whois.nic.biz'},'Net::DRI::Protocol::Whois',{}) if $type eq 'whois';
+ return ('Net::DRI::Transport::Socket',{},'Net::DRI::Protocol::EPP::Extensions::BIZ',{})		if $type eq 'epp';
+ return ('Net::DRI::Transport::Socket',{remote_host=>'whois.nic.biz'},'Net::DRI::Protocol::Whois',{})	if $type eq 'whois';
  return;
 }
 

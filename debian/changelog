@@ -1,5 +1,6 @@
-libnet-dri-perl (0.96-21atomia) unstable; urgency=low
+libnet-dri-perl (0.96-22atomia) unstable; urgency=low
 
+  * DNSSEC support for PL, INFO and BIZ
   * Make qDate parsing more forgiving against invalid formats like on .NU
   * Make sure that renew of OpenSRS domains where "registration expiration
     date" isn't set works.
