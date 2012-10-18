@@ -5,7 +5,7 @@
 %define perl_vendorlib %(eval "`%{__perl} -V:installvendorlib`"; echo $installvendorlib)
 %define perl_vendorarch %(eval "`%{__perl} -V:installvendorarch`"; echo $installvendorarch)
 
-%define real_name Net-DRI
+%define sourcedir perl-Net-DRI
 
 Summary: Interface to Domain Name Registries/Registrars/Resellers
 Name: perl-Net-DRI
@@ -46,7 +46,7 @@ protocols (such as RRP, EPP, or custom protocols) and various transports
 methods (such as TCP, TLS, SOAP, or email).
 
 %prep
-%setup -n %{real_name}
+%setup -n %{sourcedir}
 
 %build
 %{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"
