@@ -24,7 +24,7 @@ cd "$startdir"
 rm -rf "$tardir"
 
 cd /usr/src/redhat/SPECS
-rpmbuild --sign -bb perl-Net-DRI-api.spec
+rpmbuild --sign -bb perl-Net-DRI.spec
 retval=$?
 if [ $retval != 0 ]; then
 	exit $retval
