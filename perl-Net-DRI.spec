@@ -5,6 +5,8 @@
 %define perl_vendorlib %(eval "`%{__perl} -V:installvendorlib`"; echo $installvendorlib)
 %define perl_vendorarch %(eval "`%{__perl} -V:installvendorarch`"; echo $installvendorarch)
 
+%define sourcedir Net-DRI
+
 %define real_name Net-DRI
 
 Summary: Interface to Domain Name Registries/Registrars/Resellers
