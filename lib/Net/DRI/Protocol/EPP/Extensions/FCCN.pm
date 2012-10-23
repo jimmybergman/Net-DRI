@@ -68,10 +68,13 @@ See the LICENSE file that comes with this distribution for more details.
 
 sub setup
 {
- my ($self,$rp)=@_;
- $self->ns({ ptdomain  => ['http://www.dns.pt/xml/epp/ptdomain-1.0','ptdomain-1.0.xsd'],
-             ptcontact => ['http://www.dns.pt/xml/epp/ptcontact-1.0','ptcontact-1.0.xsd'],
+ my ($self,$rp,$params)=@_;
+ my $namespace_base = (defined($params) && ref($params) eq "HASH" && defined($params->{"namespace_base"})) ? $params->{"namespace_base"} : "http://www.dns.pt/xml/epp";
+
+ $self->ns({ ptdomain  => ["$namespace_base/ptdomain-1.0",'ptdomain-1.0.xsd'],
+             ptcontact => ["$namespace_base/ptcontact-1.0",'ptcontact-1.0.xsd'],
            });
+ $self->capabilities('contact_update','status',undef);
  $self->capabilities('contact_update','status',undef);
  $self->default_parameters({domain_create => { auth => { pw => '' } } }); ## domain:authInfo is not used by FCCN
  return;

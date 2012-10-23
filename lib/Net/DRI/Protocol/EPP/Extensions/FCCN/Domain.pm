@@ -77,6 +77,7 @@ sub register_commands
           renew  => [ \&renew ],
           renounce => [ \&renounce ],
           delete => [ \&delete ],
+	  transfer_request => [ \&transfer_request ],
          );
 
  return { 'domain' => \%tmp };
@@ -98,13 +99,11 @@ sub create
  Net::DRI::Exception::usererr_insufficient_parameters('Registrant contact required for .PT domain name creation') unless (Net::DRI::Util::has_contact($rd) && $rd->{contact}->has_type('registrant'));
  Net::DRI::Exception::usererr_insufficient_parameters('Tech contact required for .PT domain name creation') unless (Net::DRI::Util::has_contact($rd) && $rd->{contact}->has_type('tech'));
 
- foreach my $d (qw/legitimacy registration_basis add_period next_possible_registration auto_renew/)
+ foreach my $d (qw/legitimacy registration_basis auto_renew/)
  {
   Net::DRI::Exception::usererr_insufficient_parameters($d.' attribute is mandatory for .PT domain name creation') unless Net::DRI::Util::has_key($rd,$d);
  }
- Net::DRI::Exception::usererr_invalid_parameters('legitimacy attribute must be 0,1,2,3,4 or 5') unless ($rd->{legitimacy}=~m/^[01245]$/);
- Net::DRI::Exception::usererr_invalid_parameters('registration_basis attribute must be 010,020,030,040,050,060,070,080,090,100') unless ($rd->{registration_basis}=~m/^(?:0[123456789]0|100)$/);
- foreach my $d (qw/add_period next_possible_registration auto_renew/)
+ foreach my $d (qw/auto_renew/)
  {
   Net::DRI::Exception::usererr_invalid_parameters($d.' must be either 0 or 1 for .PT domain name creation') unless ($rd->{$d}==0 || $rd->{$d}==1);
  }
@@ -112,8 +111,6 @@ sub create
  my @n;
  push @n,['ptdomain:legitimacy',{type => $rd->{legitimacy}}];
  push @n,['ptdomain:registration_basis',{type => $rd->{registration_basis}}];
- push @n,['ptdomain:addPeriod',$rd->{add_period}];
- push @n,['ptdomain:nextPossibleRegistration',$rd->{next_possible_registration}];
  push @n,['ptdomain:autoRenew',$rd->{auto_renew}];
  my $eid=build_command_extension($mes,$epp,'ptdomain:create');
  $mes->command_extension($eid,\@n);
@@ -246,6 +243,17 @@ sub delete
  my $eid=build_command_extension($mes,$epp,'ptdomain:delete');
  my @n=add_roid($rd->{roid});
  $mes->command_extension($eid,\@n);
+}
+
+sub transfer_request
+{
+ my ($epp,$domain,$rd)=@_;
+ my $mes=$epp->message();
+
+ Net::DRI::Exception::usererr_insufficient_parameters('you have to specify authinfo for .PT domain transfer (mapped to transferKey)') unless Net::DRI::Util::has_auth($rd);
+
+ my $eid=build_command_extension($mes,$epp,'ptdomain:transfer');
+ $mes->command_extension($eid,['ptdomain:transferKey',$rd->{"auth"}->{"pw"}]);
 }
 
 ####################################################################################################
