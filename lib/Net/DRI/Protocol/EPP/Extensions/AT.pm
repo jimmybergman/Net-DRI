@@ -75,7 +75,7 @@ sub setup
  return;
 }
 
-sub default_extensions { return qw/AT::Domain AT::Contact AT::ATResult AT::Message/; }
+sub default_extensions { return qw/AT::Domain AT::Contact AT::ATResult AT::Message SecDNS11/; }
 
 ####################################################################################################
 1;
