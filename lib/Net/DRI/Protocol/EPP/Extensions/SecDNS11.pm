@@ -221,7 +221,7 @@ sub add_maxsiglife
 {
  my ($ra)=@_;
 
- my %msl=map { 0+$_->{maxSigLife} => 1 } grep { exists $_->{maxSigLife} } @$ra;
+ my %msl=map { 0+$_->{maxSigLife} => 1 } grep { ref($_) eq "HASH" && exists $_->{maxSigLife} } @$ra;
  return unless %msl;
 
  Net::DRI::Exception::usererr_invalid_parameters('Multiple distinct maxSigLife provided') if keys(%msl) > 1;
@@ -291,7 +291,7 @@ sub update
    }
   }
   push @n,['secDNS:add',add_interfaces(ref $toadd eq 'ARRAY' ? $toadd : [ $toadd ] )]                                                 if defined $toadd;
-  push @n,['secDNS:chg',add_maxsiglife(add_interfaces(ref $toset eq 'ARRAY' ? $toset: (ref $toset eq 'HASH' ? [$toset] : [{ maxSigLife=>$toset }])))] if defined $toset;
+  push @n,['secDNS:chg',add_interfaces(ref $toset eq 'ARRAY' ? $toset: (ref $toset eq 'HASH' ? [$toset] : [{ maxSigLife=>$toset }]))] if defined $toset;
  }
 
  $mes->command_extension($eid,\@n);

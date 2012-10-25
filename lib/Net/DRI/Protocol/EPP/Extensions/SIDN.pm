@@ -48,7 +48,7 @@ sub setup
 }
 
 sub core_contact_types { return ('admin','tech'); } ## No billing contact in .NL
-sub default_extensions { return qw/SIDN::Domain SIDN::Contact SIDN::Host SIDN::Notifications/; }
+sub default_extensions { return qw/SIDN::Domain SIDN::Contact SIDN::Host SIDN::Notifications SecDNS11/; }
 
 ####################################################################################################
 1;
