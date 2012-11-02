@@ -1,6 +1,6 @@
-## Domain Registry Interface, Neulevel EPP IDN Language
+## Domain Registry Interface, NeuLevel EPP extensions
 ##
-## Copyright (c) 2009 Jouanne Mickael <grigouze@gandi.net>. All rights reserved.
+## Copyright (c) 2007,2008,2009 Tonnerre Lombard <tonnerre.lombard@sygroup.ch>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -15,12 +15,11 @@
 #
 ####################################################################################################
 
-package Net::DRI::Protocol::EPP::Extensions::NeuLevel::IDNLanguage;
+package Net::DRI::Protocol::EPP::Extensions::NeuLevel;
 
 use strict;
 
-use Net::DRI::Util;
-use Net::DRI::Exception;
+use base qw/Net::DRI::Protocol::EPP/;
 
 our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
@@ -28,7 +27,7 @@ our $VERSION=do { my @r=(q$Revision: 1.3 $=~/\d+/g); sprintf("%d".".%02d" x $#r,
 
 =head1 NAME
 
-Net::DRI::Protocol::EPP::Extensions::NeuLevel::IDNLanguage - NeuLevel EPP IDN Language Commands for Net::DRI
+Net::DRI::Protocol::EPP::Extensions::NeuLevel - NeuLevel EPP extensions for Net::DRI
 
 =head1 DESCRIPTION
 
@@ -44,15 +43,16 @@ Please also see the SUPPORT file in the distribution.
 
 =head1 SEE ALSO
 
-E<lt>http://www.dotandco.com/services/software/Net-DRI/E<gt>
+E<lt>http://www.dotandco.com/services/software/Net-DRI/E<gt> and
+E<lt>http://oss.bsdprojects.net/projects/netdri/E<gt>
 
 =head1 AUTHOR
 
-Jouanne Mickael E<lt>grigouze@gandi.netE<gt>
+Tonnerre Lombard E<lt>tonnerre.lombard@sygroup.chE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2009 Jouanne Mickael <grigouze@gandi.net>.
+Copyright (c) 2007,2008,2009 Tonnerre Lombard <tonnerre.lombard@sygroup.ch>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -66,35 +66,7 @@ See the LICENSE file that comes with this distribution for more details.
 
 ####################################################################################################
 
-sub register_commands
-{
- my ($class,$version)=@_;
- my %tmp=(
-           create => [ \&create, undef ],
-         );
-
- return { 'domain' => \%tmp };
-}
-
-####################################################################################################
-
-sub add_language
-{
- my ($tag,$epp,$domain,$rd)=@_;
- my $mes=$epp->message();
-
- if (Net::DRI::Util::has_key($rd,'language'))
- {
-  Net::DRI::Exception::usererr_invalid_parameters('IDN language tag must be of type XML schema language') unless Net::DRI::Util::xml_is_language($rd->{language});
-  my $eid=$mes->command_extension_register($tag,'xmlns:neulevel="urn:ietf:params:xml:ns:neulevel-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:neulevel-1.0 neulevel-1.0.xsd"');
-  $mes->command_extension($eid,['neulevel:unspec', 'IDNLang=' . $rd->{language}]);
- }
-}
-
-sub create
-{
- return add_language('neulevel:extension',@_);
-}
+sub default_extensions { return qw/NeuLevel::IDNLanguage NeuLevel::UIN SecDNS11/; }
 
 ####################################################################################################
 1;

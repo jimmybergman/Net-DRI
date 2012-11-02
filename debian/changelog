@@ -1,5 +1,6 @@
-libnet-dri-perl (0.96-24atomia) unstable; urgency=low
+libnet-dri-perl (0.96-25atomia) unstable; urgency=low
 
+  * Enable IDN for BIZ
   * Enable DNSSEC for SIDN
   * Enable DNSSEC for .AT
   * Make .PT work
