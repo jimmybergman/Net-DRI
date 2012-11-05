@@ -66,7 +66,7 @@ See the LICENSE file that comes with this distribution for more details.
 
 ####################################################################################################
 
-sub default_extensions { return qw/NeuLevel::IDNLanguage NeuLevel::UIN SecDNS11/; }
+sub default_extensions { return qw/NeuLevel::IDNLanguage NeuLevel::UIN SecDNS GracePeriod/; }
 
 ####################################################################################################
 1;
