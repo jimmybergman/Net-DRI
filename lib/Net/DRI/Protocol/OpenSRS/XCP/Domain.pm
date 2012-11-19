@@ -261,6 +261,11 @@ sub sw_register
   $attr->{$_} = ($rd->{$_}) if Net::DRI::Util::has_key($rd, $_);
  }
 
+ if (Net::DRI::Util::has_key($rd, 'f_bypass_confirm') && Net::DRI::Util::has_auth($rd)) {
+  $attr->{'f_bypass_confirm'} = 1;
+  $attr->{'auth_info'} = $rd->{"auth"}->{"pw"};
+ }
+
  # TBD: ccTLD-specific flags including domain encoding.
  # TBD: handle, link_domains, etc.
 

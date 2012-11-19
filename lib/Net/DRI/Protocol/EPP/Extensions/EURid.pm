@@ -74,11 +74,11 @@ sub setup
  my ($self,$rp)=@_;
  my $version=$self->version();
 
- $self->ns({_main => ['http://www.eurid.eu/xml/epp/epp-1.0','epp-1.0.xsd']});
- foreach my $w (qw/domain contact eurid nsgroup registrar/)
+ foreach my $w (qw/contact-ext domain-ext nsgroup registrar/)
  {
   $self->ns({ $w => ['http://www.eurid.eu/xml/epp/'.$w.'-1.0',$w.'-1.0.xsd'] });
  }
+
  $self->capabilities('contact_update','status',undef); ## No changes in status possible for .EU domains/contacts
  $self->capabilities('domain_update','status',undef);
  $self->capabilities('domain_update','nsgroup',[ 'add','del']);
@@ -88,8 +88,7 @@ sub setup
  return;
 }
 
-sub core_contact_types { return ('admin','tech','billing','onsite'); }
-sub default_extensions { return qw/EURid::Domain EURid::Contact EURid::Registrar EURid::Notifications NSgroup SecDNS/; } ## Sunrise should be added when calling, as it is not mandatory
+sub default_extensions { return qw/EURid::Domain EURid::Contact EURid::Registrar EURid::Notifications NSgroup SecDNS11/; } ## Sunrise should be added when calling, as it is not mandatory
 
 ####################################################################################################
 1;

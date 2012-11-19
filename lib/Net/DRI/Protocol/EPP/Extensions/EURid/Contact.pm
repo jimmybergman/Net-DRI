@@ -70,7 +70,6 @@ sub register_commands
  my %tmp=( 
           create            => [ \&create, undef ],
           update            => [ \&update, undef ],
-          info              => [ \&info, \&info_parse ],
          );
 
  return { 'contact' => \%tmp };
@@ -81,7 +80,7 @@ sub register_commands
 sub build_command_extension
 {
  my ($mes,$epp,$tag)=@_;
- return $mes->command_extension_register($tag,sprintf('xmlns:eurid="%s" xsi:schemaLocation="%s %s"',$mes->nsattrs('eurid')));
+ return $mes->command_extension_register($tag,sprintf('xmlns:contact-ext="%s" xsi:schemaLocation="%s %s"',$mes->nsattrs('contact-ext')));
 }
 
 
@@ -92,12 +91,12 @@ sub create
 
  ## validate() has been called, we are sure that type & lang exists
  my @n;
- push @n,['eurid:type',$contact->type()];
- push @n,['eurid:vat',$contact->vat()] if $contact->vat();
- push @n,['eurid:lang',$contact->lang()];
+ push @n,['contact-ext:type',$contact->type()];
+ push @n,['contact-ext:vat',$contact->vat()] if $contact->vat();
+ push @n,['contact-ext:lang',$contact->lang()];
 
- my $eid=build_command_extension($mes,$epp,'eurid:ext');
- $mes->command_extension($eid,['eurid:create',['eurid:contact',@n]]);
+ my $eid=build_command_extension($mes,$epp,'contact-ext:create');
+ $mes->command_extension($eid,[@n]);
 }
 
 sub update
@@ -109,48 +108,11 @@ sub update
  return unless ($newc && (defined($newc->vat()) || defined($newc->lang())));
 
  my @n;
- push @n,['eurid:vat',$newc->vat()]   if defined($newc->vat());
- push @n,['eurid:lang',$newc->lang()] if defined($newc->lang());
+ push @n,['contact-ext:vat',$newc->vat()]   if defined($newc->vat());
+ push @n,['contact-ext:lang',$newc->lang()] if defined($newc->lang());
 
- my $eid=build_command_extension($mes,$epp,'eurid:ext');
- $mes->command_extension($eid,['eurid:update',['eurid:contact',['eurid:chg',@n]]]);
-}
-
-sub info
-{
- my ($epp,$contact)=@_;
- my $mes=$epp->message();
- my $eid=build_command_extension($mes,$epp,'eurid:ext');
- $mes->command_extension($eid,['eurid:info',['eurid:contact',{version => '2.0'}]]);
-}
-
-sub info_parse
-{
- my ($po,$otype,$oaction,$oname,$rinfo)=@_;
- my $mes=$po->message();
- return unless $mes->is_success();
-
- my $infdata=$mes->get_extension('eurid','ext');
- return unless $infdata;
- my $ns=$mes->ns('eurid');
- $infdata=$infdata->getChildrenByTagNameNS($ns,'infData');
- return unless $infdata->size();
- $infdata=$infdata->shift();
- $infdata=$infdata->getChildrenByTagNameNS($ns,'contact');
- return unless $infdata->size();
- $infdata=$infdata->shift();
-
- my $s=$rinfo->{contact}->{$oname}->{self};
- my $el=$infdata->getChildrenByTagNameNS($ns,'type');
- $s->type($el->get_node(1)->getFirstChild()->getData());
- $el=$infdata->getChildrenByTagNameNS($ns,'vat');
- $s->vat($el->get_node(1)->getFirstChild()->getData()) if defined($el->get_node(1));
- $el=$infdata->getChildrenByTagNameNS($ns,'lang');
- $s->lang($el->get_node(1)->getFirstChild()->getData());
- $el=$infdata->getChildrenByTagNameNS($ns,'onhold');
- $s->onhold($el->get_node(1)->getFirstChild()->getData()) if defined($el->get_node(1));
- $el=$infdata->getChildrenByTagNameNS($ns,'monitoringStatus');
- $s->monitoring_status($el->get_node(1)->getFirstChild()->getData()) if defined($el->get_node(1));
+ my $eid=build_command_extension($mes,$epp,'contact-ext:update');
+ $mes->command_extension($eid,['contact-ext:chg',@n]);
 }
 
 ####################################################################################################

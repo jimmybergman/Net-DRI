@@ -1,5 +1,6 @@
-libnet-dri-perl (0.96-26atomia) unstable; urgency=low
+libnet-dri-perl (0.96-27atomia) unstable; urgency=low
 
+  * Allow OpenSRS f_bypass_confirm and adapt .EU to nov 21 release
   * Unbreak BIZ DNSSEC
   * Enable IDN for BIZ
   * Enable DNSSEC for SIDN
