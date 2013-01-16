@@ -295,7 +295,16 @@ sub tld2reg
  return unless defined($tld) && $tld;
  $tld=lc($tld);
  $tld=$1 if ($tld=~m/\.([a-z0-9]+)$/);
- return unless exists($self->{tlds}->{$tld});
+ unless (exists($self->{tlds}->{$tld}))
+ {
+         if (exists($self->{tlds}->{'*'})) {
+                my @default_registry=@{$self->{tlds}->{'*'}};
+                return @default_registry;
+          } else {
+                return undef;
+          }
+ }
+
  my @t=@{$self->{tlds}->{$tld}};
  return @t;
 }

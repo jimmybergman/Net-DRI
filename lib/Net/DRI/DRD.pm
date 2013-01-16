@@ -115,6 +115,7 @@ sub is_my_tld
  if (! defined($strict)) { $strict=1; }
  if ($domain=~m/\.e164\.arpa$/) { $strict=0; }
  my $tlds=join('|',map { quotemeta($_) } sort { length($b) <=> length($a) } $self->tlds());
+ return 1 if $tlds =~ /\*/;
  my $r=$strict? qr/^[^.]+\.(?:$tlds)$/i : qr/\.(?:$tlds)$/i;
  return ($domain=~$r)? 1 : 0;
 }

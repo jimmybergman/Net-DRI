@@ -82,7 +82,7 @@ sub new
 
 sub periods      { return map { DateTime::Duration->new(years => $_) } (1..10); }
 sub name         { return 'OpenSRS'; }
-sub tlds         { return (qw/example com net org info biz mobi name asia at au be bz ca cc ch cn co de dk es eu fr in it li me com.mx mx nl tel tv co.uk org.uk uk us ws/); } ## see http://www.opensrs.com/services/domains/domains-pricing
+sub tlds         { return (qw/*/); }
 sub object_types { return ('domain'); }
 sub profile_types { return qw/xcp/; }
 

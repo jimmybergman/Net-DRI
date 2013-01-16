@@ -1,5 +1,7 @@
-libnet-dri-perl (0.96-27atomia) unstable; urgency=low
+libnet-dri-perl (0.96-28atomia) unstable; urgency=low
 
+  * Make the OpenSRS plugin support arbitrary tlds (and the corresponding core
+    support)
   * Allow OpenSRS f_bypass_confirm and adapt .EU to nov 21 release
   * Unbreak BIZ DNSSEC
   * Enable IDN for BIZ
