@@ -75,7 +75,7 @@ sub register_commands {
         create => [ \&create, undef ],
         update => [ \&update, undef ],
         delete => [ \&facet, undef ],
-       check  => [ \&facet, undef ],
+        check  => [ \&facet, undef ],
         info   => [ \&info,   \&parse_info ],
     );
 
@@ -139,10 +139,19 @@ sub parse_info {
     my @e = $condata->getElementsByTagNameNS( $NS, 'contact' );
     return unless @e;
 
-    # Contact is a single scalar
-    my $t = $e[0];
-    if ( my $ct = $t->getFirstChild()->getData() ) {
-        $rinfo->{host}->{$oname}->{contact} = $ct;
+    # Contact is optional, may be single or multiple,
+    # return the contactIDs in an ARRAY 
+    my @hc;
+    foreach my $el ( @e)
+    {
+        my $c = $el->getFirstChild();
+        my $v;
+        $v = $c->getData() if ($c);
+        push @hc, $v if ($v);
+    }
+    if ( @hc > 0 ) {
+	# multiple, return array
+	push @{$rinfo->{host}->{$oname}->{contact}}, @hc;
     }
     return;
 }
@@ -199,18 +208,30 @@ sub create {
        my $eid = build_command_extension( $mes, $epp, 'no-ext-host:create' );
        my $c = $rd->{contact};
        my $srid;
-       
-       # $c may be a contact object or a direct scalar
-       if (   Net::DRI::Util::has_contact( $rd ) )
-       {
-           my @o = $c->get('contact');
-           $srid = $o[0]->srid() if (@o);
+
+       if ( ref($c) eq 'ARRAY' ) {
+	   foreach my $cn (@$c) {
+	       if ( Net::DRI::Util::has_contact( $rd ) )
+	       {
+		   my @o = $c->get('contact');
+		   $srid = $o[0]->srid() if (@o);
+	       } else {
+		   $srid = $c;
+	       }
+	       push @e, [ 'no-ext-host:contact', $srid ];
+	   }
        } else {
-           
-           # Contact shall be a single scalar!
-           $srid = $c;
-      }
-       push @e, [ 'no-ext-host:contact', $srid ];
+	   # scalar
+	   # $c may be a contact object or a direct scalar
+	   if (   Net::DRI::Util::has_contact( $rd ) )
+	   {
+	       my @o = $c->get('contact');
+	       $srid = $o[0]->srid() if (@o);
+	   } else {
+	       $srid = $c;
+	   }
+	   push @e, [ 'no-ext-host:contact', $srid ];
+       }
        $r = $mes->command_extension( $eid, \@e );
     }
 
@@ -240,9 +261,21 @@ sub update {
        my ( @n, @s );
 
        if ( defined($ca) && $ca ) {
-           push @s, [ 'no-ext-host:contact', $ca ];
+
+	   if ( ref($ca) eq 'ARRAY' ) {
+	       foreach my $c (@$ca) {
+		   push @s, [ 'no-ext-host:contact', $c ];
+	       }
+	   } else {
+	       # scalar
+	       push @s, [ 'no-ext-host:contact', $ca ];
+	   }
            push @n, [ 'no-ext-host:add', @s ] if ( @s > 0 );
        }
+       
+
+
+
        @s = undef;
        if ( defined($cd) && $cd ) {
            push @s, [ 'no-ext-host:contact', $cd ];

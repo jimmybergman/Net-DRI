@@ -134,6 +134,7 @@ sub parse {
             $c = $c->getNextSibling();
         }
         push @conditions, \%con;
+        $mes->add_to_extra_info(\%con);
     }
 
     # Extension results can be returned in all 3 object types

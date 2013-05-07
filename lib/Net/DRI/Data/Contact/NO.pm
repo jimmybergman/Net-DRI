@@ -253,7 +253,7 @@ sub validate {
         push @errs, 'identity type'
             if ( $ty
             && $ty
-            !~ m/^(?:organizationNumber|localIdentity|nationalIdentityNumber)$/mx
+            !~ m/^(?:organizationNumber|localIdentity|nationalIdentityNumber|anonymousPersonIdentifier)$/mx
             );
 
         # let the server handle further validation of what identity syntax
@@ -306,7 +306,7 @@ sub validate {
                         if ( $e
                         && !Net::DRI::Util::xml_is_token( $e, 3, 16 ) );
                 }
-                push @errs, "xemail:$er" if ($er);
+                push @errs, "$el:$er" if ($er);
             }
         }
     }
