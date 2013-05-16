@@ -4,7 +4,7 @@ use DateTime::Duration;
 use Net::DRI;
 use Net::DRI::Data::Raw;
 
-use Test::More tests => 287;
+use Test::More tests => 306;
 
 our $E1='<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">';
 our $E2='</epp>';
@@ -144,6 +144,28 @@ is($dri->get_info('exist'),1,'domain_info get_info(exist)');
 is($dri->get_info('roid'),'EXAMPLE1-REP','domain_info get_info(roid)');
 is($dri->get_info('clID'),'ClientX','domain_info get_info(clID)');
 
+#---  domain_info  without auth and with applicantDataset (no-ext-domain-1.1):
+
+$R2=$E1.'<response>'.r().'<resData><domain:infData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example200-dataset.no</domain:name><domain:roid>EXAMPLE1-REP</domain:roid><domain:clID>ClientX</domain:clID></domain:infData></resData><extension><no-ext-domain:infData xmlns="http://www.norid.no/xsd/no-ext-domain-1.1" xmlns:no-ext-domain="http://www.norid.no/xsd/no-ext-domain-1.1"><no-ext-domain:applicantDataset><no-ext-domain:versionNumber>1.0</no-ext-domain:versionNumber><no-ext-domain:acceptName>Tante Sofie</no-ext-domain:acceptName><no-ext-domain:acceptDate>2012-04-10T13:55:55Z</no-ext-domain:acceptDate><no-ext-domain:updateClientID>reg0</no-ext-domain:updateClientID><no-ext-domain:updateDate>2012-04-11T14:55:55.42Z</no-ext-domain:updateDate></no-ext-domain:applicantDataset></no-ext-domain:infData></extension>'.$TRID.'</response>'.$E2;
+$rc=$dri->domain_info('example200-dataset.no');
+is($R1,$E1.'<command><info><domain:info xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name hosts="all">example200-dataset.no</domain:name></domain:info></info><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_info build without auth');
+
+is($dri->get_info('exist'),1,'domain_info get_info(exist)');
+is($dri->get_info('roid'),'EXAMPLE1-REP','domain_info get_info(roid)');
+is($dri->get_info('clID'),'ClientX','domain_info get_info(clID)');
+
+$d = $dri->get_info('applicantDataset');
+is(defined($d), 1 ,'domain_info get_info(applicantDataset)');
+is($d->{versionNumber},'1.0','domain_info get_info(versionNumber)');
+is($d->{acceptName},'Tante Sofie','domain_info get_info(acceptName)');
+my $date = $d->{acceptDate};
+isa_ok($date,'DateTime','domain_info get_info(acceptDate)');
+is("".$date,"2012-04-10T13:55:55",'domain_info get_info(acceptDate)');
+$date = $d->{updateDate};
+isa_ok($date,'DateTime','domain_info get_info(updateDate)');
+is("".$date,"2012-04-11T14:55:55",'domain_info get_info(acceptDate)');
+is($d->{updateClientID},'reg0','domain_info get_info(updateClientID)');
+
 #--- domain_transfer_query
 
 $R2=$E1.'<response>'.r().'<resData><domain:trnData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example201.no</domain:name><domain:trStatus>pending</domain:trStatus><domain:reID>ClientX</domain:reID><domain:reDate>2000-06-06T22:00:00.0Z</domain:reDate><domain:acID>ClientY</domain:acID><domain:acDate>2000-06-11T22:00:00.0Z</domain:acDate><domain:exDate>2002-09-08T22:00:00.0Z</domain:exDate></domain:trnData></resData>'.$TRID.'</response>'.$E2; 
@@ -177,6 +199,7 @@ $cs->set($c2,'tech');
 $rc=$dri->domain_create('example202.no',{pure_create=>1,duration=>DateTime::Duration->new(months=>12),ns=>$dri->local_object('hosts')->set(['ns1.example.no'],['ns2.example.no']),contact=>$cs,auth=>{pw=>'2fooBAR'}});
 
 is($R1,$E1.'<command><create><domain:create xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example202.no</domain:name><domain:period unit="y">1</domain:period><domain:ns><domain:hostObj>ns1.example.no</domain:hostObj><domain:hostObj>ns2.example.no</domain:hostObj></domain:ns><domain:registrant>jd1234</domain:registrant><domain:contact type="admin">sh8013</domain:contact><domain:contact type="tech">sh8013</domain:contact><domain:authInfo><domain:pw>2fooBAR</domain:pw></domain:authInfo></domain:create></create><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_create build');
+
 is($dri->get_info('action'),'create','domain_create get_info(action)');
 is($dri->get_info('exist'),1,'domain_create get_info(exist)');
 $d=$dri->get_info('crDate');
@@ -185,6 +208,31 @@ is("".$d,'1999-04-03T22:00:00','domain_create get_info(crDate) value');
 $d=$dri->get_info('exDate');
 isa_ok($d,'DateTime','domain_create get_info(exDate)');
 is("".$d,'2001-04-03T22:00:00','domain_create get_info(exDate) value');
+
+# applicantDataset create (no-ext-domain-1.1)
+$R2=$E1.'<response>'.r().'<resData><domain:creData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example202-dataset.no</domain:name><domain:crDate>1999-04-03T22:00:00.0Z</domain:crDate><domain:exDate>2001-04-03T22:00:00.0Z</domain:exDate></domain:creData></resData>'.$TRID.'</response>'.$E2;
+
+$rc=$dri->domain_create('example202-dataset.no',{pure_create=>1,duration=>DateTime::Duration->new(months=>12),ns=>$dri->local_object('hosts')->set(['ns1.example.no'],['ns2.example.no']),contact=>$cs,auth=>{pw=>'2fooBAR'}, applicantdataset=>{ acceptname => 'Peter Absalon', acceptdate => '2011-10-11T08:19:31.00Z', versionnumber => '13.10'}});
+
+is($R1,$E1.'<command><create><domain:create xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example202-dataset.no</domain:name><domain:period unit="y">1</domain:period><domain:ns><domain:hostObj>ns1.example.no</domain:hostObj><domain:hostObj>ns2.example.no</domain:hostObj></domain:ns><domain:registrant>jd1234</domain:registrant><domain:contact type="admin">sh8013</domain:contact><domain:contact type="tech">sh8013</domain:contact><domain:authInfo><domain:pw>2fooBAR</domain:pw></domain:authInfo></domain:create></create><extension><no-ext-domain:create xmlns:no-ext-domain="http://www.norid.no/xsd/no-ext-domain-1.1" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-domain-1.1 no-ext-domain-1.1.xsd"><no-ext-domain:applicantDataset><no-ext-domain:versionNumber>13.10</no-ext-domain:versionNumber><no-ext-domain:acceptName>Peter Absalon</no-ext-domain:acceptName><no-ext-domain:acceptDate>2011-10-11T08:19:31.00Z</no-ext-domain:acceptDate></no-ext-domain:applicantDataset></no-ext-domain:create></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_create build');
+
+is($dri->get_info('action'),'create','domain_create get_info(action)');
+is($dri->get_info('exist'),1,'domain_create get_info(exist)');
+$d=$dri->get_info('crDate');
+isa_ok($d,'DateTime','domain_create get_info(crDate)');
+is("".$d,'1999-04-03T22:00:00','domain_create get_info(crDate) value');
+$d=$dri->get_info('exDate');
+isa_ok($d,'DateTime','domain_create get_info(exDate)');
+is("".$d,'2001-04-03T22:00:00','domain_create get_info(exDate) value');
+
+
+#$d=$dri->get_info('acceptDate');
+
+use Data::Dumper;
+$Data::Dumper::Indent=1;
+print "d: ", Dumper $d;
+
+#isa_ok($d,'DateTime','domain_create get_info(acceptDate)');
 
 
 $R2='';
@@ -207,7 +255,7 @@ $R2=$E1.'<response>'.r().'<resData><domain:trnData xmlns:domain="urn:ietf:params
 
 $rc=$dri->domain_transfer_start('example205.no',{auth=>{pw=>'2fooBAR'},duration=>DateTime::Duration->new(years=>1), email=>'reg.test\@ttest.no'});
 
-is($R1,$E1.'<command><transfer op="request"><domain:transfer xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example205.no</domain:name><domain:period unit="y">1</domain:period><domain:authInfo><domain:pw>2fooBAR</domain:pw></domain:authInfo></domain:transfer></transfer><extension><no-ext-domain:transfer xmlns:no-ext-domain="http://www.norid.no/xsd/no-ext-domain-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-domain-1.0 no-ext-domain-1.0.xsd"><no-ext-domain:notify><no-ext-domain:email>reg.test\@ttest.no</no-ext-domain:email></no-ext-domain:notify></no-ext-domain:transfer></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_transfer_start (=request) build');
+is($R1,$E1.'<command><transfer op="request"><domain:transfer xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example205.no</domain:name><domain:period unit="y">1</domain:period><domain:authInfo><domain:pw>2fooBAR</domain:pw></domain:authInfo></domain:transfer></transfer><extension><no-ext-domain:transfer xmlns:no-ext-domain="http://www.norid.no/xsd/no-ext-domain-1.1" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-domain-1.1 no-ext-domain-1.1.xsd"><no-ext-domain:notify><no-ext-domain:email>reg.test\@ttest.no</no-ext-domain:email></no-ext-domain:notify></no-ext-domain:transfer></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_transfer_start (=request) build');
 is($dri->get_info('action'),'transfer','domain_transfer_start get_info(action)');
 is($dri->get_info('exist'),1,'domain_transfer_start get_info(exist)');
 is($dri->get_info('trStatus'),'pending','domain_transfer_start get_info(trStatus)');
@@ -323,7 +371,7 @@ is($d.'','1999-12-03T09:00:00','host_info get_info(upDate) value');
 $d=$dri->get_info('trDate');
 isa_ok($d,'DateTime','host_info get_info(trDate)');
 is($d.'','2000-04-08T09:00:00','host_info get_info(trDate) value');
-is($dri->get_info('contact'),'PEO183P','host_info get_info(contact)');
+is_deeply($dri->get_info('contact'),['PEO183P'],'host_info get_info(contact)');
 $R2=$E1.'<response>'.r().'<resData><host:creData xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:name>ns101.example1.no</host:name><host:crDate>1999-04-03T22:00:00.0Z</host:crDate></host:creData></resData>'.$TRID.'</response>'.$E2;
 $rc=$dri->host_create($dri->local_object('hosts')->add('ns101.example1.no',['193.0.2.2','193.0.2.29'],[]), {contact=>'PEO183P'});
 is($R1,$E1.'<command><create><host:create xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:name>ns101.example1.no</host:name><host:addr ip="v4">193.0.2.2</host:addr><host:addr ip="v4">193.0.2.29</host:addr></host:create></create><extension><no-ext-host:create xmlns:no-ext-host="http://www.norid.no/xsd/no-ext-host-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-host-1.0 no-ext-host-1.0.xsd"><no-ext-host:contact>PEO183P</no-ext-host:contact></no-ext-host:create></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'host_create build');
