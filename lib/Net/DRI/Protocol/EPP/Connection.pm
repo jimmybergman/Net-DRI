@@ -118,10 +118,15 @@ sub read_data
 {
  my ($class,$to,$sock)=@_;
 
- my $c;
- my $rl=$sock->sysread($c,4); ## first 4 bytes are the packed length
- die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_FAILED_CLOSING','Unable to read EPP 4 bytes length (connection closed by registry '.$to->transport_data('remote_uri').' ?): '.($! || 'no error given'),'en')) unless (defined $rl && $rl==4);
- my $length=unpack('N',$c)-4;
+ my $length=4; ## first 4 bytes are the packed length
+ my $c='';
+ while($length > 0)
+ {
+   my $new;
+   $length-=$sock->sysread($new,$length);
+   $c.=$new;
+ }
+ $length=unpack('N',$c)-4;
  my $m='';
  while ($length > 0)
  {
@@ -133,6 +138,7 @@ sub read_data
  die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_SYNTAX_ERROR',$m? 'Got unexpected EPP message: '.$m : '<empty message from server>','en')) unless ($m=~m!</epp>\s*$!s);
  return Net::DRI::Data::Raw->new_from_xmlstring($m);
 }
+
 
 sub write_message
 {
