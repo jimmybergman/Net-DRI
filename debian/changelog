@@ -1,5 +1,5 @@
-libnet-dri-perl (0.96-30atomia) unstable; urgency=low
-
+libnet-dri-perl (0.96-31atomia) unstable; urgency=low
+  * Fix reading data now takes into account fragmented lengt
   * Synced NO driver with
     http://www.norid.no/registrar/system/epp/net-dri/Net-DRI-0.96.no.1.0.1.tar.gz
   * Added DRI/DRD/RFC.pm (generic interface for arbitrary tlds)
