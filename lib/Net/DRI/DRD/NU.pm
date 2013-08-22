@@ -1,8 +1,7 @@
-## Domain Registry Interface, .NU policies
+## Domain Registry Interface, .SE policy on reserved names
+## Contributed by Elias Sidenbladh and Ulrich Wisser from NIC SE
 ##
-## Copyright (c) 2007,2008,2009 HEXONET Support GmbH, http://www.hexonet.com,
-##                    Alexander Biehl <info@hexonet.com>.
-##                    All rights reserved.
+## Copyright (c) 2006-2010 Patrick Mevzek <netdri@dotandco.com>. All rights reserved.
 ##
 ## This file is part of Net::DRI
 ##
@@ -13,7 +12,7 @@
 ##
 ## See the LICENSE file that comes with this distribution for more details.
 #
-# 
+#  
 #
 ####################################################################################################
 
@@ -25,8 +24,13 @@ use warnings;
 use base qw/Net::DRI::DRD/;
 
 use DateTime::Duration;
+use Net::DRI::Util;
+use Net::DRI::Data::Contact::SE;
 
-our $VERSION=do { my @r=(q$Revision: 1.6 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
+our $VERSION=do { my @r=(q$Revision: 1.9 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
+
+## Only transfer requests and queries are possible, the rest is handled "off line".
+__PACKAGE__->make_exception_for_unavailable_operations(qw/domain_transfer_stop domain_transfer_accept domain_transfer_refuse domain_delete/);
 
 =pod
 
@@ -56,8 +60,7 @@ Patrick Mevzek, E<lt>netdri@dotandco.comE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2007,2008,2009 HEXONET Support GmbH, E<lt>http://www.hexonet.comE<gt>,
-Alexander Biehl <info@hexonet.com>.
+Copyright (c) 2006-2010 Patrick Mevzek <netdri@dotandco.com>.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
@@ -81,18 +84,71 @@ sub new
  return $self;
 }
 
-sub periods  { return map { DateTime::Duration->new(years => $_) } (1..10); }
-sub name     { return 'NU'; }
-sub tlds     { return ('nu'); }
+sub name     { return 'nu'; }
+sub tlds     { return ('NU'); }
+sub periods  { return map { DateTime::Duration->new(months => $_) } (12..120); }
 sub object_types { return ('domain','contact','ns'); }
-sub profile_types { return qw/epp/; }
+sub profile_types { return qw/epp whois/; }
 
 sub transport_protocol_default
 {
  my ($self,$type)=@_;
 
- return ('Net::DRI::Transport::Socket',{},'Net::DRI::Protocol::EPP',{}) if $type eq 'epp';
+ return ('Net::DRI::Transport::Socket',{},'Net::DRI::Protocol::EPP::Extensions::SE',{})                 if $type eq 'epp';
+ return ('Net::DRI::Transport::Socket',{remote_host=>'whois.nic.nu'},'Net::DRI::Protocol::Whois',{}) if $type eq 'whois';
  return;
+}
+
+sub set_factories
+{
+ my ($self,$po)=@_;
+ $po->factories('contact',sub { return Net::DRI::Data::Contact::SE->new(@_); });
+}
+
+####################################################################################################
+
+sub verify_name_domain
+{
+ my ($self,$ndr,$domain,$op)=@_;
+ return $self->_verify_name_rules($domain,$op,{check_name_no_dots => 1,
+                                               my_tld_not_strict => 1,
+                                              });
+}
+
+sub verify_duration_create
+{
+ my ($self,$ndr,$duration,$domain)=@_;
+ ($duration,$domain)=($ndr,$duration) unless (defined($ndr) && $ndr && (ref($ndr) eq 'Net::DRI::Registry'));
+
+ if ( defined($duration) ) {
+  my $m = $duration->in_units( 'months' );
+
+  ## Only 12 - 120 months allowed
+  unless ( $m >= 12 && $m <= 120 )
+  {
+   Net::DRI::Exception::usererr_invalid_parameters( 'Invalid duration for create, must be 12..120 months (was '.$m.')' );
+   return 1;    # if exception is removed, return an error
+  }
+ }
+ return 0;    ## everything ok
+}
+
+sub verify_duration_renew
+{
+ my ($self,$ndr,$duration,$domain,$curexp)=@_;
+ ($duration,$domain,$curexp)=($ndr,$duration,$domain) unless (defined($ndr) && $ndr && (ref($ndr) eq 'Net::DRI::Registry'));
+
+ if ( defined($duration) ) {
+  my $m = $duration->in_units( 'months' );
+
+  ## Only 12 - 120 months allowed
+  unless ( $m >= 12 && $m <= 120 )
+  {
+   Net::DRI::Exception::usererr_invalid_parameters( 'Invalid duration for renew, must be 12..120 months (was '.$m.')' );
+   return 1;    # if exception is removed, return an error
+  }
+ }
+ return 0;    ## everything ok
 }
 
 ####################################################################################################
