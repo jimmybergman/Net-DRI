@@ -96,6 +96,21 @@ sub transport_protocol_default
 
 ####################################################################################################
 
+sub verify_name_domain
+{
+	my ($self,$ndr,$domain,$op)=@_;
+ 
+	if ($domain =~ /\.uk$/i) {
+ 		return $self->_verify_name_rules($domain,$op,{
+ 									check_name => 1, 
+ 									check_name_dots => [1,2]
+                                });
+  	} else {
+  		return $self->_verify_name_rules($domain,$op,{check_name=>1,my_tld=>1});
+  	}
+}
+
+
 sub domain_operation_needs_is_mine
 {
  my ($self,$ndr,$domain,$op)=@_;
