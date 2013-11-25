@@ -1,4 +1,5 @@
-libnet-dri-perl (0.96-33atomia) unstable; urgency=low
+libnet-dri-perl (0.96-34atomia) unstable; urgency=low
+  * Modify OpenSRS driver to allow arbitrary TLD
   * Modify PL driver to support the new 2.0 namespace
   * Replace NU driver with a copy of the SE driver pending the september
     switch
