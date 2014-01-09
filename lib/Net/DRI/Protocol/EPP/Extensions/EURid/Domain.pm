@@ -76,6 +76,7 @@ sub register_commands
           create            => [ \&create, undef ],
           update            => [ \&update, undef ],
           transfer_request  => [ \&transfer_request, undef ],
+	  info              => [ \&info, \&info_parse ],
          );
 
  return { 'domain' => \%tmp };
@@ -113,8 +114,8 @@ sub update
 
  my $nsgadd=$todo->add('nsgroup');
  my $nsgdel=$todo->del('nsgroup');
- my $contadd=$todo->add('contacts');
- my $contdel=$todo->del('contacts');
+ my $contadd=$todo->add('contact');
+ my $contdel=$todo->del('contact');
  return unless ($nsgadd || $nsgdel || $contadd || $contdel);
 
  my @n;
@@ -132,7 +133,7 @@ sub update
  }
 
  my $eid=build_command_extension($mes,$epp,'domain-ext:update');
- $mes->command_extension($eid, @n);
+ $mes->command_extension($eid, \@n);
 }
 
 sub transfer_request
@@ -174,6 +175,76 @@ sub add_contact
  $max--;
  my @r=grep { Net::DRI::Util::isa_contact($_,'Net::DRI::Data::Contact::EURid') } ($cs->get($type));
  return map { ['domain-ext:contact',{type => $type},$_->srid()] } grep {defined} @r[0..$max];
+}
+
+sub info
+{
+ my ($epp,$domain,$rd)=@_;
+ my $mes=$epp->message();
+
+ return unless Net::DRI::Util::has_key($rd,'authinfo_request') && $rd->{authinfo_request};
+
+ my $eid=$mes->command_extension_register('authInfo','info');
+ $mes->command_extension($eid,['authInfo:request']);
+ return;
+}
+
+sub info_parse
+{
+ my ($po,$otype,$oaction,$oname,$rinfo)=@_;
+ my $mes=$po->message();
+
+ return unless $mes->is_success();
+
+ my $infdata=$mes->get_extension('domain-ext','infData');
+ return unless defined $infdata;
+
+ my @nsg;
+ my $status=$rinfo->{domain}->{$oname}->{status};
+ my $contact=$rinfo->{domain}->{$oname}->{contact};
+ foreach my $el (Net::DRI::Util::xml_list_children($infdata))
+ {
+  my ($name,$c)=@$el;
+  if ($name=~m/^(onHold|quarantined)$/) ## onHold here has nothing to do with EPP client|serverHold, unfortunately
+  {
+   $status->add($name) if Net::DRI::Util::xml_parse_boolean($c->textContent()); ## TODO : correct status name?
+  } elsif ($name=~m/^(availableDate|deletionDate)$/)
+  {
+   $rinfo->{domain}->{$oname}->{$name}=$po->parse_iso8601($c->textContent());
+  } elsif ($name eq 'contact')
+  {
+   $contact->add($po->create_local_object('contact')->srid($c->textContent()),$c->getAttribute('type'));
+  } elsif ($name eq 'nsgroup')
+  {
+   push @nsg,$po->create_local_object('hosts')->name($c->textContent());
+  } elsif ($name eq 'keygroup')
+  {
+   $rinfo->{domain}->{$oname}->{keygroup}=$c->textContent();
+  } elsif ($name eq 'pendingTransfer')
+  {
+   $status->add('pendingTransfer');
+   my %p;
+   my $cs=$po->create_local_object('contactset');
+   foreach my $subel (Net::DRI::Util::xml_list_children($c))
+   {
+    my ($subname,$subc)=@$subel;
+    if ($subname eq 'registrant')
+    {
+     $cs->set($po->create_local_object('contact')->srid($subc->textContent()),'registrant');
+    } elsif ($subname eq 'contact')
+    {
+     $cs->add($po->create_local_object('contact')->srid($subc->textContent()),$subc->getAttribute('type'));
+    } elsif ($subname eq 'initiationDate')
+    {
+     $p{initiationDate}=$po->parse_iso8601($subc->textContent());
+    }
+   }
+   $p{contact}=$cs;
+   $rinfo->{domain}->{$oname}->{pending_transaction}=\%p;
+  }
+ }
+ $rinfo->{domain}->{$oname}->{nsgroup}=\@nsg if @nsg;
+ return;
 }
 
 ####################################################################################################
