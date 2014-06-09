@@ -1,4 +1,6 @@
-libnet-dri-perl (0.96-35atomia) unstable; urgency=low
+libnet-dri-perl (0.96-36atomia) unstable; urgency=low
+  * Change to SecDNS 1.1 for VNDS
+  * Allow IS, LI and NO as allowed countries for EURid
   * Backport some EURid-fixes from the upstream
   * Modify OpenSRS driver to allow arbitrary TLD
   * Modify PL driver to support the new 2.0 namespace
