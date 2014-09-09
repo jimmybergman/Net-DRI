@@ -273,6 +273,11 @@ sub parse
    next;
   }
  }
+
+ if (defined($self->command) && ref ($self->command) eq "HASH" && defined($self->command->{"action"}) && $self->command->{"action"} eq "registry_check_nameserver" &&
+     defined($self->response_code)) {
+  $self->response_is_success(($self->response_code eq "200" || $self->response_code eq "212") ? "1" : "0");
+ }
 }
 
 ####################################################################################################

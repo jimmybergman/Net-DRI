@@ -94,14 +94,16 @@ sub check
  my $msg=$xcp->message();
  my %r=(action=>'registry_check_nameserver',object=>'nameserver');
  $msg->command(\%r);
- $msg->command_attributes({fqdn => scalar($ns->get_details(1))});
+ my $domain = scalar($ns->get_details(1));
+ my $tld = substr($domain, rindex($domain, "."));
+ $msg->command_attributes({ fqdn => $domain, tld => $tld });
 }
 
 sub check_parse
 {
  my ($xcp,$otype,$oaction,$oname,$rinfo)=@_;
  my $mes=$xcp->message();
- return unless $mes->is_success();
+ return unless $mes->is_success() || $mes->response_code() == 212;
 
  $rinfo->{host}->{$oname}->{action} = 'check';
  $rinfo->{host}->{$oname}->{exist} = ($mes->response_code() == 200) ? 1 : 0;
