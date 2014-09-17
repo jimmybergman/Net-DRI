@@ -1,4 +1,5 @@
-libnet-dri-perl (0.96-37atomia) unstable; urgency=low
+libnet-dri-perl (0.96-38atomia) unstable; urgency=low
+  * Update EURid extension versions to current (1.1).
   * Fix OpenSRS host_exist
   * Change to SecDNS 1.1 for VNDS
   * Allow IS, LI and NO as allowed countries for EURid
