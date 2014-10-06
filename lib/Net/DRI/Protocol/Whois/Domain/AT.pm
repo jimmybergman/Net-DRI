@@ -147,7 +147,7 @@ sub parse_contacts
  my %tmp;
 
  ## First pass, only the IDs
- foreach my $t (keys(%t))
+ foreach my $t (sort { $a cmp $b } keys %t)
  {
   my $c=$po->create_local_object('contact');
   my $id=$rr->{$t}->[0];

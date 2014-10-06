@@ -144,7 +144,7 @@ sub get_body
  push @d,'<dt_assoc>';
  my $d=$self->command(); ## ref hash with at least action & object keys, maybe more (such as cookie)
  $d->{protocol}='XCP';
- foreach my $k (sort(keys(%$d)))
+ foreach my $k (sort { $a cmp $b } keys %$d)
  {
   push @d,'<item key="',$k,'">',$d->{$k},'</item>';
  }
@@ -171,7 +171,7 @@ sub _obj2dt
   } elsif ($ref eq 'HASH')
   {
    my @c;
-   foreach my $k (sort(keys(%$el)))
+   foreach my $k (sort { $a cmp $b } keys %$el)
    {
     $k=~s/"/&quot;/g;
     my $v=$el->{$k};

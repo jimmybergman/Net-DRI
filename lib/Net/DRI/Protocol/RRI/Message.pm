@@ -130,14 +130,14 @@ sub as_string
 
  $attr = '' unless (defined($attr));
  $attr = ' ' . join(' ', map { $_ . '="' . $attr->{$_} . '"' }
-	keys (%{$attr})) if (ref($attr) eq 'HASH');
+	sort { $a cmp $b } keys (%{$attr})) if (ref($attr) eq 'HASH');
 
  if (defined($ns))
  {
   if (ref($ns) eq 'HASH')
   {
    $ens .= ' ' . join(' ', map { 'xmlns:' . $_ . '="' . $ns->{$_} . '"' }
-	keys(%{$ns}));
+	sort { $a cmp $b } keys(%{$ns}));
    $cmd = $type . ':' . $cmd;
   }
   else

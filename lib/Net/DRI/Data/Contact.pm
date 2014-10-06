@@ -304,14 +304,14 @@ sub as_string
  $sep='|' unless (defined($sep) && $sep);
  my $st=$self->street();
  my @v=grep { defined } ($self->srid(),$self->name(),$self->org(),defined($st)? join(' // ',@$st) : undef,$self->city(),$self->sp(),$self->pc(),$self->cc(),$self->voice(),$self->fax(),$self->email());
- my @ot=grep { ! /^(?:name|org|street|city|sp|pc|cc|email|voice|fax|loid|roid|srid|auth|disclose)$/ } sort(keys(%$self));
+ my @ot=sort { $a cmp $b } grep { ! /^(?:name|org|street|city|sp|pc|cc|email|voice|fax|loid|roid|srid|auth|disclose)$/ } keys %$self;
  foreach my $ot (@ot) ## extra attributes defined in subclasses
  {
   my $v=$self->$ot();
   next unless defined($v);
   if (ref($v) eq 'HASH')
   {
-   my @iv=sort(keys(%$v));
+   my @iv=sort { $a cmp $b } keys %$v;
    my @r;
    foreach my $k (@iv)
    {

@@ -325,7 +325,7 @@ sub as_string
   my $s=$el->[0];
   my $ips=join(',',@{$el->[1]},@{$el->[2]});
   $s.=' ['.$ips.']' if $ips;
-  $s.=' {'.join(' ',map { $_.'='.$el->[3]->{$_} } keys(%{$el->[3]})).'}' if (defined $el->[3] && %{$el->[3]});
+  $s.=' {'.join(' ',map { $_.'='.$el->[3]->{$_} } sort { $a cmp $b } keys %{$el->[3]}).'}' if (defined $el->[3] && %{$el->[3]});
   push @s,$s;
  }
  return join(' ',@s);

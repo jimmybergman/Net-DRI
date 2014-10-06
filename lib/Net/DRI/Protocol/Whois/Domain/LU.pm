@@ -159,7 +159,7 @@ sub parse_contacts
  my ($po,$domain,$rr,$rinfo)=@_;
  my $cs=$po->create_local_object('contactset');
  my %t=('org' => 'registrant', 'adm' => 'admin', 'tec' => 'tech');
- foreach my $t (keys(%t))
+ foreach my $t (sort { $a cmp $b } keys %t)
  {
   my $c=$po->create_local_object('contact');
   $c->type('contact');

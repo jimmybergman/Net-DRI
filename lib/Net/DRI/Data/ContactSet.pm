@@ -156,7 +156,7 @@ sub add
  my $c=$self->{c};
  $c->{$ctype}=[] if (defined($ctype) && !exists($c->{$ctype}));
  my $id=$cobj->id();
- foreach my $k (keys(%$c))
+ foreach my $k (sort { $a cmp $b } keys %$c)
  {
   next if (defined($ctype) && ($k ne $ctype));
   if ($id)
@@ -181,7 +181,7 @@ sub del
  return if (defined($ctype) && !exists($c->{$ctype}));
  my $id=$cobj->id();
  return unless $id;
- foreach my $k (keys(%$c))
+ foreach my $k (sort { $a cmp $b } keys %$c)
  {
   next if (defined($ctype) && ($k ne $ctype));
   my $p=$self->_pos($k,$id);
@@ -205,7 +205,7 @@ sub set
  return unless defined($robj);
  my $c=$self->{c};
  $c->{$ctype}=[] if (defined($ctype) && !exists($c->{$ctype}));
- foreach my $k (keys(%$c))
+ foreach my $k (sort { $a cmp $b } keys %$c)
  {
   next if (defined($ctype) && ($k ne $ctype));
   $c->{$k}=(ref($robj) eq 'ARRAY')? $robj : [$robj];
@@ -226,7 +226,8 @@ sub get_all
 {
  my ($self)=@_;
  my %r=map { $_ => 1 } map { @{$_} } values(%{$self->{c}});
- return keys %r;
+ my @r = sort { $a cmp $b } keys %r;
+ return @r;
 }
 
 sub match ## compare two contact lists
@@ -238,7 +239,7 @@ sub match ## compare two contact lists
  return 0 unless (keys(%$c1)==keys(%$c2));
  return 0 if grep { ! exists($c1->{$_}) } keys(%$c2);
  return 0 if grep { ! exists($c2->{$_}) } keys(%$c1);
- foreach my $k (keys(%$c1))
+ foreach my $k (sort { $a cmp $b } keys %$c1)
  {
   my %tmp1=map { $_->id() => 1 } @{$c1->{$k}};
   my %tmp2=map { $_->id() => 1 } @{$c2->{$k}};
@@ -257,7 +258,7 @@ sub has_contact
  return 0 if (defined($ctype) && !exists($c->{$ctype}));
  my $id=(ref($cobj))? $cobj->id() : $cobj;
  return 0 unless (defined($id) && $id);
- foreach my $k (keys(%$c))
+ foreach my $k (sort { $a cmp $b } keys %$c)
  {
   next if (defined($ctype) && ($k ne $ctype));
   return 1 if defined($self->_pos($k,$id));

@@ -6,6 +6,9 @@ use Net::DRI::Data::Raw;
 
 use Test::More tests => 306;
 
+eval { no warnings; require Test::LongString; Test::LongString->import(max => 100); $Test::LongString::Context=50; };
+if ( $@ ) { no strict 'refs'; *{'main::is_string'}=\&main::is; }
+
 our $E1='<?xml version="1.0" encoding="UTF-8" standalone="no"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:ietf:params:xml:ns:epp-1.0 epp-1.0.xsd">';
 our $E2='</epp>';
 our $TRID='<trID><clTRID>ABC-12345</clTRID><svTRID>54322-XYZ</svTRID></trID>';
@@ -42,7 +45,7 @@ my %facetsh = (
 my $no_facet = { facets => \%facetsh };
 
 my $NO_FACET=
-'<extension><no-ext-epp:extended xmlns:no-ext-epp="http://www.norid.no/xsd/no-ext-epp-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-epp-1.0 no-ext-epp-1.0.xsd"><no-ext-epp:facet name="skip-manual-review">1</no-ext-epp:facet><no-ext-epp:facet name="impersonate-registrar">reg9094</no-ext-epp:facet></no-ext-epp:extended></extension>';
+'<extension><no-ext-epp:extended xmlns:no-ext-epp="http://www.norid.no/xsd/no-ext-epp-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-epp-1.0 no-ext-epp-1.0.xsd"><no-ext-epp:facet name="impersonate-registrar">reg9094</no-ext-epp:facet><no-ext-epp:facet name="skip-manual-review">1</no-ext-epp:facet></no-ext-epp:extended></extension>';
 
 my $ddomain = "example3.no";
 my $fdomain = "facet-$ddomain";
@@ -93,7 +96,7 @@ foreach my $OP ( "", $NO_FACET) {
 
      $rc=$dri->domain_info($domain,  { auth => {pw=>'2fooBAR'}, facets => $facet });
 
-    is($R1,$E1.'<command><info><domain:info xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name hosts="all">'.$domain.'</domain:name><domain:authInfo><domain:pw>2fooBAR</domain:pw></domain:authInfo></domain:info></info>' . $OP . '<clTRID>ABC-12345</clTRID></command>'.$E2,'domain_info build with auth');
+    is_string($R1,$E1.'<command><info><domain:info xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name hosts="all">'.$domain.'</domain:name><domain:authInfo><domain:pw>2fooBAR</domain:pw></domain:authInfo></domain:info></info>' . $OP . '<clTRID>ABC-12345</clTRID></command>'.$E2,'domain_info build with auth');
 
     is($dri->get_info('action'),'info','domain_info get_info(action)');
 
@@ -139,7 +142,7 @@ foreach my $OP ( "", $NO_FACET) {
 
 $R2=$E1.'<response>'.r().'<resData><domain:infData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example200.no</domain:name><domain:roid>EXAMPLE1-REP</domain:roid><domain:clID>ClientX</domain:clID></domain:infData></resData>'.$TRID.'</response>'.$E2;
 $rc=$dri->domain_info('example200.no');
-is($R1,$E1.'<command><info><domain:info xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name hosts="all">example200.no</domain:name></domain:info></info><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_info build without auth');
+is_string($R1,$E1.'<command><info><domain:info xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name hosts="all">example200.no</domain:name></domain:info></info><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_info build without auth');
 is($dri->get_info('exist'),1,'domain_info get_info(exist)');
 is($dri->get_info('roid'),'EXAMPLE1-REP','domain_info get_info(roid)');
 is($dri->get_info('clID'),'ClientX','domain_info get_info(clID)');
@@ -171,7 +174,7 @@ is($d->{updateClientID},'reg0','domain_info get_info(updateClientID)');
 $R2=$E1.'<response>'.r().'<resData><domain:trnData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example201.no</domain:name><domain:trStatus>pending</domain:trStatus><domain:reID>ClientX</domain:reID><domain:reDate>2000-06-06T22:00:00.0Z</domain:reDate><domain:acID>ClientY</domain:acID><domain:acDate>2000-06-11T22:00:00.0Z</domain:acDate><domain:exDate>2002-09-08T22:00:00.0Z</domain:exDate></domain:trnData></resData>'.$TRID.'</response>'.$E2; 
 
 $rc=$dri->domain_transfer_query('example201.no',{auth=>{pw=>'2fooBAR',roid=>'JD1234-REP'}});
-is($R1,$E1.'<command><transfer op="query"><domain:transfer xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example201.no</domain:name><domain:authInfo><domain:pw roid="JD1234-REP">2fooBAR</domain:pw></domain:authInfo></domain:transfer></transfer><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_transfer_query build');
+is_string($R1,$E1.'<command><transfer op="query"><domain:transfer xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example201.no</domain:name><domain:authInfo><domain:pw roid="JD1234-REP">2fooBAR</domain:pw></domain:authInfo></domain:transfer></transfer><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_transfer_query build');
 is($dri->get_info('action'),'transfer','domain_transfer_query get_info(action)');
 is($dri->get_info('exist'),1,'domain_transfer_query get_info(exist)');
 is($dri->get_info('trStatus'),'pending','domain_transfer_query get_info(trStatus)');
@@ -279,7 +282,7 @@ $rc=$dri->domain_transfer_execute('example205.no',{auth=>{pw=>'2fooBAR'},duratio
 # hack to substitue <clTRID>ABC-12345</clTRID> because the trid-factory does not handle the extension
 $R1 =~s|<clTRID>.+</clTRID>|<clTRID>ABC-12345</clTRID>|g;
 
-is($R1,$E1.'<extension><command xmlns="http://www.norid.no/xsd/no-ext-epp-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-epp-1.0 no-ext-epp-1.0.xsd"><transfer op="execute"><domain:transfer xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example205.no</domain:name><domain:period unit="m">5</domain:period><domain:authInfo><domain:pw>2fooBAR</domain:pw></domain:authInfo></domain:transfer></transfer><clTRID>ABC-12345</clTRID></command></extension>'.$E2,'domain_transfer_execute build');
+is_string($R1,$E1.'<extension><command xmlns="http://www.norid.no/xsd/no-ext-epp-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-epp-1.0 no-ext-epp-1.0.xsd"><transfer op="execute"><domain:transfer xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example205.no</domain:name><domain:period unit="m">5</domain:period><domain:authInfo><domain:pw>2fooBAR</domain:pw></domain:authInfo></domain:transfer></transfer><clTRID>ABC-12345</clTRID></command></extension>'.$E2,'domain_transfer_execute build');
 
 is($dri->get_info('action'),'transfer','domain_transfer_execute get_info(action)');
 is($dri->get_info('exist'),1,'domain_transfer_execute get_info(exist)');
@@ -311,7 +314,7 @@ $toc->del('status',$dri->local_object('status')->no('update'));
 $toc->set('registrant',$dri->local_object('contact')->srid('sh8013'));
 $toc->set('auth',{pw=>'2BARfoo'});
 $rc=$dri->domain_update('example206.no',$toc);
-is($R1,$E1.'<command><update><domain:update xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example206.no</domain:name><domain:add><domain:ns><domain:hostObj>ns2.example.no</domain:hostObj></domain:ns><domain:contact type="tech">mak21</domain:contact><domain:status lang="en" s="clientHold">Payment overdue.</domain:status></domain:add><domain:rem><domain:ns><domain:hostObj>ns1.example.no</domain:hostObj></domain:ns><domain:contact type="tech">sh8013</domain:contact><domain:status s="clientUpdateProhibited"/></domain:rem><domain:chg><domain:registrant>sh8013</domain:registrant><domain:authInfo><domain:pw>2BARfoo</domain:pw></domain:authInfo></domain:chg></domain:update></update><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_update build');
+is_string($R1,$E1.'<command><update><domain:update xmlns:domain="urn:ietf:params:xml:ns:domain-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:domain-1.0 domain-1.0.xsd"><domain:name>example206.no</domain:name><domain:add><domain:ns><domain:hostObj>ns2.example.no</domain:hostObj></domain:ns><domain:contact type="tech">mak21</domain:contact><domain:status lang="en" s="clientHold">Payment overdue.</domain:status></domain:add><domain:rem><domain:ns><domain:hostObj>ns1.example.no</domain:hostObj></domain:ns><domain:contact type="tech">sh8013</domain:contact><domain:status s="clientUpdateProhibited"/></domain:rem><domain:chg><domain:registrant>sh8013</domain:registrant><domain:authInfo><domain:pw>2BARfoo</domain:pw></domain:authInfo></domain:chg></domain:update></update><clTRID>ABC-12345</clTRID></command>'.$E2,'domain_update build');
 is($rc->is_success(),1,'domain_update is_success');
  
 # The .no withdraw command extension
@@ -324,7 +327,7 @@ is($rc->is_success(),1,'domain_withdraw is_success');
 
 $R2=$E1.'<response>'.r().'<resData><host:chkData xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:cd><host:name avail="0">ns2.example2.no</host:name><host:reason>In use</host:reason></host:cd></host:chkData></resData>'.$TRID.'</response>'.$E2;
 $rc=$dri->host_check('ns2.example2.no');
-is($R1,$E1.'<command><check><host:check xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:name>ns2.example2.no</host:name></host:check></check><clTRID>ABC-12345</clTRID></command>'.$E2,'host_check build');
+is_string($R1,$E1.'<command><check><host:check xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:name>ns2.example2.no</host:name></host:check></check><clTRID>ABC-12345</clTRID></command>'.$E2,'host_check build');
 is($dri->get_info('action'),'check','host_check get_info(action)');
 is($dri->get_info('exist'),1,'host_check get_info(exist)');
 is($dri->get_info('exist','host','ns2.example2.no'),1,'host_check get_info(exist) from cache');
@@ -345,7 +348,7 @@ $R2=$E1.'<response>'.r().'<resData><host:infData xmlns:host="urn:ietf:params:xml
 
 $rc=$dri->host_info('ns100.example2.no');
 
-is($R1,$E1.'<command><info><host:info xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:name>ns100.example2.no</host:name></host:info></info><clTRID>ABC-12345</clTRID></command>'.$E2,'host_info build');
+is_string($R1,$E1.'<command><info><host:info xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:name>ns100.example2.no</host:name></host:info></info><clTRID>ABC-12345</clTRID></command>'.$E2,'host_info build');
 is($dri->get_info('action'),'info','host_info get_info(action)');
 is($dri->get_info('exist'),1,'host_info get_info(exist)');
 is($dri->get_info('roid'),'NS1_EXAMPLE1-REP','host_info get_info(roid)');
@@ -374,7 +377,7 @@ is($d.'','2000-04-08T09:00:00','host_info get_info(trDate) value');
 is_deeply($dri->get_info('contact'),['PEO183P'],'host_info get_info(contact)');
 $R2=$E1.'<response>'.r().'<resData><host:creData xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:name>ns101.example1.no</host:name><host:crDate>1999-04-03T22:00:00.0Z</host:crDate></host:creData></resData>'.$TRID.'</response>'.$E2;
 $rc=$dri->host_create($dri->local_object('hosts')->add('ns101.example1.no',['193.0.2.2','193.0.2.29'],[]), {contact=>'PEO183P'});
-is($R1,$E1.'<command><create><host:create xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:name>ns101.example1.no</host:name><host:addr ip="v4">193.0.2.2</host:addr><host:addr ip="v4">193.0.2.29</host:addr></host:create></create><extension><no-ext-host:create xmlns:no-ext-host="http://www.norid.no/xsd/no-ext-host-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-host-1.0 no-ext-host-1.0.xsd"><no-ext-host:contact>PEO183P</no-ext-host:contact></no-ext-host:create></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'host_create build');
+is_string($R1,$E1.'<command><create><host:create xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:name>ns101.example1.no</host:name><host:addr ip="v4">193.0.2.2</host:addr><host:addr ip="v4">193.0.2.29</host:addr></host:create></create><extension><no-ext-host:create xmlns:no-ext-host="http://www.norid.no/xsd/no-ext-host-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-host-1.0 no-ext-host-1.0.xsd"><no-ext-host:contact>PEO183P</no-ext-host:contact></no-ext-host:create></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'host_create build');
 is($dri->get_info('action'),'create','host_create get_info(action)');
 is($dri->get_info('exist'),1,'host_create get_info(exist)');
 $d=$dri->get_info('crDate');
@@ -383,7 +386,7 @@ is($d.'','1999-04-03T22:00:00','host_create get_info(crDate) value');
 
 $R2=$E1.'<response>'.r().$TRID.'</response>'.$E2;
 $rc=$dri->host_delete('ns102.example1.no');
-is($R1,$E1.'<command><delete><host:delete xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:name>ns102.example1.no</host:name></host:delete></delete><clTRID>ABC-12345</clTRID></command>'.$E2,'host_delete build');
+is_string($R1,$E1.'<command><delete><host:delete xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:name>ns102.example1.no</host:name></host:delete></delete><clTRID>ABC-12345</clTRID></command>'.$E2,'host_delete build');
 is($rc->is_success(),1,'host_delete is_success');
 $R2=$E1.'<response>'.r().$TRID.'</response>'.$E2;
 
@@ -397,7 +400,7 @@ $toc->set('name','ns104.example2.no');
 $toc->add('contact', 'OS103P');
 $toc->del('contact', 'PEO183P');
 $rc=$dri->host_update('ns103.example1.no',$toc);
-is($R1,$E1.'<command><update><host:update xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:name>ns103.example1.no</host:name><host:add><host:addr ip="v4">193.0.2.22</host:addr><host:status s="clientUpdateProhibited"/></host:add><host:rem><host:addr ip="v6">2000:0:0:0:8:800:200C:417A</host:addr></host:rem><host:chg><host:name>ns104.example2.no</host:name></host:chg></host:update></update><extension><no-ext-host:update xmlns:no-ext-host="http://www.norid.no/xsd/no-ext-host-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-host-1.0 no-ext-host-1.0.xsd"><no-ext-host:add><no-ext-host:contact>OS103P</no-ext-host:contact></no-ext-host:add><no-ext-host:rem><no-ext-host:contact>PEO183P</no-ext-host:contact></no-ext-host:rem></no-ext-host:update></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'host_update build');
+is_string($R1,$E1.'<command><update><host:update xmlns:host="urn:ietf:params:xml:ns:host-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:host-1.0 host-1.0.xsd"><host:name>ns103.example1.no</host:name><host:add><host:addr ip="v4">193.0.2.22</host:addr><host:status s="clientUpdateProhibited"/></host:add><host:rem><host:addr ip="v6">2000:0:0:0:8:800:200C:417A</host:addr></host:rem><host:chg><host:name>ns104.example2.no</host:name></host:chg></host:update></update><extension><no-ext-host:update xmlns:no-ext-host="http://www.norid.no/xsd/no-ext-host-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-host-1.0 no-ext-host-1.0.xsd"><no-ext-host:add><no-ext-host:contact>OS103P</no-ext-host:contact></no-ext-host:add><no-ext-host:rem><no-ext-host:contact>PEO183P</no-ext-host:contact></no-ext-host:rem></no-ext-host:update></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'host_update build');
 is($rc->is_success(),1,'host_update is_success');
 
 #########################################################################################################
@@ -407,7 +410,7 @@ my $co;
 $R2=$E1.'<response>'.r().'<resData><contact:chkData xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:cd><contact:id avail="1">PEO183P</contact:id></contact:cd></contact:chkData></resData>'.$TRID.'</response>'.$E2;
 $co=$dri->local_object('contact')->srid('PEO183P'); #->auth({pw=>'2fooBAR'});
 $rc=$dri->contact_check($co);
-is($R1,$E1.'<command><check><contact:check xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>PEO183P</contact:id></contact:check></check><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_check build'); 
+is_string($R1,$E1.'<command><check><contact:check xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>PEO183P</contact:id></contact:check></check><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_check build'); 
 is($rc->is_success(),1,'contact_check is_success');
 is($dri->get_info('action'),'check','contact_check get_info(action)');
 is($dri->get_info('exist'),0,'contact_check get_info(exist)');
@@ -427,7 +430,7 @@ is($dri->get_info('exist','contact','sh8003'),0,'contact_check_multi get_info(ex
 $R2=$E1.'<response>'.r().'<resData><contact:infData xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>sh8013</contact:id><contact:roid>SH8013-REP</contact:roid><contact:status s="linked"/><contact:status s="clientDeleteProhibited"/><contact:postalInfo type="loc"><contact:name>John Doe</contact:name><contact:org>Example Inc.</contact:org><contact:addr><contact:street>123 Example Dr.</contact:street><contact:street>Suite 100</contact:street><contact:city>Dulles</contact:city><contact:sp>VA</contact:sp><contact:pc>20166-6503</contact:pc><contact:cc>US</contact:cc></contact:addr></contact:postalInfo><contact:voice x="1234">+47.7035555555</contact:voice><contact:fax>+47.7035555556</contact:fax><contact:email>jdoe@example.no</contact:email><contact:clID>ClientY</contact:clID><contact:crID>ClientX</contact:crID><contact:crDate>1999-04-03T22:00:00.0Z</contact:crDate><contact:upID>ClientX</contact:upID><contact:upDate>1999-12-03T09:00:00.0Z</contact:upDate><contact:trDate>2000-04-08T09:00:00.0Z</contact:trDate><contact:authInfo><contact:pw>2fooBAR</contact:pw></contact:authInfo><contact:disclose flag="0"><contact:voice/><contact:email/></contact:disclose></contact:infData></resData>'.$TRID.'</response>'.$E2;
 $co=$dri->local_object('contact')->srid('sh8013')->auth({pw=>'2fooBAR'});
 $rc=$dri->contact_info($co);
-is($R1,$E1.'<command><info><contact:info xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>sh8013</contact:id><contact:authInfo><contact:pw>2fooBAR</contact:pw></contact:authInfo></contact:info></info><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_info build');
+is_string($R1,$E1.'<command><info><contact:info xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>sh8013</contact:id><contact:authInfo><contact:pw>2fooBAR</contact:pw></contact:authInfo></contact:info></info><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_info build');
 is($rc->is_success(),1,'contact_info is_success');
 is($dri->get_info('action'),'info','contact_info get_info(action)');
 is($dri->get_info('exist'),1,'contact_info get_info(exist)');
@@ -488,7 +491,7 @@ $co->mobilephone('+47.123456780');
 #eval_it($dri, 'contact_create', $co);
 $rc=$dri->contact_create($co);
 
-is($R1,$E1.'<command><create><contact:create xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>auto</contact:id><contact:postalInfo type="loc"><contact:name>John Doe</contact:name><contact:addr><contact:street>123 Example Dr.</contact:street><contact:street>Suite 100</contact:street><contact:city>Dulles</contact:city><contact:sp>VA</contact:sp><contact:pc>20166-6503</contact:pc><contact:cc>US</contact:cc></contact:addr></contact:postalInfo><contact:voice x="1234">+47.7035555555</contact:voice><contact:fax>+47.7035555556</contact:fax><contact:email>jdoe@example.no</contact:email><contact:authInfo><contact:pw>2fooBAR</contact:pw></contact:authInfo><contact:disclose flag="0"><contact:voice/><contact:email/></contact:disclose></contact:create></create><extension><no-ext-contact:create xmlns:no-ext-contact="http://www.norid.no/xsd/no-ext-contact-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-contact-1.0 no-ext-contact-1.0.xsd"><no-ext-contact:type>person</no-ext-contact:type><no-ext-contact:mobilePhone>+47.123456780</no-ext-contact:mobilePhone><no-ext-contact:email>xtra1@example.no</no-ext-contact:email><no-ext-contact:email>xtra2@example.no</no-ext-contact:email></no-ext-contact:create></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_create build person');
+is_string($R1,$E1.'<command><create><contact:create xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>auto</contact:id><contact:postalInfo type="loc"><contact:name>John Doe</contact:name><contact:addr><contact:street>123 Example Dr.</contact:street><contact:street>Suite 100</contact:street><contact:city>Dulles</contact:city><contact:sp>VA</contact:sp><contact:pc>20166-6503</contact:pc><contact:cc>US</contact:cc></contact:addr></contact:postalInfo><contact:voice x="1234">+47.7035555555</contact:voice><contact:fax>+47.7035555556</contact:fax><contact:email>jdoe@example.no</contact:email><contact:authInfo><contact:pw>2fooBAR</contact:pw></contact:authInfo><contact:disclose flag="0"><contact:voice/><contact:email/></contact:disclose></contact:create></create><extension><no-ext-contact:create xmlns:no-ext-contact="http://www.norid.no/xsd/no-ext-contact-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-contact-1.0 no-ext-contact-1.0.xsd"><no-ext-contact:type>person</no-ext-contact:type><no-ext-contact:mobilePhone>+47.123456780</no-ext-contact:mobilePhone><no-ext-contact:email>xtra1@example.no</no-ext-contact:email><no-ext-contact:email>xtra2@example.no</no-ext-contact:email></no-ext-contact:create></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_create build person');
 
 is($dri->get_info('id'),'JD12P','contact_create person with registry contact:id get_info(id)');
 is($dri->get_info('exist'),undef,'contact_create person with registry contact:id get_info(exist)');
@@ -520,7 +523,7 @@ $co->mobilephone('+47.123456780');
 #eval_it($dri, 'contact_create', $co);
 $rc=$dri->contact_create($co);
 
-is($R1,$E1.'<command><create><contact:create xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>auto</contact:id><contact:postalInfo type="loc"><contact:name>John Doe</contact:name><contact:addr><contact:street>123 Example Dr.</contact:street><contact:street>Suite 100</contact:street><contact:city>Dulles</contact:city><contact:sp>VA</contact:sp><contact:pc>20166-6503</contact:pc><contact:cc>US</contact:cc></contact:addr></contact:postalInfo><contact:voice x="1234">+47.7035555555</contact:voice><contact:fax>+47.7035555556</contact:fax><contact:email>jdoe@example.no</contact:email><contact:authInfo><contact:pw>2fooBAR</contact:pw></contact:authInfo><contact:disclose flag="0"><contact:voice/><contact:email/></contact:disclose></contact:create></create><extension><no-ext-contact:create xmlns:no-ext-contact="http://www.norid.no/xsd/no-ext-contact-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-contact-1.0 no-ext-contact-1.0.xsd"><no-ext-contact:type>organization</no-ext-contact:type><no-ext-contact:identity type="organizationNumber">932080506</no-ext-contact:identity><no-ext-contact:mobilePhone>+47.123456780</no-ext-contact:mobilePhone><no-ext-contact:email>xtra1@example.no</no-ext-contact:email><no-ext-contact:email>xtra2@example.no</no-ext-contact:email></no-ext-contact:create></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_create build organization');
+is_string($R1,$E1.'<command><create><contact:create xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>auto</contact:id><contact:postalInfo type="loc"><contact:name>John Doe</contact:name><contact:addr><contact:street>123 Example Dr.</contact:street><contact:street>Suite 100</contact:street><contact:city>Dulles</contact:city><contact:sp>VA</contact:sp><contact:pc>20166-6503</contact:pc><contact:cc>US</contact:cc></contact:addr></contact:postalInfo><contact:voice x="1234">+47.7035555555</contact:voice><contact:fax>+47.7035555556</contact:fax><contact:email>jdoe@example.no</contact:email><contact:authInfo><contact:pw>2fooBAR</contact:pw></contact:authInfo><contact:disclose flag="0"><contact:voice/><contact:email/></contact:disclose></contact:create></create><extension><no-ext-contact:create xmlns:no-ext-contact="http://www.norid.no/xsd/no-ext-contact-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-contact-1.0 no-ext-contact-1.0.xsd"><no-ext-contact:type>organization</no-ext-contact:type><no-ext-contact:identity type="organizationNumber">932080506</no-ext-contact:identity><no-ext-contact:mobilePhone>+47.123456780</no-ext-contact:mobilePhone><no-ext-contact:email>xtra1@example.no</no-ext-contact:email><no-ext-contact:email>xtra2@example.no</no-ext-contact:email></no-ext-contact:create></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_create build organization');
 
 is($dri->get_info('id'),'JD12O','contact_create organization with registry contact:id get_info(id)');
 is($dri->get_info('exist'),undef,'contact_create organization with registry contact:id get_info(exist)');
@@ -553,7 +556,7 @@ $co->xdisclose({mobilePhone=>0});
 $rc=$dri->contact_create($co);
 #eval_it($dri, 'contact_create', $co);
 
-is($R1,$E1.'<command><create><contact:create xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>auto</contact:id><contact:postalInfo type="loc"><contact:name>John Doe</contact:name><contact:addr><contact:street>123 Example Dr.</contact:street><contact:street>Suite 100</contact:street><contact:city>Dulles</contact:city><contact:sp>VA</contact:sp><contact:pc>20166-6503</contact:pc><contact:cc>US</contact:cc></contact:addr></contact:postalInfo><contact:voice x="1234">+47.7035555555</contact:voice><contact:fax>+47.7035555556</contact:fax><contact:email>jdoe@example.no</contact:email><contact:authInfo><contact:pw>2fooBAR</contact:pw></contact:authInfo><contact:disclose flag="0"><contact:voice/><contact:email/></contact:disclose></contact:create></create><extension><no-ext-contact:create xmlns:no-ext-contact="http://www.norid.no/xsd/no-ext-contact-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-contact-1.0 no-ext-contact-1.0.xsd"><no-ext-contact:type>role</no-ext-contact:type><no-ext-contact:mobilePhone>+47.123456780</no-ext-contact:mobilePhone><no-ext-contact:email>xtra1@example.no</no-ext-contact:email><no-ext-contact:email>xtra2@example.no</no-ext-contact:email><no-ext-contact:roleContact>JD12P</no-ext-contact:roleContact><no-ext-contact:roleContact>JD13P</no-ext-contact:roleContact><no-ext-contact:disclose flag="0"><no-ext-contact:mobilePhone/></no-ext-contact:disclose></no-ext-contact:create></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_create build role');
+is_string($R1,$E1.'<command><create><contact:create xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>auto</contact:id><contact:postalInfo type="loc"><contact:name>John Doe</contact:name><contact:addr><contact:street>123 Example Dr.</contact:street><contact:street>Suite 100</contact:street><contact:city>Dulles</contact:city><contact:sp>VA</contact:sp><contact:pc>20166-6503</contact:pc><contact:cc>US</contact:cc></contact:addr></contact:postalInfo><contact:voice x="1234">+47.7035555555</contact:voice><contact:fax>+47.7035555556</contact:fax><contact:email>jdoe@example.no</contact:email><contact:authInfo><contact:pw>2fooBAR</contact:pw></contact:authInfo><contact:disclose flag="0"><contact:voice/><contact:email/></contact:disclose></contact:create></create><extension><no-ext-contact:create xmlns:no-ext-contact="http://www.norid.no/xsd/no-ext-contact-1.0" xsi:schemaLocation="http://www.norid.no/xsd/no-ext-contact-1.0 no-ext-contact-1.0.xsd"><no-ext-contact:type>role</no-ext-contact:type><no-ext-contact:mobilePhone>+47.123456780</no-ext-contact:mobilePhone><no-ext-contact:email>xtra1@example.no</no-ext-contact:email><no-ext-contact:email>xtra2@example.no</no-ext-contact:email><no-ext-contact:roleContact>JD12P</no-ext-contact:roleContact><no-ext-contact:roleContact>JD13P</no-ext-contact:roleContact><no-ext-contact:disclose flag="0"><no-ext-contact:mobilePhone/></no-ext-contact:disclose></no-ext-contact:create></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_create build role');
 
 is($dri->get_info('id'),'JD12R','contact_create organization with registry contact:id get_info(id)');
 is($dri->get_info('exist'),undef,'contact_create organization with registry contact:id get_info(exist)');
@@ -576,7 +579,7 @@ is($dri->get_info('exist','contact','NEWREGID'),1,'contact_create with registry 
 $R2='';
 $co=$dri->local_object('contact')->srid('sh8016')->auth({pw=>'2fooBAR'});
 $rc=$dri->contact_delete($co);
-is($R1,$E1.'<command><delete><contact:delete xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>sh8016</contact:id></contact:delete></delete><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_delete build');
+is_string($R1,$E1.'<command><delete><contact:delete xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>sh8016</contact:id></contact:delete></delete><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_delete build');
 is($rc->is_success(),1,'contact_delete is_success');
 
 
@@ -597,7 +600,7 @@ $co2->auth({pw=>'2fooBAR'});
 $co2->disclose({voice=>1,email=>1});
 $toc->set('info',$co2);
 $rc=$dri->contact_update($co,$toc);
-is($R1,$E1.'<command><update><contact:update xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>sh8018</contact:id><contact:add><contact:status s="clientDeleteProhibited"/></contact:add><contact:chg><contact:postalInfo type="loc"><contact:org/><contact:addr><contact:street>124 Example Dr.</contact:street><contact:street>Suite 200</contact:street><contact:city>Dulles</contact:city><contact:sp>VA</contact:sp><contact:pc>20166-6503</contact:pc><contact:cc>US</contact:cc></contact:addr></contact:postalInfo><contact:voice>+47.7034444444</contact:voice><contact:fax/><contact:authInfo><contact:pw>2fooBAR</contact:pw></contact:authInfo><contact:disclose flag="1"><contact:voice/><contact:email/></contact:disclose></contact:chg></contact:update></update><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_update build');
+is_string($R1,$E1.'<command><update><contact:update xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>sh8018</contact:id><contact:add><contact:status s="clientDeleteProhibited"/></contact:add><contact:chg><contact:postalInfo type="loc"><contact:org/><contact:addr><contact:street>124 Example Dr.</contact:street><contact:street>Suite 200</contact:street><contact:city>Dulles</contact:city><contact:sp>VA</contact:sp><contact:pc>20166-6503</contact:pc><contact:cc>US</contact:cc></contact:addr></contact:postalInfo><contact:voice>+47.7034444444</contact:voice><contact:fax/><contact:authInfo><contact:pw>2fooBAR</contact:pw></contact:authInfo><contact:disclose flag="1"><contact:voice/><contact:email/></contact:disclose></contact:chg></contact:update></update><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_update build');
 is($rc->is_success(),1,'contact_update is_success');
 
 ## Session commands

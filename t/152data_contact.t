@@ -35,9 +35,9 @@ is_deeply(\@d,[['A1','A2'],['B1','B2']],'street() List access (double set)');
 
 
 $s=Net::DRI::Data::Contact->new();
-$s->org('Something é');
+$s->org('Something Ã©');
 $s->loc2int();
-is_deeply([$s->org()],['Something é','Something ?'],'loc2int()');
+is_deeply([$s->org()],['Something Ã©','Something ?'],'loc2int()');
 $s->int2loc();
 is_deeply([$s->org()],['Something ?','Something ?'],'int2loc()');
 

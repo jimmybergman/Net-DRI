@@ -117,9 +117,13 @@ sub parse_poll
 
  while (my ($htype,$hv)=each(%$h))
  {
-  while (my ($haction,$hv2)=each(%$hv))
+  ## Because of new Perl hash keys randomization, we must make sure review_complete action is done first
+  ## as it will setup $toname & such
+  my @k=keys(%$hv);
+  foreach my $haction ((grep { $_ eq 'review_complete' } @k),(sort { $a cmp $b } grep { $_ ne 'review_complete' } @k))
   {
-   foreach my $t (@$hv2)
+   next if $htype eq 'message' && $haction eq 'result';
+   foreach my $t (@{$hv->{$haction}})
    {
     my $pf=$t->[1];
     next unless (defined($pf) && (ref($pf) eq 'CODE'));
