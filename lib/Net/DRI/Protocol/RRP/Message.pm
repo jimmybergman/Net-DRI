@@ -193,13 +193,13 @@ sub entities
   {
    return unless (exists($self->{entities}));
    $k=lc($k);
-   foreach my $i ( sort { $a cmp $b } keys %{$self->{entities}} ) { next if lc $i ne $k; $k=$i; last; };
+   foreach my $i (keys(%{$self->{entities}})) { next unless (lc($i) eq $k); $k=$i; last; };
    return unless (exists($self->{entities}->{$k}));
    return wantarray()? @{$self->{entities}->{$k}} : join(' ',@{$self->{entities}->{$k}});
   }
  } else ## nothing given => get list of keys
  {
-  return exists $self->{entities} ? ( sort { $a cmp $b } keys %{$self->{entities}} ) : ();
+  return exists($self->{entities})? keys(%{$self->{entities}}) : ();
  }
 }
 

@@ -186,7 +186,7 @@ sub as_string
  ($cmd,$ocmd,$ons)=@$rc if (defined($rc) && ref($rc));
 
  my $attr='';
- ($cmd,$attr)=($cmd->[0],' '.join(' ',map { $_.'="'.$cmd->[1]->{$_}.'"' } sort { $a cmp $b } keys(%{$cmd->[1]}))) if (defined($cmd) && ref($cmd));
+ ($cmd,$attr)=($cmd->[0],' '.join(' ',map { $_.'="'.$cmd->[1]->{$_}.'"' } keys(%{$cmd->[1]}))) if (defined($cmd) && ref($cmd));
 
  if (defined($cmd))
  {

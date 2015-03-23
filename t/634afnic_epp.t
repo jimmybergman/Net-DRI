@@ -25,7 +25,7 @@ $dri->target('AFNIC')->add_current_profile('p1','test=Net::DRI::Protocol::EPP::E
 my ($rc,$cs,$s,$toc);
 
 ####################################################################################################
-## Â§2.2.4
+## §2.2.4
 
 my $ZC=<<'EOF';
 ZONE : ndd-de-test-0001.fr.
@@ -54,7 +54,7 @@ is_string($dri->get_info('review_zonecheck','domain','ndd-de-test-0001.fr'),$ZC,
 
 
 ####################################################################################################
-## Â§2.5.1
+## §2.5.1
 ## (clTRID changed from example + added xsiSchemaLocation)
 
 $cs=$dri->local_object('contactset');
@@ -75,7 +75,7 @@ is($dri->get_info('acHldID'),'MM4567','domain_trade_start get_info(acHldID)');
 is(''.$dri->get_info('ahDate'),'2009-01-09T00:00:00','domain_trade_start get_info(ahDate)');
 
 ####################################################################################################
-## Â§2.5.2
+## §2.5.2
 
 $R2=$E1.'<response>'.r(1301,'Command completed successfully; ack to dequeue').'<msgQ count="1" id="50010"><qDate>2009-12-25T00:02:00.0Z</qDate><msg>Trade requested.</msg></msgQ><extension><frnic:ext xmlns:frnic="http://www.afnic.fr/xml/epp/frnic-1.0"><frnic:resData><frnic:trdData><frnic:domain><frnic:name>ndd-de-test-0001.fr</frnic:name><frnic:trStatus>pending</frnic:trStatus><frnic:reID>BEdemandeurID</frnic:reID><frnic:reDate>2009-01-01T00:00:00.0Z</frnic:reDate><frnic:rhDate>2009-01-09T00:00:00.0Z</frnic:rhDate><frnic:acID>BEactuelID</frnic:acID><frnic:acHldID>MM4567</frnic:acHldID><frnic:ahDate>2009-01-09T00:00:00.0Z</frnic:ahDate></frnic:domain></frnic:trdData></frnic:resData></frnic:ext></extension>'.$TRID.'</response>'.$E2;
 $rc=$dri->message_retrieve();
@@ -95,11 +95,11 @@ is(''.$dri->get_info('ahDate','domain','ndd-de-test-0001.fr'),'2009-01-09T00:00:
 ## Other two examples are mostly the same, parsing wise.
 
 ####################################################################################################
-## Â§2.5.4
+## §2.5.4
 ## domain_trade_query : no example
 
 ####################################################################################################
-## Â§2.6.1
+## §2.6.1
 ## (clTRID changed from example + added xsiSchemaLocation)
 
 $cs=$dri->local_object('contactset');
@@ -117,7 +117,7 @@ is($dri->get_info('acID'),'BEactuelID','domain_recover_start get_info(acID)');
 is($dri->get_info('acHldID'),'MM4567','domain_recover_start get_info(acHldID)');
 
 ####################################################################################################
-## Â§2.7
+## §2.7
 
 $R2=$E1.'<response>'.r().'<resData><domain:chkData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"><domain:cd><domain:name avail="0">afnic.fr</domain:name><domain:reason>In use</domain:reason></domain:cd><domain:cd><domain:name avail="1">af-1234-nic.fr</domain:name></domain:cd><domain:cd><domain:name avail="1">bois-guillaume.fr</domain:name></domain:cd><domain:cd><domain:name avail="0">paris.fr</domain:name><domain:reason>In use</domain:reason></domain:cd><domain:cd><domain:name avail="0">trafiquants.fr</domain:name><domain:reason>Forbidden name</domain:reason></domain:cd><domain:cd><domain:name avail="0">toto.wf</domain:name><domain:reason>Zone not opened</domain:reason></domain:cd></domain:chkData></resData><extension><frnic:ext xmlns:frnic="http://www.afnic.fr/xml/epp/frnic-1.0"><frnic:resData><frnic:chkData><frnic:domain><frnic:cd><frnic:name reserved="0" forbidden="0">afnic.fr</frnic:name></frnic:cd><frnic:cd><frnic:name reserved="0" forbidden="0">af-1234-nic.fr</frnic:name></frnic:cd><frnic:cd><frnic:name reserved="1" forbidden="0">bois-guillaume.fr</frnic:name><frnic:rsvReason>City name</frnic:rsvReason></frnic:cd><frnic:cd><frnic:name reserved="1" forbidden="0">paris.fr</frnic:name><frnic:rsvReason>City name</frnic:rsvReason></frnic:cd><frnic:cd><frnic:name reserved="0" forbidden="1">trafiquants.fr</frnic:name><frnic:fbdReason>Legal issue</frnic:fbdReason></frnic:cd><frnic:cd><frnic:name reserved="0" forbidden="0">toto.wf</frnic:name></frnic:cd></frnic:domain></frnic:chkData></frnic:resData></frnic:ext></extension>'.$TRID.'</response>'.$E2;
 $rc=$dri->domain_check_multi(qw/afnic.fr af-1234-nic.fr bois-guillaume.fr paris.fr trafiquants.fr toto.wf/);
@@ -142,7 +142,7 @@ is($dri->get_info('reserved','domain','bois-guillaume.fr'),1,'domain_check_multi
 is($dri->get_info('forbidden','domain','trafiquants.fr'),1,'domain_check_multi get_info(forbidden,domain5)');
 
 ####################################################################################################
-## Â§2.8.2
+## §2.8.2
 
 $R2=$E1.'<response>'.r().'<resData><domain:infData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0"><domain:name>ndd-de-test-0001.fr</domain:name><domain:roid>DOM000000456987-FRNIC</domain:roid><domain:status s="ok"/><domain:registrant>MM4567</domain:registrant><domain:contact type="admin">NFC1</domain:contact><domain:contact type="tech">NFC1</domain:contact><domain:contact type="tech">VL</domain:contact><domain:ns><domain:hostAttr><domain:hostName>ns1.nic.fr</domain:hostName></domain:hostAttr><domain:hostAttr><domain:hostName>ns2.nic.fr</domain:hostName></domain:hostAttr><domain:hostAttr><domain:hostName>ns.ndd-de-test-0001.fr</domain:hostName><domain:hostAddr ip="v4">192.93.0.1</domain:hostAddr><domain:hostAddr ip="v6">2001:660:3005:1::1:1</domain:hostAddr></domain:hostAttr></domain:ns><domain:host>ns.ndd-de-test-0001.fr</domain:host><domain:host>ns1234.ndd-de-test-0001.fr</domain:host><domain:clID>BEactuelID</domain:clID><domain:crDate>2008-12-25T00:00:00.0Z</domain:crDate><domain:exDate>2009-12-25T00:00:00.0Z</domain:exDate><domain:update>2009-01-10T00:00:00.0Z</domain:update><domain:authInfo><domain:pw>WarlordZ666</domain:pw></domain:authInfo></domain:infData></resData><extension><frnic:ext xmlns:frnic="http://www.afnic.fr/xml/epp/frnic-1.0"><frnic:resData><frnic:infData><frnic:domain><frnic:status s="serverTradeProhibited"/><frnic:status s="serverRecoverProhibited"/></frnic:domain></frnic:infData></frnic:resData></frnic:ext></extension>'.$TRID.'</response>'.$E2;
 $rc=$dri->domain_info('ndd-de-test-0001.fr');
@@ -151,7 +151,7 @@ $s=$dri->get_info('status');
 is_deeply([$s->list_status()],[qw/serverRecoverProhibited serverTradeProhibited/],'domain_info get_info(status) list_status');
 
 ####################################################################################################
-## Â§3.1
+## §3.1
 ## corrected misplacement of contact:id
 
 $R2=$E1.'<response>'.r().'<resData><contact:creData xmlns:contact="urn:ietf:params:xml:ns:contact-1.0"><contact:id>VL99999</contact:id><contact:crDate>2008-11-20T00:00:00.0Z</contact:crDate></contact:creData></resData><extension><frnic:ext xmlns:frnic="http://www.afnic.fr/xml/epp/frnic-1.0"><frnic:resData><frnic:creData><frnic:nhStatus new="1"/><frnic:idStatus>no</frnic:idStatus></frnic:creData></frnic:resData></frnic:ext></extension>'.$TRID.'</response>'.$E2;
@@ -180,7 +180,7 @@ is($dri->get_info('identification','contact','VL99999'),'no','contact_create get
 
 $R2='';
 $co=$dri->local_object('contact');
-$co->name('Service des RÃ©clamations');
+$co->name('Service des Réclamations');
 $co->org('AFNIC Corp');
 $co->street(['immeuble international','2, rue Stephenson','Montigny le Bretonneux']);
 $co->city('Saint Quentin en Yvelines Cedex');
@@ -198,7 +198,7 @@ $rc=$dri->contact_create($co);
 is_string($R1,$E1.'<command><create><contact:create xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>AUTO</contact:id><contact:postalInfo type="loc"><contact:name>Service des Réclamations</contact:name><contact:org>AFNIC Corp</contact:org><contact:addr><contact:street>immeuble international</contact:street><contact:street>2, rue Stephenson</contact:street><contact:street>Montigny le Bretonneux</contact:street><contact:city>Saint Quentin en Yvelines Cedex</contact:city><contact:pc>78181</contact:pc><contact:cc>FR</contact:cc></contact:addr></contact:postalInfo><contact:voice>+33.0139308333</contact:voice><contact:fax>+33.0139308301</contact:fax><contact:email>vincent.levigneron@nic.fr</contact:email><contact:authInfo><contact:pw>UnusedPassword</contact:pw></contact:authInfo></contact:create></create><extension><frnic:ext xmlns:frnic="http://www.afnic.fr/xml/epp/frnic-1.0" xsi:schemaLocation="http://www.afnic.fr/xml/epp/frnic-1.0 frnic-1.0.xsd"><frnic:create><frnic:contact><frnic:legalEntityInfos><frnic:legalStatus s="company"/><frnic:siren>123456789</frnic:siren><frnic:trademark>27YOUPLA2345678</frnic:trademark><frnic:asso><frnic:decl>1999-05-19</frnic:decl><frnic:publ announce="5" page="2">1999-06-01</frnic:publ></frnic:asso></frnic:legalEntityInfos></frnic:contact></frnic:create></frnic:ext></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_create PM build');
 
 ####################################################################################################
-## Â§3.2
+## §3.2
 
 $co=$dri->local_object('contact')->srid('VL99999');
 $toc=$dri->local_object('changes');
@@ -207,7 +207,7 @@ $dri->contact_update($co,$toc);
 is_string($R1,$E1.'<command><update><contact:update xmlns:contact="urn:ietf:params:xml:ns:contact-1.0" xsi:schemaLocation="urn:ietf:params:xml:ns:contact-1.0 contact-1.0.xsd"><contact:id>VL99999</contact:id></contact:update></update><extension><frnic:ext xmlns:frnic="http://www.afnic.fr/xml/epp/frnic-1.0" xsi:schemaLocation="http://www.afnic.fr/xml/epp/frnic-1.0 frnic-1.0.xsd"><frnic:update><frnic:contact><frnic:rem><frnic:list>restrictedPublication</frnic:list></frnic:rem></frnic:contact></frnic:update></frnic:ext></extension><clTRID>ABC-12345</clTRID></command>'.$E2,'contact_update build');
 
 ####################################################################################################
-## Â§3.5
+## §3.5
 
 $R2=$E1.'<response>'.r().'<resData><contact:infData xmlns:contact="urn:ietf:params:xml:ns:contact-1.0"><contact:id>VL99999</contact:id><contact:roid>VL9999-FRNIC</contact:roid><contact:status s="linked"/><contact:postalInfo type="loc"><contact:name>Levigneron</contact:name><contact:org>AFNIC</contact:org><contact:addr><contact:street>immeuble international</contact:street><contact:street>2, rue Stephenson</contact:street><contact:street>Montigny le Bretonneux</contact:street><contact:city>Saint Quentin en Yvelines Cedex</contact:city><contact:pc>78181</contact:pc><contact:cc>FR</contact:cc></contact:addr></contact:postalInfo><contact:voice>+33.0139308333</contact:voice><contact:fax>+33.0139308301</contact:fax><contact:email>vincent.levigneron@nic.fr</contact:email><contact:clID>BEactuelID</contact:clID><contact:crID>BEcreateurID</contact:crID><contact:crDate>2008-11-20T00:00:00.0Z</contact:crDate><contact:update>2008-12-25T00:00:00.0Z</contact:update></contact:infData></resData><extension><frnic:ext xmlns:frnic="http://www.afnic.fr/xml/epp/frnic-1.0"><frnic:resData><frnic:infData><frnic:contact><frnic:firstName>Vincent</frnic:firstName><frnic:list>restrictedPublication</frnic:list><frnic:individualInfos><frnic:idStatus>ok</frnic:idStatus><frnic:birthDate>1968-07-20</frnic:birthDate><frnic:birthCity>Rouen</frnic:birthCity><frnic:birthPc>76000</frnic:birthPc><frnic:birthCc>FR</frnic:birthCc></frnic:individualInfos></frnic:contact></frnic:infData></frnic:resData></frnic:ext></extension>'.$TRID.'</response>'.$E2;
 $dri->contact_info($co);

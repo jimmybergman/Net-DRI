@@ -205,7 +205,7 @@ $d=$dri->get_info('trDate');
 isa_ok($d,'DateTime','domain_info get_info(trDate)');
 is("".$d,'2006-04-08T09:00:00','domain_info get_info(trDate) value');
 is_deeply($dri->get_info('auth'),{pw=>'2fooBAR'},'domain_info get_info(auth)');
-is_deeply($dri->get_info('name_variant'),['bÃ rca.cat','barÃ§a.cat'],'domain_info get_info(name_variant)');
+is_deeply($dri->get_info('name_variant'),['bàrca.cat','barça.cat'],'domain_info get_info(name_variant)');
 is($dri->get_info('lang'),'ca','domain_info get_info(lang)');
 is(ref($dri->get_info('ens')),'HASH','domain_info get_info(ens) HASH');
 my %ens=%{$dri->get_info('ens')};

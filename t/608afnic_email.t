@@ -49,7 +49,7 @@ my $rc;
 
 ## FULL PM
 $co->name('MyORG');
-$co->street(['Whatever street 35','Ã©Ã§p Ã Ã´']);
+$co->street(['Whatever street 35','éçp àô']);
 $co->city('Alphaville');
 $co->pc('99999');
 $co->cc('FR');
@@ -92,7 +92,7 @@ Subject: CLIENTID domain_create [TRID-12345]
 2z..: nowmandatory!
 3a..: MyORG
 3b..: Whatever street 35
-3c..: Ã©Ã§p Ã Ã´
+3c..: éçp àô
 3e..: Alphaville
 3f..: 99999
 3g..: FR
