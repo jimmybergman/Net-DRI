@@ -1,4 +1,6 @@
-libnet-dri-perl (0.96-38atomia) unstable; urgency=low
+libnet-dri-perl (0.96-39atomia) unstable; urgency=low
+  * Make sure that parse_greeting doesn't treat non-greeting messages as OK
+  * Check for EOF in sysread
   * Update EURid extension versions to current (1.1).
   * Fix OpenSRS host_exist
   * Change to SecDNS 1.1 for VNDS

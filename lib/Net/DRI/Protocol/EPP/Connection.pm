@@ -123,16 +123,20 @@ sub read_data
  while($length > 0)
  {
    my $new;
-   $length-=$sock->sysread($new,$length);
+   my $read = $sock->sysread($new,$length);
+   die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_SYNTAX_ERROR','Error reading socket','en')) unless defined($read) && $read > 0;
+   $length -= $read;
    $c.=$new;
  }
  $length=unpack('N',$c)-4;
  my $m='';
  while ($length > 0)
  {
-  my $new;
-  $length-=$sock->sysread($new,$length);
-  $m.=$new;
+   my $new;
+   my $read = $sock->sysread($new,$length);
+   die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_SYNTAX_ERROR','Error reading socket','en')) unless defined($read) && $read > 0;
+   $length -= $read;
+   $m.=$new;
  }
  $m=Net::DRI::Util::decode_utf8($m);
  die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_SYNTAX_ERROR',$m? 'Got unexpected EPP message: '.$m : '<empty message from server>','en')) unless ($m=~m!</epp>\s*$!s);
@@ -153,12 +157,12 @@ sub parse_greeting
 {
  my ($class,$dc)=@_;
  my ($code,$msg,$lang)=find_code($dc);
- unless (defined($code) && ($code==1000))
+ unless (defined($code) && ($code==1000) && defined($msg) && $msg eq "Greeting OK")
  {
   return Net::DRI::Protocol::ResultStatus->new_error('COMMAND_SYNTAX_ERROR','No greeting node',$lang);
  } else
  {
-  return Net::DRI::Protocol::ResultStatus->new_success('COMMAND_SUCCESSFUL','Greeting OK',$lang);
+  return Net::DRI::Protocol::ResultStatus->new_success('COMMAND_SUCCESSFUL',$msg,$lang);
  }
 }
 
