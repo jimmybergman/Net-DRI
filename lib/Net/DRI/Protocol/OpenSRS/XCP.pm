@@ -24,7 +24,7 @@ use base qw(Net::DRI::Protocol);
 
 use Net::DRI::Protocol::OpenSRS::XCP::Message;
 use Net::DRI::Data::Contact::OpenSRS;
-use Net::DRI::Protocol::EPP::Core::Status;
+use Net::DRI::Protocol::OpenSRS::XCP::Status;
 
 our $VERSION=do { my @r=(q$Revision: 1.2 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
@@ -79,7 +79,7 @@ sub new
  $self->factories('message',sub { my $m=Net::DRI::Protocol::OpenSRS::XCP::Message->new(); return $m; });
 ## $self->factories('message',sub { my $m=Net::DRI::Protocol::OpenSRS::XCP::Message->new(@_); $m->client_auth({id => $drd->{client_login}, pw => $drd->{client_password}}); return $m; });
  $self->factories('contact',sub { return Net::DRI::Data::Contact::OpenSRS->new(); });
- $self->factories('status',sub { return Net::DRI::Protocol::EPP::Core::Status->new(); });
+ $self->factories('status',sub { return Net::DRI::Protocol::OpenSRS::XCP::Status->new(); });
  $self->capabilities('domain_update', 'ns', [ 'set' ]);
  $self->capabilities('domain_update', 'contact', [ 'set' ]);
  $self->capabilities('domain_update', 'status', [ 'add', 'del' ]);
