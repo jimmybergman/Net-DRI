@@ -124,7 +124,7 @@ sub read_data
  {
    my $new;
    my $read = $sock->sysread($new,$length);
-   die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_SYNTAX_ERROR','Error reading socket','en')) unless defined($read) && $read > 0;
+   die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_FAILED_CLOSING','Error reading socket','en')) unless defined($read) && $read > 0;
    $length -= $read;
    $c.=$new;
  }
@@ -134,7 +134,7 @@ sub read_data
  {
    my $new;
    my $read = $sock->sysread($new,$length);
-   die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_SYNTAX_ERROR','Error reading socket','en')) unless defined($read) && $read > 0;
+   die(Net::DRI::Protocol::ResultStatus->new_error('COMMAND_FAILED_CLOSING','Error reading socket','en')) unless defined($read) && $read > 0;
    $length -= $read;
    $m.=$new;
  }

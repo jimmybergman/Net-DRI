@@ -1,4 +1,7 @@
-libnet-dri-perl (0.96-39atomia) unstable; urgency=low
+libnet-dri-perl (0.96-40atomia) unstable; urgency=low
+  * Change so that we return COMMAND_FAILED_CLOSING on EOF instead of
+    COMMAND_SYNTAX_ERROR.
+  * Add whois privacy for OpenSRS
   * Make sure that parse_greeting doesn't treat non-greeting messages as OK
   * Check for EOF in sysread
   * Update EURid extension versions to current (1.1).
