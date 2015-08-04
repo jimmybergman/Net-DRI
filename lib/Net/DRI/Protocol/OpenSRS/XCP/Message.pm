@@ -144,8 +144,9 @@ sub get_body
  push @d,'<dt_assoc>';
  my $d=$self->command(); ## ref hash with at least action & object keys, maybe more (such as cookie)
  $d->{protocol}='XCP';
- foreach my $k (sort(keys(%$d)))
+ KEY: foreach my $k (sort(keys(%$d)))
  {
+  next KEY if $k eq 'cookie' and $d->{$k} eq 'net_dri_no_cookie';
   push @d,'<item key="',$k,'">',$d->{$k},'</item>';
  }
  push @d,'<item key="attributes">',_obj2dt($self->command_attributes()),'</item>' if defined($self->command_attributes());

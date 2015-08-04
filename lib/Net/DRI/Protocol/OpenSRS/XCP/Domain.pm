@@ -101,7 +101,7 @@ sub info
  my $msg=$xcp->message();
  Net::DRI::Exception::usererr_insufficient_parameters('A cookie is needed for domain_info') unless Net::DRI::Util::has_key($rd,'cookie');
  build_msg_cookie($msg,'get',$rd->{cookie},$rd->{registrant_ip});
- $msg->command_attributes({type => 'all_info'});
+ $msg->command_attributes({type => 'all_info', domain => $domain});
 
 }
 
