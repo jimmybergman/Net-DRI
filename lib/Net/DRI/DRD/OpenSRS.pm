@@ -126,8 +126,11 @@ sub opensrs_determine_use_cookie
 	defined($self->{"info"}->{"extension_params"}->{"opensrs_use_cookie"}) &&
 	$self->{"info"}->{"extension_params"}->{"opensrs_use_cookie"} == 0) 
  {
+  $rd={} unless defined($rd);
   $rd->{'cookie'} = 'net_dri_no_cookie';
  }
+
+ return $rd;
 }
 
 sub domain_info
@@ -139,7 +142,7 @@ sub domain_info
  if (! defined $rc)
  {
   ## First grab a cookie, if needed
-  $self->opensrs_determine_use_cookie($rd);
+  $rd = $self->opensrs_determine_use_cookie($rd);
   unless (Net::DRI::Util::has_key($rd,'cookie'))
   {
    $rd={} unless defined($rd); ## will fail in set_cookie because other params needed, but at least this will be ok for next line ; otherwise do true checks of value needed
@@ -160,7 +163,7 @@ sub domain_update
  $self->enforce_domain_name_constraints($ndr,$domain,'update');
 
  ## First grab a cookie, if needed
- $self->opensrs_determine_use_cookie($rd);
+ $rd = $self->opensrs_determine_use_cookie($rd);
  unless (Net::DRI::Util::has_key($rd,'cookie'))
  {
   $rd={} unless defined($rd); ## will fail in set_cookie because other params needed, but at least this will be ok for next line ; otherwise do true checks of value needed
@@ -193,7 +196,7 @@ sub host_create
  my ($self,$ndr,$ns,$rd)=@_;
 
  ## First grab a cookie, if needed
- $self->opensrs_determine_use_cookie($rd);
+ $rd = $self->opensrs_determine_use_cookie($rd);
  unless (Net::DRI::Util::has_key($rd,'cookie'))
  {
   $rd={} unless defined($rd); ## will fail in set_cookie because other params needed, but at least this will be ok for next line ; otherwise do true checks of value needed
@@ -211,7 +214,7 @@ sub host_update
  my ($self,$ndr,$ns,$changes,$rd)=@_;
 
  ## First grab a cookie, if needed
- $self->opensrs_determine_use_cookie($rd);
+ $rd = $self->opensrs_determine_use_cookie($rd);
  unless (Net::DRI::Util::has_key($rd,'cookie'))
  {
   $rd={} unless defined($rd); ## will fail in set_cookie because other params needed, but at least this will be ok for next line ; otherwise do true checks of value needed
@@ -229,7 +232,7 @@ sub host_delete
  my ($self,$ndr,$ns,$rd)=@_;
 
  ## First grab a cookie, if needed
- $self->opensrs_determine_use_cookie($rd);
+ $rd = $self->opensrs_determine_use_cookie($rd);
  unless (Net::DRI::Util::has_key($rd,'cookie'))
  {
   $rd={} unless defined($rd); ## will fail in set_cookie because other params needed, but at least this will be ok for next line ; otherwise do true checks of value needed
