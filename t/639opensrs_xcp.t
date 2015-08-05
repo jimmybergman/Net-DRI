@@ -333,6 +333,7 @@ $r=<<'EOF';
             <item key="registrant_ip">216.40.46.115</item>
             <item key="attributes">
                <dt_assoc>
+                  <item key="domain">whatever.com</item>
                   <item key="type">all_info</item>
                </dt_assoc>
             </item>
