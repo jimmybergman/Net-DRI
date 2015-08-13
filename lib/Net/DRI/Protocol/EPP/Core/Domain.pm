@@ -399,7 +399,7 @@ sub update
  push @chg,['domain:registrant',$chg->srid()] if Net::DRI::Util::isa_contact($chg);
  $chg=$todo->set('auth');
  push @chg,Net::DRI::Protocol::EPP::Util::domain_build_authinfo($epp,$chg,1) if ($chg && (ref $chg eq 'HASH') && exists $chg->{pw});
- push @d,['domain:chg',@chg] if @chg;
+ push @d,['domain:chg',@chg] if @chg || defined($todo->set('rgp'));
  $mes->command_body(\@d);
 }
 
