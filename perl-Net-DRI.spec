@@ -75,11 +75,11 @@ find eg/ -type f -exec %{__chmod} a-x {} \;
 %{perl_vendorlib}/Net/DRI.pm
 
 %changelog
-* Tue Aug 09 2015 Jimmy Bergman <jimmy@atomia.com> - 0.96-41atomia
-- Updated to version 0.96-41atomia.
-
 * Tue Aug 13 2015 Jimmy Bergman <jimmy@atomia.com> - 0.96-42atomia
 - Updated to version 0.96-42atomia.
+
+* Tue Aug 09 2015 Jimmy Bergman <jimmy@atomia.com> - 0.96-41atomia
+- Updated to version 0.96-41atomia.
 
 * Mon Jun 09 2015 Jimmy Bergman <jimmy@atomia.com> - 0.96-40atomia
 - Updated to version 0.96-40atomia.
