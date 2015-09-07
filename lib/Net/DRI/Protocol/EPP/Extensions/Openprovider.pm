@@ -23,8 +23,7 @@ sub setup
  my ($self,$rp)=@_;
  $self->ns({op => ['http://www.openprovider.nl/epp/xml/opprov-1.0','']});
  
- $self->default_parameters({domain_create => { auth => { pw => '' } } }); ## domain:authInfo is not used by Openprovider
- 
+ $self->default_parameters({domain_create => { auth => { pw => '' } } }); ## domain:authInfo is not used by Openprovider 
  $self->default_parameters({contact_update => {info => {name => ''}}});
  return;
 }
