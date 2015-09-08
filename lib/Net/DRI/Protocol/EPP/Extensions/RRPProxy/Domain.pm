@@ -24,7 +24,8 @@ sub register_commands
  my ($class,$version)=@_;
  my %tmp=(
            create => [ \&create ],
-	   update => [ \&update ],
+		   transfer_request => [ \&transfer_request ],
+	   update => [ \&update ]
          );
 
  return { 'domain' => \%tmp };
@@ -109,6 +110,32 @@ sub update
         push @e,['keysys:'.$key,$whoisprivacy->{$key}];
  }
 
+ $mes->command_extension($eid,['keysys:domain',@e]);
+}
+
+sub transfer_request{
+ my ($epp,$domain,$rd)=@_;
+ my $mes=$epp->message();
+ 
+ my @d=Net::DRI::Protocol::EPP::Util::domain_build_command($mes,['transfer',{'op'=>'request'}],$domain);
+ push @d,Net::DRI::Protocol::EPP::Util::build_period($rd->{duration}) if Net::DRI::Util::has_duration($rd);
+ push @d,Net::DRI::Protocol::EPP::Util::domain_build_authinfo($epp,$rd->{auth}) if Net::DRI::Util::has_auth($rd);
+ 
+ $mes->command_body(\@d);
+ 
+ return unless Net::DRI::Util::has_contact($rd);
+ 
+ my $eid=build_command_extension($mes,$epp,'keysys:transfer');
+ 
+ my @e;
+ 
+ my $cs=$rd->{contact};
+ my @o=$cs->get('registrant'); 
+ push @e,['keysys:ownercontact0',$o[0]->srid()] if (@o && Net::DRI::Util::isa_contact($o[0]));
+ 
+ @o=$cs->get('tech'); 
+ push @e,['keysys:techcontact0',$o[0]->srid()] if (@o && Net::DRI::Util::isa_contact($o[0]));
+ 
  $mes->command_extension($eid,['keysys:domain',@e]);
 }
 

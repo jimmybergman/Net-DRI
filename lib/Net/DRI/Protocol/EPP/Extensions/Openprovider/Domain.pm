@@ -42,7 +42,6 @@ sub build_command_extension
  my ($mes,$epp,$tag)=@_;
  
  return $mes->command_extension_register('op:ext',sprintf('xmlns:op="%s"',$mes->nsattrs('op')));
- #return $mes->command_extension_register($tag,sprintf('xmlns:op="%s"',$mes->nsattrs('op')));
 }
 
 sub create
