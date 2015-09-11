@@ -64,7 +64,7 @@ sub create
  }
  
  my $body = $mes->command_body();
- $body->{domain:authInfo}->{domain:pw} = '';
+ $body->{"domain:authInfo"}->{"domain:pw"} = '';
  $mes->command_body($body);
  
  my @f;

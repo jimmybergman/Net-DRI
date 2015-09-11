@@ -1,4 +1,5 @@
-libnet-dri-perl (0.96-42atomia) unstable; urgency=low
+libnet-dri-perl (0.96-43atomia) unstable; urgency=low
+  * Add Openprovider and RRPProxy drivers
   * Make sure we send empty domain:chg on RGP update
   * Optionally support disabling the cookie feature in the OpenSRS driver
   * Change so that we return COMMAND_FAILED_CLOSING on EOF instead of
