@@ -26,8 +26,7 @@ sub register_commands
 	
 	my %tmp=(
 				create => [ \&create ],
-				transfer_request => [ \&transfer_request ],
-			   update => [ \&update ]
+				transfer_request => [ \&transfer_request ]
          );
 	
 	return { 'domain' => \%tmp };
@@ -62,10 +61,6 @@ sub create
  foreach my $key (keys %$attributes) {
         push @e,['op:'.$key,$attributes->{$key}];
  }
- 
- my $body = $mes->command_body();
- $body->{"domain:authInfo"}->{"domain:pw"} = '';
- $mes->command_body($body);
  
  my @f;
  push @f,['op:domain', @e];
