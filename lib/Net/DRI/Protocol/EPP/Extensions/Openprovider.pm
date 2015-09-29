@@ -4,6 +4,8 @@ use strict;
 
 use base qw/Net::DRI::Protocol::EPP/;
 
+use Net::DRI::Data::Contact::Openprovider;
+
 our $VERSION=do { my @r=(q$Revision: 0.1 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 
@@ -28,7 +30,7 @@ sub setup
  return;
 }
 
-sub default_extensions { return qw/Openprovider::Domain/; }
+sub default_extensions { return qw/Openprovider::Domain Openprovider::Contact/; }
 
 ####################################################################################################
 1;

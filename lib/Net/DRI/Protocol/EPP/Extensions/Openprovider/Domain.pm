@@ -32,8 +32,6 @@ sub register_commands
 	return { 'domain' => \%tmp };
 }
 
-sub capabilities_add { return ('domain_update',['set']); }
-
 ####################################################################################################
 
 sub build_command_extension
