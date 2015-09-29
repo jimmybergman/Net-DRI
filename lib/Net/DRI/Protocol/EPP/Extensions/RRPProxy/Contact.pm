@@ -74,9 +74,8 @@ sub register_commands
 {
  my ($class,$version)=@_;
  my %tmp=(
-           #info   => [ undef, \&info_parse ],
            create => [ \&create, undef ],
-           update => [ \&update, undef ],
+           update => [ \&update, undef ]
          );
 
  return { 'contact' => \%tmp };
@@ -89,24 +88,6 @@ sub build_command_extension
  my ($mes,$epp,$tag)=@_;
  return $mes->command_extension_register($tag,sprintf('xmlns:keysys="%s"',$mes->nsattrs('keysys')));
 }
-
-########### Query commands
-
-# sub info_parse
-# {
- # my ($po,$otype,$oaction,$oname,$rinfo)=@_;
- # my $mes=$po->message();
- # return unless $mes->is_success();
-
- # my $contact=$rinfo->{contact}->{$oname}->{self};
- # my $ext=$mes->node_extension();
-
- # return unless (defined($ext) && $ext && $ext->getFirstChild());
- # my %tmp=map { split(/=/,$_) } split(/\s+/,$ext->getFirstChild()->getData());
-
- # $contact->application_purpose($tmp{AppPurpose}) if exists($tmp{AppPurpose});
- # $contact->nexus_category($tmp{NexusCategory})   if exists($tmp{NexusCategory});
-# }
 
 ############ Transform commands
 
