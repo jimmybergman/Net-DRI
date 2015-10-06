@@ -523,7 +523,16 @@ sub transfer_request
 {
  my ($xcp,$domain,$rd)=@_;
 
- sw_register($xcp, $domain, $rd, 'transfer');
+ my $msg=$xcp->message();
+
+ my %r=(action => 'simple_transfer', object => 'domain');
+ $r{registrant_ip}=$rd->{registrant_ip} if exists $rd->{registrant_ip};
+
+ my $domain_hash = {domain_name => $domain, auth_info => $rd->{"auth"}->{"pw"}};
+ my $domain_array = [$domain_hash];
+ 
+ $msg->command(\%r);
+ $msg->command_attributes({domain_list => $domain_array});
 }
 
 sub transfer_request_parse
@@ -532,9 +541,9 @@ sub transfer_request_parse
  my $mes=$xcp->message();
  return unless $mes->is_success();
 
- $rinfo->{domain}->{$oname}->{action}='transfer_start';
+ $rinfo->{domain}->{$oname}->{action}='simple_transfer';
  my $ra=$mes->response_attributes();
- foreach (qw/admin_email cancelled_orders error id queue_request_id forced_pending whois_privacy/) {
+ foreach (qw/simple_transfer_job_id/) {
   $rinfo->{domain}->{$oname}->{$_} = $ra->{$_} if exists $ra->{$_};
  }
 }
@@ -544,11 +553,24 @@ sub transfer_query
  my ($xcp,$domain,$rd)=@_;
  my $msg=$xcp->message();
 
- my %r=(action => 'check_transfer', object => 'domain');
+ my $action;
+ my $attributes;
+ if(defined($rd->{'simple_transfer_job_id'}) && $rd->{'simple_transfer_job_id'} ne '') {
+	#transfer was called after switch to simple transfer. 
+	$action = 'simple_transfer_status';
+	$attributes = {simple_transfer_job_id => $rd->{'simple_transfer_job_id'}};
+ }
+ else {
+	#transfer was called before switch to simple transfer. Lets check status accordingly.
+	$action = 'check_transfer';
+	$attributes = {domain => $domain, check_status => 1, get_request_address => 1};
+ }
+ 
+ my %r=(action => $action, object => 'domain');
  $r{registrant_ip}=$rd->{registrant_ip} if exists $rd->{registrant_ip};
 
  $msg->command(\%r);
- $msg->command_attributes({domain => $domain, check_status => 1, get_request_address => 1}); # TBD: usable for checking transferability
+ $msg->command_attributes($attributes); # TBD: usable for checking transferability
 }
 
 sub transfer_query_parse
@@ -557,10 +579,24 @@ sub transfer_query_parse
  my $mes=$xcp->message();
  return unless $mes->is_success();
 
- $rinfo->{domain}->{$oname}->{action}='check_transfer';
+ $rinfo->{domain}->{$oname}->{action}='simple_transfer_status';
  my $ra=$mes->response_attributes();
- foreach (qw/transferrable status request_address timestamp unixtime reason type noservice/) {
+ #case when check_transfer was called
+ foreach (qw/transferrable status request_address timestamp unixtime reason type noservice name id/) {
   $rinfo->{domain}->{$oname}->{$_} = $ra->{$_} if exists $ra->{$_};
+ }
+ 
+ #case when simple_transfer_status was called. It's more relevant so it's processed later.
+ if(defined($ra->{domain_list})) {
+	# in this case, above status not valid.
+	$rinfo->{domain}->{$oname}->{status} = undef;
+	foreach my $d (@{$ra->{domain_list}}) {
+		if($d->{domain_name} eq $oname) {
+			foreach (qw/domain_name status registrant_id reason/) {
+			  $rinfo->{domain}->{$oname}->{$_} = $d->{$_} if exists $d->{$_};
+			}
+		}
+	}
  }
 }
 
