@@ -4,6 +4,8 @@ use strict;
 
 use base qw/Net::DRI::Protocol::EPP/;
 
+use Net::DRI::Data::Contact::RRPProxy;
+
 our $VERSION=do { my @r=(q$Revision: 0.1 $=~/\d+/g); sprintf("%d".".%02d" x $#r, @r); };
 
 
@@ -17,7 +19,6 @@ Net::DRI::Protocol::EPP::Extensions::RRRProxy - RRRProxy EPP extensions for Net:
 
 
 ####################################################################################################
-
 sub setup
 {
  my ($self,$rp)=@_;
@@ -25,7 +26,7 @@ sub setup
  return;
 }
 
-sub default_extensions { return qw/RRPProxy::Domain/; }
+sub default_extensions { return qw/RRPProxy::Domain RRPProxy::Contact/; }
 
 ####################################################################################################
 1;

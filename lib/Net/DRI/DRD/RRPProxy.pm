@@ -18,7 +18,7 @@ sub new
 {
  my $class=shift;
  my $self=$class->SUPER::new(@_);
- $self->{info}->{host_as_attr}=1;
+ $self->{info}->{host_as_attr}=0;
  $self->{info}->{contact_i18n}=1; ## LOC only
  bless($self,$class);
  return $self;
