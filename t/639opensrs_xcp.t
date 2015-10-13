@@ -4,7 +4,7 @@ use Net::DRI;
 use Net::DRI::Data::Raw;
 use DateTime::Duration;
 use DateTime;
-use Test::More tests => 45;
+use Test::More tests => 46;
 eval { no warnings; require Test::LongString; Test::LongString->import(max => 100); $Test::LongString::Context=50; };
 *{'main::is_string'}=\&main::is if $@;
 
@@ -829,8 +829,8 @@ is($dri->get_info('charge'),0,'domain_renew get_info(charge)');
 #===Test transfer initiation===================================
 
 push @R2,<<'EOF';
-<?xml version='1.0' encoding='UTF-8' standalone='no' ?>
-<!DOCTYPE OPS_envelope SYSTEM 'ops.dtd'>
+<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
 <OPS_envelope>
 <header>
 <version>0.9</version>
@@ -839,18 +839,16 @@ push @R2,<<'EOF';
 <data_block>
 <dt_assoc>
 <item key="protocol">XCP</item>
-<item key="action">REPLY</item>
 <item key="object">DOMAIN</item>
+<item key="response_text">Simple transfer job successfully added</item>
+<item key="action">REPLY</item>
 <item key="response_code">200</item>
-<item key="response_text">Transfer request has been successfully sent</item>
-<item key="is_success">1</item>
 <item key="attributes">
 <dt_assoc>
-<item key="registration_text">Transfer request has been successfully sent</item>
-<item key="registration_code">200</item>
-<item key="id">3735288</item>
+<item key="simple_transfer_job_id">3735288</item>
 </dt_assoc>
 </item>
+<item key="is_success">1</item>
 </dt_assoc>
 </data_block>
 </body>
@@ -860,118 +858,122 @@ EOF
 $r=<<"EOF";
 <?xml version='1.0' encoding='UTF-8' standalone='no' ?>
 <!DOCTYPE OPS_envelope SYSTEM 'ops.dtd'>
-<OPS_envelope>
-<header>
-<version>0.9</version>
-</header>
-<body>
-<data_block>
-<dt_assoc>
-<item key="action">sw_register</item>
-<item key="object">domain</item>
-<item key="protocol">XCP</item>
-<item key="registrant_ip">10.0.10.19</item>
-<item key="attributes">
-<dt_assoc>
-<item key="contact_set">
-   <dt_assoc>
-      <item key="admin">
-      $admin_co
-      </item>
-      <item key="billing">
-      $admin_co
-      </item>
-      <item key="owner">
-      $admin_co
-      </item>
-   </dt_assoc>
-</item>
-<item key="custom_nameservers">0</item>
-<item key="custom_tech_contact">0</item>
-<item key="domain">yahoo.com</item>
-<item key="reg_password">example</item>
-<item key="reg_type">transfer</item>
-<item key="reg_username">example</item>
-</dt_assoc>
-</item>
-</dt_assoc>
-</data_block>
-</body>
-</OPS_envelope>
+ <OPS_envelope>
+  <header>
+   <version>0.9</version>
+  </header>
+  <body>
+   <data_block>
+    <dt_assoc>
+     <item key="action">simple_transfer</item>
+     <item key="object">domain</item>
+     <item key="protocol">XCP</item>
+     <item key="attributes">
+      <dt_assoc>
+       <item key="domain_list">
+        <dt_array>
+         <item key="0">
+          <dt_assoc>
+           <item key="auth_info">someauthinfo</item>
+           <item key="domain_name">yahoo.com</item>
+          </dt_assoc>
+         </item>
+        </dt_array>
+       </item>
+      </dt_assoc>
+     </item>
+    </dt_assoc>
+   </data_block>
+  </body>
+ </OPS_envelope>
 EOF
 
-$rc=$dri->domain_transfer_start('yahoo.com',{username => 'example', password => 'example', contact => $cs, registrant_ip => '10.0.10.19'});
+$rc=$dri->domain_transfer_start('yahoo.com',{auth => {pw => 'someauthinfo'}});
 is_string(munge(shift(@R1)),munge($r),'domain_transfer_start');
 is($rc->is_success(),1,'domain_transfer_start is_success');
-is($dri->get_info('id'),3735288,'domain_transfer_start get_info(id)');
+is($dri->get_info('simple_transfer_job_id'),3735288,'domain_transfer_start get_info(id)');
 
 #===Test transfer check===================================
 
 push @R2,<<'EOF';
-<?xml version='1.0' encoding='UTF-8' standalone='no' ?>
-<!DOCTYPE OPS_envelope SYSTEM 'ops.dtd'>
-<OPS_envelope>
-<header>
-<version>0.9</version>
-</header>
-<body>
-<data_block>
-<dt_assoc>
-<item key="protocol">XCP</item>
-<item key="action">REPLY</item>
-<item key="object">DOMAIN</item>
-<item key="is_success">1</item>
-<item key="response_text">Query successful</item>
-<item key="response_code">200</item>
-<item key="attributes">
-<dt_assoc>
-<item key="status">pending_owner</item>
-<item key="transferrable">0</item>
-<item key="reason">Transfer in progress</item>
-<item key="request_address"/>
-<item key="unixtime">1115213766</item>
-<item key="timestamp">Wed May 4 09:36:06 2005</item>
-</dt_assoc>
-</item>
-</dt_assoc>
-</data_block>
-</body>
-</OPS_envelope>
+<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
+ <OPS_envelope>
+  <header>
+   <version>0.9</version>
+  </header>
+  <body>
+   <data_block>
+    <dt_assoc>
+     <item key="protocol">XCP</item>
+     <item key="object">DOMAIN</item>
+     <item key="response_text">Simple transfer job information successfully loaded</item>
+     <item key="action">REPLY</item>
+     <item key="attributes">
+      <dt_assoc>
+       <item key="completion_date">2015-10-13T06:33:45Z</item>
+       <item key="status">completed</item>
+       <item key="name">unspecified - 217906eaa3fbb2b4908fd8ca3b08e3f5</item>
+       <item key="id">3735288</item>
+       <item key="registrant_list">
+        <dt_array>
+        </dt_array>
+       </item>
+       <item key="request_date">2015-10-13T06:33:44Z</item>
+       <item key="domain_list">
+        <dt_array>
+         <item key="0">
+          <dt_assoc>
+           <item key="domain_name">yahoo.com</item>
+           <item key="status">pending</item>
+           <item key="registrant_id">
+           </item>
+           <item key="reason">Transfer in progress</item>
+          </dt_assoc>
+         </item>
+        </dt_array>
+       </item>
+      </dt_assoc>
+     </item>
+     <item key="response_code">200</item>
+     <item key="is_success">1</item>
+    </dt_assoc>
+   </data_block>
+  </body>
+ </OPS_envelope>
 EOF
 
 $r=<<'EOF';
 <?xml version='1.0' encoding='UTF-8' standalone='no' ?>
 <!DOCTYPE OPS_envelope SYSTEM 'ops.dtd'>
-<OPS_envelope>
-<header>
-<version>0.9</version>
-</header>
-<body>
-<data_block>
-<dt_assoc>
-<item key="action">check_transfer</item>
-<item key="object">domain</item>
-<item key="protocol">XCP</item>
-<item key="registrant_ip">216.40.46.115</item>
-<item key="attributes">
-<dt_assoc>
-<item key="check_status">1</item>
-<item key="domain">catmas.com</item>
-<item key="get_request_address">1</item>
-</dt_assoc>
-</item>
-</dt_assoc>
-</data_block>
-</body>
-</OPS_envelope>
+ <OPS_envelope>
+  <header>
+   <version>0.9</version>
+  </header>
+  <body>
+   <data_block>
+    <dt_assoc>
+     <item key="action">simple_transfer_status</item>
+     <item key="object">domain</item>
+     <item key="protocol">XCP</item>
+     <item key="attributes">
+      <dt_assoc>
+       <item key="simple_transfer_job_id">3735288</item>
+      </dt_assoc>
+     </item>
+    </dt_assoc>
+   </data_block>
+  </body>
+ </OPS_envelope>
 EOF
 
-$rc=$dri->domain_transfer_query('catmas.com',{username => 'daniel', password => 'guessthis', registrant_ip => '216.40.46.115'});
+$rc=$dri->domain_transfer_query('yahoo.com',{simple_transfer_job_id => '3735288'});
 is_string(munge(shift(@R1)),munge($r),'domain_transfer_query');
 is($rc->is_success(),1,'domain_transfer_query is_success');
-is($dri->get_info('transferrable'),0,'domain_transfer_query get_info(transferrable)');
+is($dri->get_info('status'),'pending','domain_transfer_query get_info(status)');
 is($dri->get_info('reason'),'Transfer in progress','domain_transfer_query get_info(reason)');
-is($dri->get_info('unixtime'),1115213766,'domain_transfer_query get_info(reason)');
+is($dri->get_info('request_date'),'2015-10-13T06:33:44Z','domain_transfer_query get_info(request_date)');
+is($dri->get_info('id'),'3735288','domain_transfer_query get_info(id)');
 
 #===Test transfer cancel===================================
 

@@ -526,7 +526,6 @@ sub transfer_request
  my $msg=$xcp->message();
 
  my %r=(action => 'simple_transfer', object => 'domain');
- $r{registrant_ip}=$rd->{registrant_ip} if exists $rd->{registrant_ip};
 
  my $domain_hash = {domain_name => $domain, auth_info => $rd->{"auth"}->{"pw"}};
  my $domain_array = [$domain_hash];
@@ -582,7 +581,7 @@ sub transfer_query_parse
  $rinfo->{domain}->{$oname}->{action}='simple_transfer_status';
  my $ra=$mes->response_attributes();
  #case when check_transfer was called
- foreach (qw/transferrable status request_address timestamp unixtime reason type noservice name id/) {
+ foreach (qw/transferrable status request_address timestamp unixtime reason type noservice name id completion_date request_date/) {
   $rinfo->{domain}->{$oname}->{$_} = $ra->{$_} if exists $ra->{$_};
  }
  
@@ -592,7 +591,7 @@ sub transfer_query_parse
 	$rinfo->{domain}->{$oname}->{status} = undef;
 	foreach my $d (@{$ra->{domain_list}}) {
 		if($d->{domain_name} eq $oname) {
-			foreach (qw/domain_name status registrant_id reason/) {
+			foreach (qw/domain_name status registrant_id reason email_address/) {
 			  $rinfo->{domain}->{$oname}->{$_} = $d->{$_} if exists $d->{$_};
 			}
 		}
