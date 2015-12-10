@@ -522,16 +522,22 @@ sub renew_parse
 sub transfer_request
 {
  my ($xcp,$domain,$rd)=@_;
-
- my $msg=$xcp->message();
-
- my %r=(action => 'simple_transfer', object => 'domain');
-
- my $domain_hash = {domain_name => $domain, auth_info => $rd->{"auth"}->{"pw"}};
- my $domain_array = [$domain_hash];
  
- $msg->command(\%r);
- $msg->command_attributes({domain_list => $domain_array});
+ my $do_simple = $rd->{"do_simple_transfer"};
+ if (defined($do_simple) && $do_simple == 1) {
+	my $msg=$xcp->message();
+
+	my %r=(action => 'simple_transfer', object => 'domain');
+
+	my $domain_hash = {domain_name => $domain, auth_info => $rd->{"auth"}->{"pw"}};
+	my $domain_array = [$domain_hash];
+
+	$msg->command(\%r);
+	$msg->command_attributes({domain_list => $domain_array});
+	return;
+ }
+ 
+ sw_register($xcp, $domain, $rd, 'transfer');
 }
 
 sub transfer_request_parse
@@ -540,9 +546,9 @@ sub transfer_request_parse
  my $mes=$xcp->message();
  return unless $mes->is_success();
 
- $rinfo->{domain}->{$oname}->{action}='simple_transfer';
+ $rinfo->{domain}->{$oname}->{action}='transfer_start';
  my $ra=$mes->response_attributes();
- foreach (qw/simple_transfer_job_id/) {
+ foreach (qw/simple_transfer_job_id admin_email cancelled_orders error id queue_request_id forced_pending whois_privacy/) {
   $rinfo->{domain}->{$oname}->{$_} = $ra->{$_} if exists $ra->{$_};
  }
 }
@@ -578,7 +584,7 @@ sub transfer_query_parse
  my $mes=$xcp->message();
  return unless $mes->is_success();
 
- $rinfo->{domain}->{$oname}->{action}='simple_transfer_status';
+ $rinfo->{domain}->{$oname}->{action}='check_transfer';
  my $ra=$mes->response_attributes();
  #case when check_transfer was called
  foreach (qw/transferrable status request_address timestamp unixtime reason type noservice name id completion_date request_date/) {
