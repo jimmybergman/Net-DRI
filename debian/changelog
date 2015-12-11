@@ -1,4 +1,6 @@
-libnet-dri-perl (0.96-44atomia) unstable; urgency=low
+libnet-dri-perl (0.96-45atomia) unstable; urgency=low
+  * Refactored OpenSRS driver to allow simple transfers but default to the old
+    style
   * Refactored OpenSRS driver to use simple transfers
   * Support contact extensions in Openprovider and RRPProxy drivers
   * Add Openprovider and RRPProxy drivers
