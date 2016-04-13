@@ -232,7 +232,7 @@ sub sw_register
 
  Net::DRI::Exception::usererr_insufficient_parameters('contacts are mandatory') unless Net::DRI::Util::has_contact($rd);
  my $cs=$rd->{contact};
- foreach my $t (qw/registrant admin billing/)
+ foreach my $t (qw/registrant/)
  {
   my @t=$cs->get($t);
   Net::DRI::Exception::usererr_invalid_parameters('one ' . $t . ' contact is mandatory') unless @t==1;
