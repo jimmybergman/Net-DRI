@@ -487,7 +487,9 @@ sub renew
  Net::DRI::Exception::usererr_insufficient_parameters('duration is mandatory') unless Net::DRI::Util::has_duration($rd);
  Net::DRI::Exception::usererr_insufficient_parameters('current expiration is mandatory') unless (Net::DRI::Util::has_key($rd, 'current_expiration') && Net::DRI::Util::check_isa($rd->{current_expiration}, 'DateTime')); # Can get this from set_cookie response.
 
- my $attr = {domain => $domain, period => $rd->{duration}->years(), currentexpirationyear => $rd->{current_expiration}->year()};
+ my $handle = 'process';
+ $handle = $rd->{handle} if Net::DRI::Util::has_key($rd, 'handle');
+ my $attr = {domain => $domain, period => $rd->{duration}->years(), currentexpirationyear => $rd->{current_expiration}->year(), handle => $handle};
 
  # These are all the OpenSRS names for optional parameters.  Might need to map generic names to OpenSRS namespace later.
  foreach (qw/auto_renew f_parkp/) {
