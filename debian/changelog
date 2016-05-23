@@ -1,4 +1,8 @@
-libnet-dri-perl (0.96-45atomia) unstable; urgency=low
+libnet-dri-perl (0.96-46atomia) unstable; urgency=low
+  * Fixed renewal in Hexonet/ISPAPI driver since it treated 12 months as the
+    longest possible period, causing all renewals with duration >= 12 months
+    to be rejected.
+  * Added ISPAPI driver.
   * Refactored OpenSRS driver to allow simple transfers but default to the old
     style
   * Refactored OpenSRS driver to use simple transfers

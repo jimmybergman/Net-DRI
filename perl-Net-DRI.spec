@@ -10,7 +10,7 @@
 Summary: Interface to Domain Name Registries/Registrars/Resellers
 Name: perl-Net-DRI
 Version: 0.96
-Release: 45atomia
+Release: 46atomia
 License: Artistic/GPL
 Group: Applications/CPAN
 URL: http://search.cpan.org/dist/Net-DRI/
@@ -75,7 +75,10 @@ find eg/ -type f -exec %{__chmod} a-x {} \;
 %{perl_vendorlib}/Net/DRI.pm
 
 %changelog
-* Mon Dec 11 2015 Jimmy Bergman <jimmy@atomia.com> - 0.96-45atomia
+* Mon May 23 2016 Jimmy Bergman <jimmy@atomia.com> - 0.96-46atomia
+- Updated to version 0.96-46atomia.
+
+* Mon Dec 11 2016 Jimmy Bergman <jimmy@atomia.com> - 0.96-45atomia
 - Updated to version 0.96-45atomia.
 
 * Mon Oct 12 2015 Jimmy Bergman <jimmy@atomia.com> - 0.96-44atomia
