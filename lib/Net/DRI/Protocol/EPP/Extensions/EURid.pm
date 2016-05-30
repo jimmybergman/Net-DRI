@@ -71,15 +71,25 @@ See the LICENSE file that comes with this distribution for more details.
 
 sub setup
 {
- my ($self,$rp)=@_;
+ my ($self,$rp,$params)=@_;
  my $version=$self->version();
 
- foreach my $w (qw/contact-ext domain-ext nsgroup/)
+ my $default_ns_versions = {
+		'domain-ext_version' => '2.0',
+		'domain-ext_version_xsd' => '2.0',
+		'contact-ext_version' => '1.1',
+		'contact-ext_version_xsd' => '1.1',
+		'nsgroup_version' => '1.1',
+		'nsgroup_version_xsd' => '1.1',
+		'registrar_version' => '1.0',
+		'registrar_version_xsd' => '1.1'
+	};
+ foreach my $w (qw/contact-ext nsgroup domain-ext registrar/)
  {
-  $self->ns({ $w => ['http://www.eurid.eu/xml/epp/'.$w.'-1.1',$w.'-1.1.xsd'] });
+	my $v = (defined($params) && ref($params) eq "HASH" && defined($params->{$w."_version"})) ? $params->{$w."_version"} : $default_ns_versions->{$w."_version"};
+	my $v_xsd = (defined($params) && ref($params) eq "HASH" && defined($params->{$w."_version_xsd"})) ? $params->{$w."_version_xsd"} : $default_ns_versions->{$w."_version_xsd"};
+	$self->ns({ $w => ['http://www.eurid.eu/xml/epp/'.$w.'-'.$v,$w.'-'.$v_xsd.'.xsd'] });
  }
-
- $self->ns({ registrar => ['http://www.eurid.eu/xml/epp/registrar-1.0','registrar-1.1.xsd'] });
 
  $self->capabilities('contact_update','status',undef); ## No changes in status possible for .EU domains/contacts
  $self->capabilities('domain_update','status',undef);
