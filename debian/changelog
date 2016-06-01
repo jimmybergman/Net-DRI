@@ -1,4 +1,6 @@
 libnet-dri-perl (0.96-46atomia) unstable; urgency=low
+  * Changed EURid extension versions to correspond with EURid API changes
+  * Support for specifying OpenSRS handle when renewing
   * Fixed renewal in Hexonet/ISPAPI driver since it treated 12 months as the
     longest possible period, causing all renewals with duration >= 12 months
     to be rejected.
