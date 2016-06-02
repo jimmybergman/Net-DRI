@@ -749,6 +749,7 @@ $r=<<'EOF';
 <item key="auto_renew">1</item>
 <item key="currentexpirationyear">2009</item>
 <item key="domain">example.com</item>
+<item key="handle">process</item>
 <item key="period">5</item>
 </dt_assoc>
 </item>
