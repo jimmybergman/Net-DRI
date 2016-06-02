@@ -78,7 +78,7 @@ find eg/ -type f -exec %{__chmod} a-x {} \;
 * Mon May 23 2016 Jimmy Bergman <jimmy@atomia.com> - 0.96-46atomia
 - Updated to version 0.96-46atomia.
 
-* Mon Dec 11 2016 Jimmy Bergman <jimmy@atomia.com> - 0.96-45atomia
+* Mon Dec 11 2015 Jimmy Bergman <jimmy@atomia.com> - 0.96-45atomia
 - Updated to version 0.96-45atomia.
 
 * Mon Oct 12 2015 Jimmy Bergman <jimmy@atomia.com> - 0.96-44atomia
